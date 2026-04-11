@@ -1,50 +1,14 @@
-# Welcome to your Expo app 👋
+# StarDust Notes
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Capture the stardust of your thoughts. Share voice memos, articles, or web snippets instantly—AI distills key insights and builds your personal knowledge universe.
 
-## Get started
+## Features
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- **Voice Memos**: Record your thoughts on the go. AI transcribes and extracts key insights.
+- **Article Summarization**: Save articles or web snippets. AI summarizes and highlights key points.
+- **Knowledge Graph**: Visualize connections between your notes and insights.
+- **Search & Organization**: Easily find and organize your notes with tags and categories.
+- **Cross-Platform**: Access your stardust from any device, anytime.
+- **Privacy First**: Your data is yours. We prioritize security and privacy in all our features.
+- **AI-Powered Insights**: Let AI help you discover patterns and connections in your notes, turning stardust into a constellation of knowledge.
+- **OS Integration**: Seamlessly integrate with your device's OS for quick access and effortless note-taking.
