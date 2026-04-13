@@ -1,8 +1,9 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { Ionicons } from "@expo/vector-icons";
-import * as Clipboard from "expo-clipboard";
 import { streamText } from "ai";
+import * as Clipboard from "expo-clipboard";
 import { router, Stack } from "expo-router";
+import { fetch as expoFetch } from "expo/fetch";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -48,7 +49,12 @@ const toModelMessages = (messages: ChatMessage[]) =>
 export default function Index() {
   const { config, ready } = useConfig();
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: "m1", role: "assistant", content: "Hi! How can I help?", status: "done" },
+    {
+      id: "m1",
+      role: "assistant",
+      content: "Hi! How can I help?",
+      status: "done",
+    },
   ]);
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
   const [text, setText] = useState("");
@@ -133,8 +139,8 @@ export default function Index() {
         name: "openai-compact",
         baseURL: config.baseURL,
         apiKey: config.apiKey,
+        fetch: expoFetch as any,
       });
-
       const result = streamText({
         model: provider(config.model),
         messages: toModelMessages(nextMessages),
@@ -266,7 +272,9 @@ export default function Index() {
                       <ActivityIndicator size="small" color="#6B7280" />
                     </View>
                   ) : (
-                    <Text style={[styles.bubbleText, isUser && styles.userText]}>
+                    <Text
+                      style={[styles.bubbleText, isUser && styles.userText]}
+                    >
                       {item.content}
                     </Text>
                   )}
@@ -283,7 +291,11 @@ export default function Index() {
                           onPress={() => void copyMessage(item.content)}
                           style={styles.metaIconButton}
                         >
-                          <Ionicons name="copy-outline" size={14} color="#6B7280" />
+                          <Ionicons
+                            name="copy-outline"
+                            size={14}
+                            color="#6B7280"
+                          />
                         </Pressable>
                       ) : null}
                       {canRetry ? (
