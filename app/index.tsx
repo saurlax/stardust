@@ -1,7 +1,7 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import { generateText } from "ai";
+import { streamText } from "ai";
 import { router, Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -20,7 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useConfig } from "../context/config";
 
 type MessageRole = "user" | "assistant";
-type MessageStatus = "pending" | "done" | "error" | "retrying";
+type MessageStatus = "pending" | "streaming" | "done" | "error" | "retrying";
 
 type ChatMessage = {
   id: string;
@@ -67,6 +67,15 @@ export default function Index() {
   const replaceMessage = (id: string, next: ChatMessage) => {
     setMessages((prev) =>
       prev.map((message) => (message.id === id ? next : message)),
+    );
+  };
+
+  const updateMessage = (
+    id: string,
+    updater: (message: ChatMessage) => ChatMessage,
+  ) => {
+    setMessages((prev) =>
+      prev.map((message) => (message.id === id ? updater(message) : message)),
     );
   };
 
@@ -126,20 +135,32 @@ export default function Index() {
         apiKey: config.apiKey,
       });
 
-      const { text: responseText } = await generateText({
+      const result = streamText({
         model: provider(config.model),
         messages: toModelMessages(nextMessages),
         temperature: Number(config.temperature) || 0.7,
       });
+      let streamedText = "";
 
-      const assistantMessage: ChatMessage = {
+      for await (const delta of result.textStream) {
+        streamedText += delta;
+        updateMessage(targetMessageId, (message) => ({
+          ...message,
+          role: "assistant",
+          content: streamedText,
+          status: "streaming",
+          error: undefined,
+          request: { prompt: trimmed },
+        }));
+      }
+
+      replaceMessage(targetMessageId, {
         id: `${Date.now()}-a`,
         role: "assistant",
-        content: responseText.trim() || "No response.",
+        content: streamedText.trim() || "No response.",
         status: "done",
         request: { prompt: trimmed },
-      };
-      replaceMessage(targetMessageId, assistantMessage);
+      });
     } catch (cause) {
       const message =
         cause instanceof Error ? cause.message : "Request failed.";
@@ -213,15 +234,16 @@ export default function Index() {
             const isUser = item.role === "user";
             const isError = item.status === "error";
             const isPending = item.status === "pending";
+            const isStreaming = item.status === "streaming";
             const isRetrying = item.status === "retrying";
-            const isLoading = isPending || isRetrying;
+            const isLoading = isPending || isStreaming || isRetrying;
             const canCopy = item.role === "assistant" && !isLoading;
             const canRetry =
               item.role === "assistant" &&
               !isLoading &&
               !!item.request?.prompt &&
               !sending;
-            const showMeta = isRetrying || canCopy || canRetry;
+            const showMeta = isStreaming || isRetrying || canCopy || canRetry;
             return (
               <View
                 style={[
