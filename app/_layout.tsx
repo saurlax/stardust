@@ -1,5 +1,11 @@
 import { Stack } from "expo-router";
 
+import { ConfigProvider } from "../context/config";
+
 export default function RootLayout() {
-  return <Stack />;
+  return (
+    <ConfigProvider>
+      <Stack screenOptions={{ headerShadowVisible: false }} />
+    </ConfigProvider>
+  );
 }
