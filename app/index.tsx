@@ -1,9 +1,11 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { generateText } from "ai";
 import { router, Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -17,29 +19,36 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useConfig } from "../context/config";
 
+type MessageRole = "user" | "assistant";
+type MessageStatus = "pending" | "done" | "error" | "retrying";
+
 type ChatMessage = {
   id: string;
-  role: "user" | "assistant" | "error";
-  text: string;
-  prompt?: string;
-  retrying?: boolean;
+  role: MessageRole;
+  content: string;
+  status: MessageStatus;
+  error?: string;
+  request?: {
+    prompt: string;
+  };
 };
 
 const toModelMessages = (messages: ChatMessage[]) =>
   messages
     .filter(
-      (message): message is ChatMessage & { role: "user" | "assistant" } =>
-        message.role !== "error",
+      (message): message is ChatMessage & { role: MessageRole } =>
+        message.role === "user" ||
+        (message.role === "assistant" && message.status !== "error"),
     )
     .map((message) => ({
       role: message.role,
-      content: [{ type: "text" as const, text: message.text }],
+      content: [{ type: "text" as const, text: message.content }],
     }));
 
 export default function Index() {
   const { config, ready } = useConfig();
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: "m1", role: "assistant", text: "Hi! How can I help?" },
+    { id: "m1", role: "assistant", content: "Hi! How can I help?", status: "done" },
   ]);
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
   const [text, setText] = useState("");
@@ -72,9 +81,11 @@ export default function Index() {
     if (!config.apiKey || !config.baseURL || !config.model) {
       const errorMessage: ChatMessage = {
         id: `${Date.now()}-e`,
-        role: "error",
-        text: "OpenAI-compatible settings are incomplete.",
-        prompt: trimmed,
+        role: "assistant",
+        content: "OpenAI-compatible settings are incomplete.",
+        status: "error",
+        error: "OpenAI-compatible settings are incomplete.",
+        request: { prompt: trimmed },
       };
       if (replaceMessageId) {
         replaceMessage(replaceMessageId, errorMessage);
@@ -87,11 +98,20 @@ export default function Index() {
     const userMessage: ChatMessage = {
       id: `${Date.now()}-u`,
       role: "user",
-      text: trimmed,
+      content: trimmed,
+      status: "done",
+    };
+    const pendingMessage: ChatMessage = {
+      id: `${Date.now()}-p`,
+      role: "assistant",
+      content: "",
+      status: "pending",
+      request: { prompt: trimmed },
     };
     const nextMessages = reuseUserMessage
       ? messagesRef.current
-      : [...messagesRef.current, userMessage];
+      : [...messagesRef.current, userMessage, pendingMessage];
+    const targetMessageId = replaceMessageId ?? pendingMessage.id;
 
     setText("");
     if (!reuseUserMessage) {
@@ -115,28 +135,23 @@ export default function Index() {
       const assistantMessage: ChatMessage = {
         id: `${Date.now()}-a`,
         role: "assistant",
-        text: responseText.trim() || "No response.",
-        prompt: trimmed,
+        content: responseText.trim() || "No response.",
+        status: "done",
+        request: { prompt: trimmed },
       };
-      if (replaceMessageId) {
-        replaceMessage(replaceMessageId, assistantMessage);
-      } else {
-        addMessage(assistantMessage);
-      }
+      replaceMessage(targetMessageId, assistantMessage);
     } catch (cause) {
       const message =
         cause instanceof Error ? cause.message : "Request failed.";
       const errorMessage: ChatMessage = {
         id: `${Date.now()}-e`,
-        role: "error",
-        text: message,
-        prompt: trimmed,
+        role: "assistant",
+        content: message,
+        status: "error",
+        error: message,
+        request: { prompt: trimmed },
       };
-      if (replaceMessageId) {
-        replaceMessage(replaceMessageId, errorMessage);
-      } else {
-        addMessage(errorMessage);
-      }
+      replaceMessage(targetMessageId, errorMessage);
     } finally {
       setSending(false);
     }
@@ -146,14 +161,17 @@ export default function Index() {
 
   const sendVoicePlaceholder = () => sendPrompt("Voice message");
 
+  const copyMessage = async (content: string) => {
+    await Clipboard.setStringAsync(content);
+  };
+
   const retryMessage = (message: ChatMessage) => {
-    if (!message.prompt) return;
+    if (!message.request?.prompt) return;
     replaceMessage(message.id, {
       ...message,
-      text: "Retrying...",
-      retrying: true,
+      status: "retrying",
     });
-    void sendPrompt(message.prompt, true, message.id);
+    void sendPrompt(message.request.prompt, true, message.id);
   };
 
   return (
@@ -193,9 +211,17 @@ export default function Index() {
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
             const isUser = item.role === "user";
-            const isError = item.role === "error";
+            const isError = item.status === "error";
+            const isPending = item.status === "pending";
+            const isRetrying = item.status === "retrying";
+            const isLoading = isPending || isRetrying;
+            const canCopy = item.role === "assistant" && !isLoading;
             const canRetry =
-              item.role !== "user" && !!item.prompt && !sending && !item.retrying;
+              item.role === "assistant" &&
+              !isLoading &&
+              !!item.request?.prompt &&
+              !sending;
+            const showMeta = isRetrying || canCopy || canRetry;
             return (
               <View
                 style={[
@@ -213,19 +239,43 @@ export default function Index() {
                         : styles.bubbleAssistant,
                   ]}
                 >
-                  <Text style={[styles.bubbleText, isUser && styles.userText]}>
-                    {item.text}
-                  </Text>
-                  {canRetry ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Retry message"
-                      hitSlop={10}
-                      onPress={() => retryMessage(item)}
-                      style={styles.retryButton}
-                    >
-                      <Text style={styles.retryButtonText}>Retry</Text>
-                    </Pressable>
+                  {isPending ? (
+                    <View style={styles.pendingRow}>
+                      <ActivityIndicator size="small" color="#6B7280" />
+                    </View>
+                  ) : (
+                    <Text style={[styles.bubbleText, isUser && styles.userText]}>
+                      {item.content}
+                    </Text>
+                  )}
+                  {showMeta ? (
+                    <View style={styles.messageMeta}>
+                      {isLoading ? (
+                        <ActivityIndicator size="small" color="#6B7280" />
+                      ) : null}
+                      {canCopy ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Copy message"
+                          hitSlop={10}
+                          onPress={() => void copyMessage(item.content)}
+                          style={styles.metaIconButton}
+                        >
+                          <Ionicons name="copy-outline" size={14} color="#6B7280" />
+                        </Pressable>
+                      ) : null}
+                      {canRetry ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Retry message"
+                          hitSlop={10}
+                          onPress={() => retryMessage(item)}
+                          style={styles.metaIconButton}
+                        >
+                          <Ionicons name="refresh" size={14} color="#6B7280" />
+                        </Pressable>
+                      ) : null}
+                    </View>
                   ) : null}
                 </View>
               </View>
@@ -337,15 +387,27 @@ const styles = StyleSheet.create({
   bubbleUser: { backgroundColor: "#2563EB" },
   bubbleText: { fontSize: 16, lineHeight: 20, color: "#111827" },
   userText: { color: "#FFFFFF" },
-  retryButton: {
-    alignSelf: "flex-start",
+  pendingRow: {
+    minWidth: 24,
+    minHeight: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  messageMeta: {
     marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  metaIconButton: {
+    alignSelf: "flex-start",
+    width: 22,
+    height: 22,
     borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#FFFFFF",
   },
-  retryButtonText: { color: "#111827", fontSize: 12, fontWeight: "600" },
   inputBar: {
     flexDirection: "row",
     alignItems: "center",
