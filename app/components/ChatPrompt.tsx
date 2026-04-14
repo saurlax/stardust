@@ -35,7 +35,7 @@ export function ChatPrompt({
         onPress={() =>
           onInputModeChange(inputMode === "text" ? "voice" : "text")
         }
-        style={[styles.iconButton, styles.leftButton]}
+        style={styles.iconButton}
       >
         <Ionicons
           name={inputMode === "text" ? "mic" : "keypad"}
@@ -81,7 +81,7 @@ export function ChatPrompt({
           accessibilityRole="button"
           accessibilityLabel="Add"
           hitSlop={10}
-          style={[styles.iconButton, styles.rightButton]}
+          style={styles.iconButton}
           onPress={onPressAdd}
         >
           <Ionicons name="add" size={26} color="#111827" />
@@ -95,6 +95,7 @@ const styles = StyleSheet.create({
   inputBar: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -120,9 +121,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
   },
   voiceText: { fontSize: 16, color: "#111827" },
-  rightActions: { flexDirection: "row", alignItems: "center" },
-  leftButton: { marginRight: 8 },
-  rightButton: { marginLeft: 6 },
+  rightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   iconButton: {
     width: 38,
     height: 38,
