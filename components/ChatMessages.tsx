@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 
-import type { ChatMessage } from "../chat/types";
+import type { ChatMessage } from "@/lib/chat/types";
 
 type ChatMessagesProps = {
   messages: ChatMessage[];

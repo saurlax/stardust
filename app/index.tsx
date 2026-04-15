@@ -14,10 +14,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useConfig } from "../context/config";
-import type { ChatMessage, MessageRole } from "./chat/types";
-import { ChatMessages } from "./components/ChatMessages";
-import { ChatPrompt } from "./components/ChatPrompt";
+import { ChatMessages } from "@/components/ChatMessages";
+import { ChatPrompt } from "@/components/ChatPrompt";
+import { useConfig } from "@/context/config";
+import type { ChatMessage, MessageRole } from "@/lib/chat/types";
 
 const toModelMessages = (messages: ChatMessage[]) =>
   messages

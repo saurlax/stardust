@@ -12,8 +12,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useConfig } from "../context/config";
-import { type AiConfig, createDefaultAiConfig } from "../lib/config";
+import { useConfig } from "@/context/config";
+import { type AiConfig, createDefaultAiConfig } from "@/lib/config";
 
 const ProviderField = ({ label, value }: { label: string; value: string }) => (
   <View style={styles.field}>

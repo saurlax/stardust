@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 
-import { ConfigProvider } from "../context/config";
+import { ConfigProvider } from "@/context/config";
 
 export default function RootLayout() {
   return (

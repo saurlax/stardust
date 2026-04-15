@@ -7,7 +7,7 @@ import {
     resetAiConfig,
     sanitizeAiConfig,
     saveAiConfig,
-} from "../lib/config";
+} from "@/lib/config";
 
 type ConfigContextValue = {
   config: AiConfig;
