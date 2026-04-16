@@ -1,6 +1,7 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { Ionicons } from "@expo/vector-icons";
 import { streamText } from "ai";
+import * as ImagePicker from "expo-image-picker";
 import { router, Stack } from "expo-router";
 import { fetch as expoFetch } from "expo/fetch";
 import { useEffect, useRef, useState } from "react";
@@ -172,6 +173,38 @@ export default function Index() {
 
   const sendVoicePlaceholder = () => sendPrompt("Voice message");
 
+  const openCamera = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      addMessage({
+        id: `${Date.now()}-camera-permission`,
+        role: "assistant",
+        content: "Camera permission is required to take photos.",
+        status: "error",
+      });
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        quality: 0.9,
+      });
+
+      if (!result.canceled) {
+        setText(result.assets[0]?.uri ?? "");
+      }
+    } catch {
+      addMessage({
+        id: `${Date.now()}-camera-failed`,
+        role: "assistant",
+        content: "Failed to open camera.",
+        status: "error",
+      });
+    }
+  };
+
   const retryMessage = (message: ChatMessage) => {
     if (!message.request?.prompt) return;
     replaceMessage(message.id, {
@@ -226,7 +259,7 @@ export default function Index() {
           onInputModeChange={setInputMode}
           onSendText={sendText}
           onSendVoice={sendVoicePlaceholder}
-          onPressCamera={() => {}}
+          onPressCamera={() => void openCamera()}
           onPressAdd={() => {}}
         />
       </KeyboardAvoidingView>
