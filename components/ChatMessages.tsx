@@ -3,6 +3,7 @@ import * as Clipboard from "expo-clipboard";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -42,7 +43,7 @@ export function ChatMessages({
         const canRetry =
           item.role === "assistant" &&
           !isLoading &&
-          !!item.request?.prompt &&
+          (!!item.request?.prompt || !!item.request?.imageUri) &&
           !sending;
         const showMeta = isStreaming || isRetrying || canCopy || canRetry;
 
@@ -68,9 +69,21 @@ export function ChatMessages({
                   <ActivityIndicator size="small" color="#6B7280" />
                 </View>
               ) : (
-                <Text style={[styles.bubbleText, isUser && styles.userText]}>
-                  {item.content}
-                </Text>
+                <>
+                  {item.content ? (
+                    <Text
+                      style={[styles.bubbleText, isUser && styles.userText]}
+                    >
+                      {item.content}
+                    </Text>
+                  ) : null}
+                  {item.imageUri ? (
+                    <Image
+                      source={{ uri: item.imageUri }}
+                      style={styles.messageImage}
+                    />
+                  ) : null}
+                </>
               )}
               {showMeta ? (
                 <View style={styles.messageMeta}>
@@ -130,6 +143,13 @@ const styles = StyleSheet.create({
     minHeight: 20,
     alignItems: "center",
     justifyContent: "center",
+  },
+  messageImage: {
+    marginTop: 8,
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: "#E5E7EB",
   },
   messageMeta: {
     marginTop: 8,

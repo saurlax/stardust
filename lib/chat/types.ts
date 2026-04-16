@@ -11,8 +11,11 @@ export type ChatMessage = {
   role: MessageRole;
   content: string;
   status: MessageStatus;
+  imageUri?: string;
+  imageMimeType?: string;
   error?: string;
   request?: {
     prompt: string;
+    imageUri?: string;
   };
 };

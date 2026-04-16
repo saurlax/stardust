@@ -1,17 +1,17 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { Ionicons } from "@expo/vector-icons";
-import { streamText } from "ai";
+import { type ModelMessage, streamText } from "ai";
 import * as ImagePicker from "expo-image-picker";
 import { router, Stack } from "expo-router";
 import { fetch as expoFetch } from "expo/fetch";
 import { useEffect, useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -20,17 +20,13 @@ import { ChatPrompt } from "@/components/ChatPrompt";
 import { useConfig } from "@/context/config";
 import type { ChatMessage, MessageRole } from "@/lib/chat/types";
 
-const toModelMessages = (messages: ChatMessage[]) =>
-  messages
-    .filter(
-      (message): message is ChatMessage & { role: MessageRole } =>
-        message.role === "user" ||
-        (message.role === "assistant" && message.status !== "error"),
-    )
-    .map((message) => ({
-      role: message.role,
-      content: [{ type: "text" as const, text: message.content }],
-    }));
+const DEFAULT_IMAGE_PROMPT = "解释图片";
+
+const readImageBinary = async (uri: string) => {
+  const response = await expoFetch(uri);
+  const buffer = await response.arrayBuffer();
+  return new Uint8Array(buffer);
+};
 
 export default function Index() {
   const { config, ready } = useConfig();
@@ -44,6 +40,8 @@ export default function Index() {
   ]);
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
   const [text, setText] = useState("");
+  const [selectedImageUri, setSelectedImageUri] = useState<string>();
+  const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>();
   const [sending, setSending] = useState(false);
   const messagesRef = useRef(messages);
 
@@ -70,13 +68,66 @@ export default function Index() {
     );
   };
 
+  const toModelMessages = async (
+    inputMessages: ChatMessage[],
+  ): Promise<ModelMessage[]> => {
+    const mapped = await Promise.all(
+      inputMessages
+        .filter(
+          (message): message is ChatMessage & { role: MessageRole } =>
+            message.role === "user" ||
+            (message.role === "assistant" && message.status !== "error"),
+        )
+        .map(async (message) => {
+          if (message.role === "assistant") {
+            return {
+              role: "assistant" as const,
+              content: [{ type: "text" as const, text: message.content }],
+            };
+          }
+
+          const content = [] as Array<
+            | { type: "text"; text: string }
+            | { type: "image"; image: Uint8Array; mediaType?: string }
+          >;
+
+          if (message.content) {
+            content.push({ type: "text", text: message.content });
+          }
+
+          if (message.imageUri) {
+            const imageBytes = await readImageBinary(message.imageUri);
+            content.push({
+              type: "image",
+              image: imageBytes,
+              mediaType: message.imageMimeType,
+            });
+          }
+
+          if (!content.length) {
+            content.push({ type: "text", text: "" });
+          }
+
+          return {
+            role: "user" as const,
+            content,
+          };
+        }),
+    );
+
+    return mapped;
+  };
+
   const sendPrompt = async (
     prompt: string,
     reuseUserMessage = false,
     replaceMessageId?: string,
   ) => {
     const trimmed = prompt.trim();
-    if (!trimmed || sending || !ready) return;
+    const imageUri = selectedImageUri;
+    const imageMimeType = selectedImageMimeType;
+    const effectivePrompt = trimmed || (imageUri ? DEFAULT_IMAGE_PROMPT : "");
+    if ((!effectivePrompt && !reuseUserMessage) || sending || !ready) return;
 
     if (!config.apiKey || !config.baseURL || !config.model) {
       const errorMessage: ChatMessage = {
@@ -85,7 +136,7 @@ export default function Index() {
         content: "OpenAI-compatible settings are incomplete.",
         status: "error",
         error: "OpenAI-compatible settings are incomplete.",
-        request: { prompt: trimmed },
+        request: { prompt: effectivePrompt, imageUri },
       };
       if (replaceMessageId) {
         replaceMessage(replaceMessageId, errorMessage);
@@ -98,15 +149,17 @@ export default function Index() {
     const userMessage: ChatMessage = {
       id: `${Date.now()}-u`,
       role: "user",
-      content: trimmed,
+      content: effectivePrompt,
       status: "done",
+      imageUri,
+      imageMimeType,
     };
     const pendingMessage: ChatMessage = {
       id: `${Date.now()}-p`,
       role: "assistant",
       content: "",
       status: "pending",
-      request: { prompt: trimmed },
+      request: { prompt: effectivePrompt, imageUri },
     };
     const nextMessages = reuseUserMessage
       ? messagesRef.current
@@ -114,6 +167,8 @@ export default function Index() {
     const targetMessageId = replaceMessageId ?? pendingMessage.id;
 
     setText("");
+    setSelectedImageUri(undefined);
+    setSelectedImageMimeType(undefined);
     if (!reuseUserMessage) {
       setMessages(nextMessages);
     }
@@ -128,7 +183,7 @@ export default function Index() {
       });
       const result = streamText({
         model: provider(config.model),
-        messages: toModelMessages(nextMessages),
+        messages: await toModelMessages(nextMessages),
         temperature: Number(config.temperature) || 0.7,
       });
       let streamedText = "";
@@ -141,7 +196,7 @@ export default function Index() {
           content: streamedText,
           status: "streaming",
           error: undefined,
-          request: { prompt: trimmed },
+          request: { prompt: effectivePrompt, imageUri },
         }));
       }
 
@@ -150,7 +205,7 @@ export default function Index() {
         role: "assistant",
         content: streamedText.trim() || "No response.",
         status: "done",
-        request: { prompt: trimmed },
+        request: { prompt: effectivePrompt, imageUri },
       });
     } catch (cause) {
       const message =
@@ -161,7 +216,7 @@ export default function Index() {
         content: message,
         status: "error",
         error: message,
-        request: { prompt: trimmed },
+        request: { prompt: effectivePrompt, imageUri },
       };
       replaceMessage(targetMessageId, errorMessage);
     } finally {
@@ -189,11 +244,14 @@ export default function Index() {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ["images"],
         allowsEditing: true,
-        quality: 0.9,
+        quality: 0.55,
       });
 
       if (!result.canceled) {
-        setText(result.assets[0]?.uri ?? "");
+        const asset = result.assets[0];
+        if (!asset) return;
+        setSelectedImageUri(asset.uri);
+        setSelectedImageMimeType(asset.mimeType || "image/jpeg");
       }
     } catch {
       addMessage({
@@ -205,13 +263,37 @@ export default function Index() {
     }
   };
 
+  const openLibrary = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        quality: 0.55,
+      });
+
+      if (!result.canceled) {
+        const asset = result.assets[0];
+        if (!asset) return;
+        setSelectedImageUri(asset.uri);
+        setSelectedImageMimeType(asset.mimeType || "image/jpeg");
+      }
+    } catch {
+      addMessage({
+        id: `${Date.now()}-library-failed`,
+        role: "assistant",
+        content: "Failed to open image library.",
+        status: "error",
+      });
+    }
+  };
+
   const retryMessage = (message: ChatMessage) => {
-    if (!message.request?.prompt) return;
+    if (!message.request?.prompt && !message.request?.imageUri) return;
     replaceMessage(message.id, {
       ...message,
       status: "retrying",
     });
-    void sendPrompt(message.request.prompt, true, message.id);
+    void sendPrompt(message.request?.prompt || "", true, message.id);
   };
 
   return (
@@ -255,12 +337,17 @@ export default function Index() {
           inputMode={inputMode}
           text={text}
           sending={sending}
+          selectedImageUri={selectedImageUri}
           onChangeText={setText}
           onInputModeChange={setInputMode}
           onSendText={sendText}
           onSendVoice={sendVoicePlaceholder}
+          onClearSelectedImage={() => {
+            setSelectedImageUri(undefined);
+            setSelectedImageMimeType(undefined);
+          }}
           onPressCamera={() => void openCamera()}
-          onPressAdd={() => {}}
+          onPressAdd={() => void openLibrary()}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
