@@ -9,9 +9,13 @@ const entries = [
   {
     title: "My Journal",
     description: "Review and manage daily summaries",
-    route: "/journal",
+    route: "/journal" as const,
   },
-  { title: "My Schedule", description: "Review and manage schedule summaries" },
+  {
+    title: "My Calendar",
+    description: "Review and manage calendar events",
+    route: "/calendar" as const,
+  },
 ];
 
 export default function PersonalScreen() {
@@ -53,9 +57,7 @@ export default function PersonalScreen() {
               key={entry.title}
               accessibilityRole="button"
               onPress={() => {
-                if (entry.route) {
-                  router.push(entry.route as "/journal");
-                }
+                router.push(entry.route);
               }}
               style={styles.entryCard}
             >
