@@ -7,7 +7,12 @@ export default function RootLayout() {
     <ConfigProvider>
       <Stack
         screenOptions={{ headerShadowVisible: false, statusBarStyle: "dark" }}
-      />
+      >
+        <Stack.Screen
+          name="personal"
+          options={{ animation: "slide_from_right" }}
+        />
+      </Stack>
     </ConfigProvider>
   );
 }

@@ -6,12 +6,12 @@ import { router, Stack } from "expo-router";
 import { fetch as expoFetch } from "expo/fetch";
 import { useEffect, useRef, useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -300,13 +300,26 @@ export default function Index() {
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       <Stack.Screen
         options={{
+          title: "Chat",
+          headerTitleAlign: "center",
           headerTitle: () => (
-            <View>
+            <View style={styles.headerTitle}>
               <Text style={styles.title}>Chat</Text>
               <Text style={styles.subtitle}>
                 {ready ? "OpenAI-compatible provider" : "Loading settings..."}
               </Text>
             </View>
+          ),
+          headerLeft: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open personal page"
+              hitSlop={10}
+              onPress={() => router.push("/personal")}
+              style={styles.menuButton}
+            >
+              <Ionicons name="menu" size={24} color="#111827" />
+            </Pressable>
           ),
           headerRight: () => (
             <Pressable
@@ -356,8 +369,27 @@ export default function Index() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#FFFFFF" },
-  title: { fontSize: 22, fontWeight: "700", color: "#111827" },
-  subtitle: { marginTop: 2, fontSize: 12, color: "#6B7280" },
+  headerTitle: { alignItems: "center", justifyContent: "center" },
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#111827",
+    textAlign: "center",
+  },
+  subtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F9FAFB",
+  },
   settingsButton: {
     width: 40,
     height: 40,
