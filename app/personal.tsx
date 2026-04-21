@@ -1,12 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
 
 const entries = [
-  { title: "My Journal", description: "Review and manage daily summaries" },
+  {
+    title: "My Journal",
+    description: "Review and manage daily summaries",
+    route: "/journal",
+  },
   { title: "My Schedule", description: "Review and manage schedule summaries" },
 ];
 
@@ -48,6 +52,11 @@ export default function PersonalScreen() {
             <Pressable
               key={entry.title}
               accessibilityRole="button"
+              onPress={() => {
+                if (entry.route) {
+                  router.push(entry.route as "/journal");
+                }
+              }}
               style={styles.entryCard}
             >
               <Text style={styles.entryTitle}>{entry.title}</Text>
