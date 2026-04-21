@@ -326,7 +326,7 @@ export default function Index() {
               accessibilityRole="button"
               accessibilityLabel="Open settings"
               hitSlop={10}
-              onPress={() => router.push("/settings" as never)}
+              onPress={() => router.push("/settings")}
               style={styles.settingsButton}
             >
               <Ionicons name="settings-outline" size={22} color="#111827" />
