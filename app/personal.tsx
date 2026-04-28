@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
+import { Card } from "@/components/ui/Card";
+import { theme, ui } from "@/lib/theme";
 
 const entries = [
   {
@@ -40,7 +42,7 @@ export default function PersonalScreen() {
           </View>
         </View>
 
-        <View style={styles.personalCard}>
+        <Card style={styles.personalCard}>
           <NebulaView style={styles.nebulaStage} />
           <View style={styles.personalOverlay}>
             <Text style={styles.personalCardTitle}>Personal Memories</Text>
@@ -49,7 +51,7 @@ export default function PersonalScreen() {
               quiet moments that shape who you are
             </Text>
           </View>
-        </View>
+        </Card>
 
         <View style={styles.section}>
           {entries.map((entry) => (
@@ -72,7 +74,7 @@ export default function PersonalScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#FFFFFF" },
+  screen: ui.screen,
   content: {
     flex: 1,
     padding: 16,
@@ -85,23 +87,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     paddingVertical: 2,
   },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#111111",
-  },
+  avatar: ui.primaryAvatar,
   profileTextWrap: { flex: 1, gap: 3 },
-  profileName: { fontSize: 16, fontWeight: "600", color: "#111827" },
-  profileSubtitle: { fontSize: 12, color: "#6B7280" },
+  profileName: { fontSize: 16, fontWeight: "600", color: theme.colors.text },
+  profileSubtitle: { fontSize: 12, color: theme.colors.textMuted },
   personalCard: {
     position: "relative",
     height: 220,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
     overflow: "hidden",
   },
   personalCardTitle: {
@@ -124,19 +116,19 @@ const styles = StyleSheet.create({
   },
   nebulaStage: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#111111",
+    backgroundColor: theme.colors.text,
   },
   section: { gap: 12 },
   entryCard: {
     minHeight: 72,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
     justifyContent: "center",
   },
-  entryTitle: { fontSize: 16, fontWeight: "600", color: "#111827" },
-  entryDescription: { marginTop: 4, fontSize: 13, color: "#6B7280" },
+  entryTitle: { fontSize: 16, fontWeight: "600", color: theme.colors.text },
+  entryDescription: {
+    marginTop: 4,
+    fontSize: 13,
+    color: theme.colors.textMuted,
+  },
 });

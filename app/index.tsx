@@ -6,19 +6,20 @@ import { router, Stack } from "expo-router";
 import { fetch as expoFetch } from "expo/fetch";
 import { useEffect, useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ChatMessages } from "@/components/ChatMessages";
 import { ChatPrompt } from "@/components/ChatPrompt";
+import { IconButton } from "@/components/ui/IconButton";
 import { useConfig } from "@/context/config";
 import type { ChatMessage, MessageRole } from "@/lib/chat/types";
+import { theme, ui } from "@/lib/theme";
 
 const DEFAULT_IMAGE_PROMPT = "解释图片";
 
@@ -86,10 +87,10 @@ export default function Index() {
             };
           }
 
-          const content = [] as Array<
+          const content: (
             | { type: "text"; text: string }
             | { type: "image"; image: Uint8Array; mediaType?: string }
-          >;
+          )[] = [];
 
           if (message.content) {
             content.push({ type: "text", text: message.content });
@@ -311,26 +312,24 @@ export default function Index() {
             </View>
           ),
           headerLeft: () => (
-            <Pressable
+            <IconButton
               accessibilityRole="button"
               accessibilityLabel="Open personal page"
               hitSlop={10}
               onPress={() => router.push("/personal")}
-              style={styles.menuButton}
             >
               <Ionicons name="menu" size={24} color="#111827" />
-            </Pressable>
+            </IconButton>
           ),
           headerRight: () => (
-            <Pressable
+            <IconButton
               accessibilityRole="button"
               accessibilityLabel="Open settings"
               hitSlop={10}
               onPress={() => router.push("/settings")}
-              style={styles.settingsButton}
             >
               <Ionicons name="settings-outline" size={22} color="#111827" />
-            </Pressable>
+            </IconButton>
           ),
         }}
       />
@@ -368,34 +367,18 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#FFFFFF" },
+  screen: ui.screen,
   headerTitle: { alignItems: "center", justifyContent: "center" },
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#111827",
+    color: theme.colors.text,
     textAlign: "center",
   },
   subtitle: {
     marginTop: 2,
     fontSize: 12,
-    color: "#6B7280",
+    color: theme.colors.textMuted,
     textAlign: "center",
-  },
-  menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F9FAFB",
-  },
-  settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F9FAFB",
   },
 });

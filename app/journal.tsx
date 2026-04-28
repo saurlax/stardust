@@ -2,6 +2,9 @@ import { Stack } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Card } from "@/components/ui/Card";
+import { ui } from "@/lib/theme";
+
 type DiaryEntry = {
   id: string;
   time: string;
@@ -83,10 +86,10 @@ export default function JournalScreen() {
               <View style={styles.cardsCol}>
                 {day.entries.map((entry) => (
                   <View key={entry.id} style={styles.entryRow}>
-                    <View style={styles.entryCard}>
+                    <Card style={styles.entryCard}>
                       <Text style={styles.entryTime}>{entry.time}</Text>
                       <Text style={styles.entryNote}>{entry.note}</Text>
-                    </View>
+                    </Card>
                   </View>
                 ))}
               </View>
@@ -99,26 +102,11 @@ export default function JournalScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#FFFFFF" },
-  content: {
-    padding: 16,
-    paddingBottom: 24,
-    gap: 12,
-  },
-  header: {
-    paddingHorizontal: 2,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  subtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "#6B7280",
-  },
+  screen: ui.screen,
+  content: ui.content,
+  header: ui.header,
+  title: ui.title,
+  subtitle: ui.subtitle,
   dayBlock: {
     position: "relative",
   },
@@ -151,10 +139,6 @@ const styles = StyleSheet.create({
   },
   entryCard: {
     minHeight: 72,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
     paddingHorizontal: 14,
     paddingVertical: 12,
     justifyContent: "center",

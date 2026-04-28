@@ -12,15 +12,17 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Card } from "@/components/ui/Card";
 import { useConfig } from "@/context/config";
 import { type AiConfig, createDefaultAiConfig } from "@/lib/config";
+import { theme, ui } from "@/lib/theme";
 
 const ProviderField = ({ label, value }: { label: string; value: string }) => (
   <View style={styles.field}>
     <Text style={styles.label}>{label}</Text>
-    <View style={[styles.input, styles.readOnlyField]}>
+    <Card style={[styles.input, styles.readOnlyField]}>
       <Text style={styles.readOnlyText}>{value}</Text>
-    </View>
+    </Card>
   </View>
 );
 
@@ -169,37 +171,28 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#FFFFFF" },
+  screen: ui.screen,
   headerSaveButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  headerSaveButtonText: { color: "#111827", fontWeight: "600" },
+  headerSaveButtonText: { color: theme.colors.text, fontWeight: "600" },
   content: {
     padding: 16,
     gap: 14,
   },
-  description: { color: "#6B7280", fontSize: 14, lineHeight: 20 },
+  description: ui.description,
   field: { gap: 6 },
-  label: { fontSize: 13, fontWeight: "600", color: "#111827" },
+  label: ui.label,
   input: {
-    minHeight: 46,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    color: "#111827",
-    backgroundColor: "#FFFFFF",
-    fontSize: 15,
+    ...ui.input,
   },
   readOnlyField: {
-    justifyContent: "center",
-    backgroundColor: "#F9FAFB",
+    ...ui.readOnlyInput,
   },
-  readOnlyText: { color: "#6B7280", fontSize: 15 },
+  readOnlyText: { color: theme.colors.textMuted, fontSize: 15 },
   message: {
-    color: "#065F46",
+    color: theme.colors.success,
     fontSize: 13,
     fontWeight: "600",
   },
@@ -209,7 +202,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: "#FEE2E2",
+    backgroundColor: theme.colors.dangerSoft,
   },
-  resetButtonText: { color: "#991B1B", fontWeight: "600" },
+  resetButtonText: { color: theme.colors.danger, fontWeight: "600" },
 });

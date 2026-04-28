@@ -8,6 +8,9 @@ import {
     View,
 } from "react-native";
 
+import { IconButton } from "@/components/ui/IconButton";
+import { theme } from "@/lib/theme";
+
 type ChatPromptProps = {
   inputMode: "text" | "voice";
   text: string;
@@ -97,24 +100,22 @@ export function ChatPrompt({
         )}
 
         <View style={styles.rightActions}>
-          <Pressable
+          <IconButton
             accessibilityRole="button"
             accessibilityLabel="Camera"
             hitSlop={10}
-            style={styles.iconButton}
             onPress={onPressCamera}
           >
             <Ionicons name="camera" size={22} color="#111827" />
-          </Pressable>
-          <Pressable
+          </IconButton>
+          <IconButton
             accessibilityRole="button"
             accessibilityLabel="Add"
             hitSlop={10}
-            style={styles.iconButton}
             onPress={onPressAdd}
           >
             <Ionicons name="add" size={26} color="#111827" />
-          </Pressable>
+          </IconButton>
         </View>
       </View>
     </View>
@@ -165,8 +166,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 18,
-    backgroundColor: "#F3F4F6",
-    color: "#111827",
+    backgroundColor: theme.colors.surfaceSoft,
+    color: theme.colors.text,
     fontSize: 16,
   },
   voiceButton: {
@@ -175,20 +176,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 18,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: theme.colors.surfaceSoft,
   },
-  voiceText: { fontSize: 16, color: "#111827" },
+  voiceText: { fontSize: 16, color: theme.colors.text },
   rightActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-  },
-  iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F9FAFB",
   },
 });

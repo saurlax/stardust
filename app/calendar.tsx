@@ -1,6 +1,6 @@
 import * as Calendar from "expo-calendar";
 import { Stack } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -11,6 +11,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { Card } from "@/components/ui/Card";
+import { theme, ui } from "@/lib/theme";
 
 type CalendarEvent = {
   id: string;
@@ -140,7 +143,7 @@ export default function CalendarScreen() {
   const [error, setError] = useState<string | null>(null);
   const [days, setDays] = useState<CalendarDay[]>([]);
 
-  const loadCalendarEvents = async () => {
+  const loadCalendarEvents = useCallback(async () => {
     setError(null);
 
     const permission = await Calendar.getCalendarPermissionsAsync();
@@ -163,9 +166,9 @@ export default function CalendarScreen() {
     const events = await Calendar.getEventsAsync([calendarId], from, to);
     const groupedDays = groupEventsByDay(normalizeEvents(events));
     setDays(groupedDays);
-  };
+  }, []);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await loadCalendarEvents();
@@ -175,11 +178,11 @@ export default function CalendarScreen() {
       setRefreshing(false);
       setLoading(false);
     }
-  };
+  }, [loadCalendarEvents]);
 
   useEffect(() => {
     refresh();
-  }, []);
+  }, [refresh]);
 
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
@@ -204,22 +207,22 @@ export default function CalendarScreen() {
         </View>
 
         {loading ? (
-          <View style={styles.stateBox}>
+          <Card style={styles.stateBox}>
             <ActivityIndicator color="#111827" />
             <Text style={styles.stateText}>Loading events...</Text>
-          </View>
+          </Card>
         ) : null}
 
         {!loading && error ? (
-          <View style={styles.stateBox}>
+          <Card style={styles.stateBox}>
             <Text style={styles.errorText}>{error}</Text>
-          </View>
+          </Card>
         ) : null}
 
         {!loading && !error && !days.length ? (
-          <View style={styles.stateBox}>
+          <Card style={styles.stateBox}>
             <Text style={styles.stateText}>No events found for this app.</Text>
-          </View>
+          </Card>
         ) : null}
 
         {!loading && !error
@@ -239,7 +242,7 @@ export default function CalendarScreen() {
 
                   <View style={styles.cardsCol}>
                     {day.events.map((event) => (
-                      <View key={event.id} style={styles.entryCard}>
+                      <Card key={event.id} style={styles.entryCard}>
                         <Text style={styles.entryTime}>
                           {formatTime(event.startDate)} -{" "}
                           {formatTime(event.endDate)}
@@ -248,7 +251,7 @@ export default function CalendarScreen() {
                         {event.location ? (
                           <Text style={styles.entryMeta}>{event.location}</Text>
                         ) : null}
-                      </View>
+                      </Card>
                     ))}
                   </View>
                 </View>
@@ -261,43 +264,24 @@ export default function CalendarScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#FFFFFF" },
-  content: {
-    padding: 16,
-    paddingBottom: 24,
-    gap: 12,
-  },
+  screen: ui.screen,
+  content: ui.content,
   header: {
-    paddingHorizontal: 2,
+    ...ui.header,
     marginBottom: 4,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  subtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "#6B7280",
-  },
+  title: ui.title,
+  subtitle: ui.subtitle,
   stateBox: {
     minHeight: 100,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
     paddingHorizontal: 16,
   },
-  stateText: {
-    color: "#6B7280",
-    fontSize: 13,
-  },
+  stateText: ui.mutedText,
   errorText: {
-    color: "#B91C1C",
+    color: theme.colors.danger,
     fontSize: 13,
     textAlign: "center",
   },
@@ -330,29 +314,25 @@ const styles = StyleSheet.create({
   },
   entryCard: {
     minHeight: 72,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
     paddingHorizontal: 14,
     paddingVertical: 12,
     justifyContent: "center",
   },
   entryTime: {
     fontSize: 12,
-    color: "#6B7280",
+    color: theme.colors.textMuted,
     fontWeight: "500",
   },
   entryTitle: {
     marginTop: 6,
     fontSize: 14,
-    color: "#111827",
+    color: theme.colors.text,
     lineHeight: 20,
     fontWeight: "600",
   },
   entryMeta: {
     marginTop: 4,
     fontSize: 12,
-    color: "#6B7280",
+    color: theme.colors.textMuted,
   },
 });

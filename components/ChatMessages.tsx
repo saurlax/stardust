@@ -1,16 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
+import { IconButton } from "@/components/ui/IconButton";
 import type { ChatMessage } from "@/lib/chat/types";
+import { theme } from "@/lib/theme";
 
 type ChatMessagesProps = {
   messages: ChatMessage[];
@@ -91,26 +92,30 @@ export function ChatMessages({
                     <ActivityIndicator size="small" color="#6B7280" />
                   ) : null}
                   {canCopy ? (
-                    <Pressable
+                    <IconButton
+                      compact
                       accessibilityRole="button"
                       accessibilityLabel="Copy message"
                       hitSlop={10}
                       onPress={() => void copyMessage(item.content)}
-                      style={styles.metaIconButton}
                     >
                       <Ionicons name="copy-outline" size={14} color="#6B7280" />
-                    </Pressable>
+                    </IconButton>
                   ) : null}
                   {canRetry ? (
-                    <Pressable
+                    <IconButton
+                      compact
                       accessibilityRole="button"
                       accessibilityLabel="Retry message"
                       hitSlop={10}
                       onPress={() => onRetryMessage(item)}
-                      style={styles.metaIconButton}
                     >
-                      <Ionicons name="refresh" size={14} color="#6B7280" />
-                    </Pressable>
+                      <Ionicons
+                        name="refresh"
+                        size={14}
+                        color={theme.colors.textMuted}
+                      />
+                    </IconButton>
                   ) : null}
                 </View>
               ) : null}
@@ -156,14 +161,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-  },
-  metaIconButton: {
-    alignSelf: "flex-start",
-    width: 22,
-    height: 22,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
   },
 });
