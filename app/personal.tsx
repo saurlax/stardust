@@ -7,19 +7,6 @@ import { NebulaView } from "@/components/NebulaView";
 import { Card } from "@/components/ui/Card";
 import { theme, ui } from "@/lib/theme";
 
-const entries = [
-  {
-    title: "My Journal",
-    description: "Review and manage daily summaries",
-    route: "/journal" as const,
-  },
-  {
-    title: "My Calendar",
-    description: "Review and manage calendar events",
-    route: "/calendar" as const,
-  },
-];
-
 export default function PersonalScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
@@ -32,7 +19,7 @@ export default function PersonalScreen() {
       <View style={styles.content}>
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={24} color="#FFFFFF" />
+            <Ionicons name="person" size={20} color="#FFFFFF" />
           </View>
           <View style={styles.profileTextWrap}>
             <Text style={styles.profileName}>User</Text>
@@ -42,31 +29,34 @@ export default function PersonalScreen() {
           </View>
         </View>
 
-        <Card style={styles.personalCard}>
-          <NebulaView style={styles.nebulaStage} />
-          <View style={styles.personalOverlay}>
-            <Text style={styles.personalCardTitle}>Personal Memories</Text>
-            <Text style={styles.personalCardDescription}>
-              Meet your digital twin in fragments: the traces, contexts, and
-              quiet moments that shape who you are
-            </Text>
-          </View>
-        </Card>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/memory")}
+        >
+          <Card style={styles.personalCard}>
+            <NebulaView style={styles.nebulaStage} />
+            <View style={styles.personalOverlay}>
+              <Text style={styles.personalCardTitle}>Memory</Text>
+            </View>
+          </Card>
+        </Pressable>
 
-        <View style={styles.section}>
-          {entries.map((entry) => (
-            <Pressable
-              key={entry.title}
-              accessibilityRole="button"
-              onPress={() => {
-                router.push(entry.route);
-              }}
-              style={styles.entryCard}
-            >
-              <Text style={styles.entryTitle}>{entry.title}</Text>
-              <Text style={styles.entryDescription}>{entry.description}</Text>
-            </Pressable>
-          ))}
+        <View style={styles.cardsContainer}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/journal")}
+            style={styles.entryCard}
+          >
+            <Text style={styles.entryTitle}>Journal</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/calendar")}
+            style={styles.entryCard}
+          >
+            <Text style={styles.entryTitle}>Calendar</Text>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
@@ -87,7 +77,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     paddingVertical: 2,
   },
-  avatar: ui.primaryAvatar,
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radii.avatar,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.text,
+  },
   profileTextWrap: { flex: 1, gap: 3 },
   profileName: { fontSize: 16, fontWeight: "600", color: theme.colors.text },
   profileSubtitle: { fontSize: 12, color: theme.colors.textMuted },
@@ -118,7 +115,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: theme.colors.text,
   },
-  section: { gap: 12 },
+  cardsContainer: { gap: 12 },
   entryCard: {
     minHeight: 72,
     paddingHorizontal: 16,
@@ -126,9 +123,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   entryTitle: { fontSize: 16, fontWeight: "600", color: theme.colors.text },
-  entryDescription: {
-    marginTop: 4,
-    fontSize: 13,
-    color: theme.colors.textMuted,
-  },
 });
