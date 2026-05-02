@@ -29,33 +29,51 @@ export default function PersonalScreen() {
           </View>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push("/memory")}
-        >
-          <Card style={styles.personalCard}>
-            <NebulaView style={styles.nebulaStage} />
-            <View style={styles.personalOverlay}>
-              <Text style={styles.personalCardTitle}>Memory</Text>
-            </View>
-          </Card>
-        </Pressable>
-
         <View style={styles.cardsContainer}>
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push("/journal")}
-            style={styles.entryCard}
+            onPress={() => router.push("/memory")}
+            style={[styles.entryCard, styles.memoryEntryCard]}
           >
-            <Text style={styles.entryTitle}>Journal</Text>
+            <Card
+              style={styles.personalCard}
+              background={<NebulaView style={styles.nebulaStage} />}
+              title="Memory"
+              description="Meet your digital twin in fragments"
+              overlayStyle={styles.personalOverlay}
+              titleStyle={styles.personalCardTitle}
+              descriptionStyle={styles.personalCardDescription}
+            />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/journal")}
+            style={styles.tapCard}
+          >
+            <Card
+              style={styles.entryCard}
+              title="Journal"
+              description="Review and manage daily summaries"
+              overlayStyle={styles.entryOverlay}
+              titleStyle={styles.entryTitle}
+              descriptionStyle={styles.entryDescription}
+            />
           </Pressable>
 
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/calendar")}
-            style={styles.entryCard}
+            style={styles.tapCard}
           >
-            <Text style={styles.entryTitle}>Calendar</Text>
+            <Card
+              style={styles.entryCard}
+              title="Calendar"
+              description="Review and manage calendar events"
+              overlayStyle={styles.entryOverlay}
+              titleStyle={styles.entryTitle}
+              descriptionStyle={styles.entryDescription}
+            />
           </Pressable>
         </View>
       </View>
@@ -116,11 +134,29 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.text,
   },
   cardsContainer: { gap: 12 },
+  tapCard: {
+    borderRadius: theme.radii.card,
+  },
   entryCard: {
     minHeight: 72,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  entryOverlay: {
     justifyContent: "center",
   },
+  memoryEntryCard: {
+    minHeight: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+    borderColor: "transparent",
+    borderRadius: 0,
+  },
   entryTitle: { fontSize: 16, fontWeight: "600", color: theme.colors.text },
+  entryDescription: {
+    marginTop: 4,
+    fontSize: 13,
+    color: theme.colors.textMuted,
+  },
 });
