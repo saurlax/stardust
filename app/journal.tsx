@@ -86,8 +86,11 @@ export default function JournalScreen() {
               <View style={styles.cardsCol}>
                 {day.entries.map((entry) => (
                   <View key={entry.id} style={styles.entryRow}>
-                    <Card style={styles.entryCard}>
-                      <Text style={styles.entryTime}>{entry.time}</Text>
+                    <Card
+                      style={styles.entryCard}
+                      description={entry.time}
+                      descriptionStyle={styles.entryTime}
+                    >
                       <Text style={styles.entryNote}>{entry.note}</Text>
                     </Card>
                   </View>
@@ -139,8 +142,6 @@ const styles = StyleSheet.create({
   },
   entryCard: {
     minHeight: 72,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     justifyContent: "center",
   },
   entryTime: {
@@ -149,7 +150,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   entryNote: {
-    marginTop: 6,
     fontSize: 14,
     color: "#111827",
     lineHeight: 20,

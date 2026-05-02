@@ -32,6 +32,7 @@ export function Card({
 }: CardProps) {
   const hasHeader = Boolean(title || description);
   const useOverlayHeader = Boolean(background);
+  const useFlowBody = hasHeader && !useOverlayHeader && Boolean(children);
 
   return (
     <View style={[ui.card, styles.container, style]}>
@@ -57,7 +58,7 @@ export function Card({
             ) : null}
           </View>
         ) : null}
-        {children}
+        {useFlowBody ? <View style={styles.body}>{children}</View> : children}
       </View>
     </View>
   );
@@ -78,6 +79,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     justifyContent: "center",
+  },
+  body: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
