@@ -1,20 +1,21 @@
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/components/ui/Card";
 import { useConfig } from "@/context/config";
 import { type AiConfig, createDefaultAiConfig } from "@/lib/config";
+import { t } from "@/lib/i18n";
 import { theme, ui } from "@/lib/theme";
 
 const ProviderField = ({ label, value }: { label: string; value: string }) => (
@@ -48,7 +49,7 @@ export default function SettingsScreen() {
     setMessage(null);
     try {
       await updateConfig(form);
-      setMessage("Saved locally.");
+      setMessage(t("settings.saved"));
     } finally {
       setSaving(false);
     }
@@ -58,27 +59,27 @@ export default function SettingsScreen() {
     const defaults = createDefaultAiConfig();
     setForm(defaults);
     await resetConfig();
-    setMessage("Reset to defaults.");
+    setMessage(t("settings.reset"));
   };
 
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       <Stack.Screen
         options={{
-          title: "Settings",
+          title: t("settings.title"),
           headerShown: true,
           headerShadowVisible: false,
           headerRight: () => (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Save settings"
+              accessibilityLabel={t("settings.saveSettings")}
               hitSlop={10}
               onPress={onSave}
               disabled={saving || !ready}
               style={styles.headerSaveButton}
             >
               <Text style={styles.headerSaveButtonText}>
-                {saving ? "Saving" : "Save"}
+                {saving ? t("settings.saving") : t("settings.save")}
               </Text>
             </Pressable>
           ),
@@ -93,19 +94,19 @@ export default function SettingsScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.description}>
-            Configure the local OpenAI-compatible provider used by the chat
-            screen.
-          </Text>
+          <Text style={styles.description}>{t("settings.description")}</Text>
 
-          <ProviderField label="Provider" value="openai-compact" />
+          <ProviderField
+            label={t("settings.provider")}
+            value={t("settings.providerValue")}
+          />
 
           <View style={styles.field}>
-            <Text style={styles.label}>Base URL</Text>
+            <Text style={styles.label}>{t("settings.baseURL")}</Text>
             <TextInput
               value={form.baseURL}
               onChangeText={(value) => updateField("baseURL", value)}
-              placeholder="https://api.openai.com/v1"
+              placeholder={t("settings.baseURLPlaceholder")}
               placeholderTextColor="#9CA3AF"
               style={styles.input}
               autoCapitalize="none"
@@ -114,11 +115,11 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>API key</Text>
+            <Text style={styles.label}>{t("settings.apiKey")}</Text>
             <TextInput
               value={form.apiKey}
               onChangeText={(value) => updateField("apiKey", value)}
-              placeholder="sk-..."
+              placeholder={t("settings.apiKeyPlaceholder")}
               placeholderTextColor="#9CA3AF"
               style={styles.input}
               autoCapitalize="none"
@@ -128,11 +129,11 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Model</Text>
+            <Text style={styles.label}>{t("settings.model")}</Text>
             <TextInput
               value={form.model}
               onChangeText={(value) => updateField("model", value)}
-              placeholder="gpt-4o-mini"
+              placeholder={t("settings.modelPlaceholder")}
               placeholderTextColor="#9CA3AF"
               style={styles.input}
               autoCapitalize="none"
@@ -141,11 +142,11 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Temperature</Text>
+            <Text style={styles.label}>{t("settings.temperature")}</Text>
             <TextInput
               value={form.temperature}
               onChangeText={(value) => updateField("temperature", value)}
-              placeholder="0.7"
+              placeholder={t("settings.temperaturePlaceholder")}
               placeholderTextColor="#9CA3AF"
               style={styles.input}
               keyboardType="decimal-pad"
@@ -158,11 +159,13 @@ export default function SettingsScreen() {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Reset settings"
+            accessibilityLabel={t("settings.resetSettings")}
             onPress={onReset}
             style={styles.resetButton}
           >
-            <Text style={styles.resetButtonText}>Reset to defaults</Text>
+            <Text style={styles.resetButtonText}>
+              {t("settings.resetButton")}
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

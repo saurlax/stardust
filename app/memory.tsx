@@ -3,6 +3,7 @@ import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
+import { t } from "@/lib/i18n";
 
 export default function MemoryScreen() {
   return (
@@ -10,7 +11,7 @@ export default function MemoryScreen() {
       <Stack.Screen
         options={{
           headerTransparent: true,
-          headerTitle: "Memory",
+          headerTitle: t("memory.title"),
           headerTitleStyle: styles.headerTitle,
           headerTintColor: "#FFFFFF",
           statusBarStyle: "light",

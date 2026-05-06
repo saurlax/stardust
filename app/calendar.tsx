@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/components/ui/Card";
+import { formatMonthDay, formatTime, t } from "@/lib/i18n";
 import { theme, ui } from "@/lib/theme";
 
 type CalendarEvent = {
@@ -33,26 +34,13 @@ const APP_CALENDAR_TITLE = "Stardust";
 const APP_CALENDAR_NAME = "stardust-internal";
 const APP_CALENDAR_COLOR = "#111827";
 
-const formatDayLabel = (date: Date) =>
-  date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-  });
-
-const formatTime = (date: Date) =>
-  date.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-
 const normalizeEvents = (events: Calendar.Event[]): CalendarEvent[] =>
   events
     .map<CalendarEvent | null>((event) => {
       if (!event.startDate || !event.endDate) return null;
       const normalized: CalendarEvent = {
         id: event.id,
-        title: event.title || "Untitled event",
+        title: event.title || t("calendar.untitledEvent"),
         startDate: new Date(event.startDate),
         endDate: new Date(event.endDate),
       };
@@ -79,7 +67,7 @@ const groupEventsByDay = (events: CalendarEvent[]): CalendarDay[] => {
 
     map.set(dateKey, {
       dateKey,
-      label: formatDayLabel(event.startDate),
+      label: formatMonthDay(event.startDate),
       events: [event],
     });
   }
@@ -153,7 +141,7 @@ export default function CalendarScreen() {
 
     if (!granted.granted) {
       setDays([]);
-      setError("Calendar permission is required to read events.");
+      setError(t("calendar.permissionRequired"));
       return;
     }
 
@@ -173,7 +161,7 @@ export default function CalendarScreen() {
     try {
       await loadCalendarEvents();
     } catch {
-      setError("Failed to load events from calendar.");
+      setError(t("calendar.loadFailed"));
     } finally {
       setRefreshing(false);
       setLoading(false);
@@ -188,7 +176,7 @@ export default function CalendarScreen() {
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       <Stack.Screen
         options={{
-          title: "My Calendar",
+          title: t("calendar.title"),
         }}
       />
 
@@ -200,16 +188,14 @@ export default function CalendarScreen() {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Calendar Events</Text>
-          <Text style={styles.subtitle}>
-            Events created in your Stardust calendar
-          </Text>
+          <Text style={styles.title}>{t("calendar.headerTitle")}</Text>
+          <Text style={styles.subtitle}>{t("calendar.subtitle")}</Text>
         </View>
 
         {loading ? (
           <Card style={styles.stateBox}>
             <ActivityIndicator color="#111827" />
-            <Text style={styles.stateText}>Loading events...</Text>
+            <Text style={styles.stateText}>{t("calendar.loading")}</Text>
           </Card>
         ) : null}
 
@@ -221,7 +207,7 @@ export default function CalendarScreen() {
 
         {!loading && !error && !days.length ? (
           <Card style={styles.stateBox}>
-            <Text style={styles.stateText}>No events found for this app.</Text>
+            <Text style={styles.stateText}>{t("calendar.noEvents")}</Text>
           </Card>
         ) : null}
 

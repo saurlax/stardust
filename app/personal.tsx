@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
 import { Card } from "@/components/ui/Card";
+import { t } from "@/lib/i18n";
 import { theme, ui } from "@/lib/theme";
 
 export default function PersonalScreen() {
@@ -12,7 +13,7 @@ export default function PersonalScreen() {
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       <Stack.Screen
         options={{
-          title: "Personal",
+          title: t("personal.title"),
         }}
       />
 
@@ -22,9 +23,9 @@ export default function PersonalScreen() {
             <Ionicons name="person" size={20} color="#FFFFFF" />
           </View>
           <View style={styles.profileTextWrap}>
-            <Text style={styles.profileName}>User</Text>
+            <Text style={styles.profileName}>{t("personal.profileName")}</Text>
             <Text style={styles.profileSubtitle}>
-              Your personal space and story
+              {t("personal.profileSubtitle")}
             </Text>
           </View>
         </View>
@@ -38,8 +39,8 @@ export default function PersonalScreen() {
             <Card
               style={styles.personalCard}
               background={<NebulaView style={styles.nebulaStage} />}
-              title="Memory"
-              description="Meet your digital twin in fragments"
+              title={t("personal.memoryTitle")}
+              description={t("personal.memoryDescription")}
               overlayStyle={styles.personalOverlay}
               titleStyle={styles.personalCardTitle}
               descriptionStyle={styles.personalCardDescription}
@@ -53,8 +54,8 @@ export default function PersonalScreen() {
           >
             <Card
               style={styles.entryCard}
-              title="Journal"
-              description="Review and manage daily summaries"
+              title={t("personal.journalTitle")}
+              description={t("personal.journalDescription")}
               overlayStyle={styles.entryOverlay}
               titleStyle={styles.entryTitle}
               descriptionStyle={styles.entryDescription}
@@ -68,8 +69,8 @@ export default function PersonalScreen() {
           >
             <Card
               style={styles.entryCard}
-              title="Calendar"
-              description="Review and manage calendar events"
+              title={t("personal.calendarTitle")}
+              description={t("personal.calendarDescription")}
               overlayStyle={styles.entryOverlay}
               titleStyle={styles.entryTitle}
               descriptionStyle={styles.entryDescription}

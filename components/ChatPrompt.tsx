@@ -1,14 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
-    Image,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 import { IconButton } from "@/components/ui/IconButton";
+import { t } from "@/lib/i18n";
 import { theme } from "@/lib/theme";
 
 type ChatPromptProps = {
@@ -48,7 +49,7 @@ export function ChatPrompt({
           />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Remove selected image"
+            accessibilityLabel={t("chat.removeSelectedImage")}
             onPress={onClearSelectedImage}
             style={styles.previewRemoveButton}
           >
@@ -61,7 +62,9 @@ export function ChatPrompt({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
-            inputMode === "text" ? "Switch to voice input" : "Switch to typing"
+            inputMode === "text"
+              ? t("chat.switchToVoiceInput")
+              : t("chat.switchToTyping")
           }
           hitSlop={10}
           onPress={() =>
@@ -80,7 +83,9 @@ export function ChatPrompt({
           <TextInput
             value={text}
             onChangeText={onChangeText}
-            placeholder={sending ? "Thinking..." : "Message"}
+            placeholder={
+              sending ? t("chat.thinking") : t("chat.messagePlaceholder")
+            }
             placeholderTextColor="#9CA3AF"
             style={styles.textInput}
             returnKeyType="send"
@@ -91,18 +96,18 @@ export function ChatPrompt({
         ) : (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Voice input"
+            accessibilityLabel={t("chat.voiceInput")}
             onPress={onSendVoice}
             style={styles.voiceButton}
           >
-            <Text style={styles.voiceText}>Hold to talk</Text>
+            <Text style={styles.voiceText}>{t("chat.holdToTalk")}</Text>
           </Pressable>
         )}
 
         <View style={styles.rightActions}>
           <IconButton
             accessibilityRole="button"
-            accessibilityLabel="Camera"
+            accessibilityLabel={t("chat.camera")}
             hitSlop={10}
             onPress={onPressCamera}
           >
@@ -110,7 +115,7 @@ export function ChatPrompt({
           </IconButton>
           <IconButton
             accessibilityRole="button"
-            accessibilityLabel="Add"
+            accessibilityLabel={t("chat.add")}
             hitSlop={10}
             onPress={onPressAdd}
           >
@@ -158,6 +163,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.surfaceMuted,
   },
   textInput: {
     flex: 1,

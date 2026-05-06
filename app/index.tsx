@@ -6,11 +6,11 @@ import { router, Stack } from "expo-router";
 import { fetch as expoFetch } from "expo/fetch";
 import { useEffect, useRef, useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -19,9 +19,10 @@ import { ChatPrompt } from "@/components/ChatPrompt";
 import { IconButton } from "@/components/ui/IconButton";
 import { useConfig } from "@/context/config";
 import type { ChatMessage, MessageRole } from "@/lib/chat/types";
+import { t } from "@/lib/i18n";
 import { theme, ui } from "@/lib/theme";
 
-const DEFAULT_IMAGE_PROMPT = "解释图片";
+const DEFAULT_IMAGE_PROMPT = t("chat.defaultImagePrompt");
 
 const readImageBinary = async (uri: string) => {
   const response = await expoFetch(uri);
@@ -35,7 +36,7 @@ export default function Index() {
     {
       id: "m1",
       role: "assistant",
-      content: "Hi! How can I help?",
+      content: t("chat.assistantGreeting"),
       status: "done",
     },
   ]);
@@ -134,9 +135,9 @@ export default function Index() {
       const errorMessage: ChatMessage = {
         id: `${Date.now()}-e`,
         role: "assistant",
-        content: "OpenAI-compatible settings are incomplete.",
+        content: t("chat.incompleteSettings"),
         status: "error",
-        error: "OpenAI-compatible settings are incomplete.",
+        error: t("chat.incompleteSettings"),
         request: { prompt: effectivePrompt, imageUri },
       };
       if (replaceMessageId) {
@@ -204,13 +205,13 @@ export default function Index() {
       replaceMessage(targetMessageId, {
         id: `${Date.now()}-a`,
         role: "assistant",
-        content: streamedText.trim() || "No response.",
+        content: streamedText.trim() || t("chat.noResponse"),
         status: "done",
         request: { prompt: effectivePrompt, imageUri },
       });
     } catch (cause) {
       const message =
-        cause instanceof Error ? cause.message : "Request failed.";
+        cause instanceof Error ? cause.message : t("chat.requestFailed");
       const errorMessage: ChatMessage = {
         id: `${Date.now()}-e`,
         role: "assistant",
@@ -227,7 +228,7 @@ export default function Index() {
 
   const sendText = () => sendPrompt(text);
 
-  const sendVoicePlaceholder = () => sendPrompt("Voice message");
+  const sendVoicePlaceholder = () => sendPrompt(t("chat.voiceMessage"));
 
   const openCamera = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -235,7 +236,7 @@ export default function Index() {
       addMessage({
         id: `${Date.now()}-camera-permission`,
         role: "assistant",
-        content: "Camera permission is required to take photos.",
+        content: t("chat.cameraPermissionRequired"),
         status: "error",
       });
       return;
@@ -258,7 +259,7 @@ export default function Index() {
       addMessage({
         id: `${Date.now()}-camera-failed`,
         role: "assistant",
-        content: "Failed to open camera.",
+        content: t("chat.cameraOpenFailed"),
         status: "error",
       });
     }
@@ -282,7 +283,7 @@ export default function Index() {
       addMessage({
         id: `${Date.now()}-library-failed`,
         role: "assistant",
-        content: "Failed to open image library.",
+        content: t("chat.libraryOpenFailed"),
         status: "error",
       });
     }
@@ -301,20 +302,20 @@ export default function Index() {
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       <Stack.Screen
         options={{
-          title: "Chat",
+          title: t("chat.title"),
           headerTitleAlign: "center",
           headerTitle: () => (
             <View style={styles.headerTitle}>
-              <Text style={styles.title}>Chat</Text>
+              <Text style={styles.title}>{t("chat.title")}</Text>
               <Text style={styles.subtitle}>
-                {ready ? "OpenAI-compatible provider" : "Loading settings..."}
+                {ready ? t("chat.providerReady") : t("chat.providerLoading")}
               </Text>
             </View>
           ),
           headerLeft: () => (
             <IconButton
               accessibilityRole="button"
-              accessibilityLabel="Open personal page"
+              accessibilityLabel={t("chat.openPersonalPage")}
               hitSlop={10}
               onPress={() => router.push("/personal")}
             >
@@ -324,7 +325,7 @@ export default function Index() {
           headerRight: () => (
             <IconButton
               accessibilityRole="button"
-              accessibilityLabel="Open settings"
+              accessibilityLabel={t("chat.openSettings")}
               hitSlop={10}
               onPress={() => router.push("/settings")}
             >
