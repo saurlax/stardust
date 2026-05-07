@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card } from "@/components/ui/Card";
+import { Card } from "@/components/ui";
 import { formatMonthDay, locale, t } from "@/lib/i18n";
 import { ui } from "@/lib/theme";
 

@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
-import { Card } from "@/components/ui/Card";
+import { Card } from "@/components/ui";
 import { t } from "@/lib/i18n";
 import { theme, ui } from "@/lib/theme";
 

@@ -1,18 +1,16 @@
-import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
-import { IconButton } from "@/components/ui/IconButton";
+import { Button } from "@/components/ui";
 import type { ChatMessage } from "@/lib/chat/types";
 import { t } from "@/lib/i18n";
-import { theme } from "@/lib/theme";
 
 type ChatMessagesProps = {
   messages: ChatMessage[];
@@ -93,30 +91,28 @@ export function ChatMessages({
                     <ActivityIndicator size="small" color="#6B7280" />
                   ) : null}
                   {canCopy ? (
-                    <IconButton
+                    <Button
                       compact
+                      rounded
+                      color="neutral"
                       accessibilityRole="button"
                       accessibilityLabel={t("chat.copyMessage")}
                       hitSlop={10}
                       onPress={() => void copyMessage(item.content)}
-                    >
-                      <Ionicons name="copy-outline" size={14} color="#6B7280" />
-                    </IconButton>
+                      icon="copy-outline"
+                    />
                   ) : null}
                   {canRetry ? (
-                    <IconButton
+                    <Button
                       compact
+                      rounded
+                      color="neutral"
                       accessibilityRole="button"
                       accessibilityLabel={t("chat.retryMessage")}
                       hitSlop={10}
                       onPress={() => onRetryMessage(item)}
-                    >
-                      <Ionicons
-                        name="refresh"
-                        size={14}
-                        color={theme.colors.textMuted}
-                      />
-                    </IconButton>
+                      icon="refresh"
+                    />
                   ) : null}
                 </View>
               ) : null}

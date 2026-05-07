@@ -3,32 +3,66 @@ import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type KeyboardTypeOptions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card } from "@/components/ui/Card";
+import { Button, Card } from "@/components/ui";
 import { useConfig } from "@/context/config";
-import { type AiConfig, createDefaultAiConfig } from "@/lib/config";
+import { createDefaultAiConfig, type AiConfig } from "@/lib/config";
 import { t } from "@/lib/i18n";
 import { theme, ui } from "@/lib/theme";
 
-const ProviderField = ({ label, value }: { label: string; value: string }) => (
-  <View style={styles.field}>
-    <Text style={styles.label}>{label}</Text>
-    <Card style={[styles.input, styles.readOnlyField]}>
-      <Text style={styles.readOnlyText}>{value}</Text>
-    </Card>
-  </View>
-);
+type SettingsInputFieldProps = {
+  label: string;
+  value: string;
+  placeholder?: string;
+  readOnly?: boolean;
+  secureTextEntry?: boolean;
+  keyboardType?: KeyboardTypeOptions;
+  onChangeText?: (value: string) => void;
+};
+
+function SettingsInputField({
+  label,
+  value,
+  placeholder,
+  readOnly,
+  secureTextEntry,
+  keyboardType,
+  onChangeText,
+}: SettingsInputFieldProps) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      {readOnly ? (
+        <Card style={[styles.input, styles.readOnlyField]}>
+          <Text style={styles.readOnlyText}>{value}</Text>
+        </Card>
+      ) : (
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#9CA3AF"
+          style={styles.input}
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry={secureTextEntry}
+          keyboardType={keyboardType}
+        />
+      )}
+    </View>
+  );
+}
 
 export default function SettingsScreen() {
-  const { config, ready, updateConfig, resetConfig } = useConfig();
+  const { config, ready, updateConfig } = useConfig();
   const [form, setForm] = useState<AiConfig>(createDefaultAiConfig());
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -55,13 +89,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const onReset = async () => {
-    const defaults = createDefaultAiConfig();
-    setForm(defaults);
-    await resetConfig();
-    setMessage(t("settings.reset"));
-  };
-
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       <Stack.Screen
@@ -69,20 +96,6 @@ export default function SettingsScreen() {
           title: t("settings.title"),
           headerShown: true,
           headerShadowVisible: false,
-          headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("settings.saveSettings")}
-              hitSlop={10}
-              onPress={onSave}
-              disabled={saving || !ready}
-              style={styles.headerSaveButton}
-            >
-              <Text style={styles.headerSaveButtonText}>
-                {saving ? t("settings.saving") : t("settings.save")}
-              </Text>
-            </Pressable>
-          ),
         }}
       />
 
@@ -96,77 +109,56 @@ export default function SettingsScreen() {
         >
           <Text style={styles.description}>{t("settings.description")}</Text>
 
-          <ProviderField
+          <SettingsInputField
             label={t("settings.provider")}
             value={t("settings.providerValue")}
+            readOnly
           />
 
-          <View style={styles.field}>
-            <Text style={styles.label}>{t("settings.baseURL")}</Text>
-            <TextInput
-              value={form.baseURL}
-              onChangeText={(value) => updateField("baseURL", value)}
-              placeholder={t("settings.baseURLPlaceholder")}
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
+          <SettingsInputField
+            label={t("settings.baseURL")}
+            value={form.baseURL}
+            onChangeText={(value) => updateField("baseURL", value)}
+            placeholder={t("settings.baseURLPlaceholder")}
+          />
 
-          <View style={styles.field}>
-            <Text style={styles.label}>{t("settings.apiKey")}</Text>
-            <TextInput
-              value={form.apiKey}
-              onChangeText={(value) => updateField("apiKey", value)}
-              placeholder={t("settings.apiKeyPlaceholder")}
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-              autoCapitalize="none"
-              autoCorrect={false}
-              secureTextEntry
-            />
-          </View>
+          <SettingsInputField
+            label={t("settings.apiKey")}
+            value={form.apiKey}
+            onChangeText={(value) => updateField("apiKey", value)}
+            placeholder={t("settings.apiKeyPlaceholder")}
+            secureTextEntry
+          />
 
-          <View style={styles.field}>
-            <Text style={styles.label}>{t("settings.model")}</Text>
-            <TextInput
-              value={form.model}
-              onChangeText={(value) => updateField("model", value)}
-              placeholder={t("settings.modelPlaceholder")}
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
+          <SettingsInputField
+            label={t("settings.model")}
+            value={form.model}
+            onChangeText={(value) => updateField("model", value)}
+            placeholder={t("settings.modelPlaceholder")}
+          />
 
-          <View style={styles.field}>
-            <Text style={styles.label}>{t("settings.temperature")}</Text>
-            <TextInput
-              value={form.temperature}
-              onChangeText={(value) => updateField("temperature", value)}
-              placeholder={t("settings.temperaturePlaceholder")}
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-              keyboardType="decimal-pad"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
+          <SettingsInputField
+            label={t("settings.temperature")}
+            value={form.temperature}
+            onChangeText={(value) => updateField("temperature", value)}
+            placeholder={t("settings.temperaturePlaceholder")}
+            keyboardType="decimal-pad"
+          />
 
           {message ? <Text style={styles.message}>{message}</Text> : null}
 
-          <Pressable
+          <Button
             accessibilityRole="button"
-            accessibilityLabel={t("settings.resetSettings")}
-            onPress={onReset}
-            style={styles.resetButton}
+            accessibilityLabel={t("settings.saveSettings")}
+            onPress={onSave}
+            disabled={saving || !ready}
+            color="primary"
+            variant="soft"
+            block
+            style={styles.saveButton}
           >
-            <Text style={styles.resetButtonText}>
-              {t("settings.resetButton")}
-            </Text>
-          </Pressable>
+            {saving ? t("settings.saving") : t("settings.save")}
+          </Button>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -175,11 +167,6 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   screen: ui.screen,
-  headerSaveButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  headerSaveButtonText: { color: theme.colors.text, fontWeight: "600" },
   content: {
     padding: 16,
     gap: 14,
@@ -199,13 +186,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
-  resetButton: {
+  saveButton: {
     marginTop: 6,
-    alignSelf: "flex-start",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: theme.colors.dangerSoft,
   },
-  resetButtonText: { color: theme.colors.danger, fontWeight: "600" },
 });

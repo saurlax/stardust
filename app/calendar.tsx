@@ -2,17 +2,17 @@ import * as Calendar from "expo-calendar";
 import { Stack } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card } from "@/components/ui/Card";
+import { Card } from "@/components/ui";
 import { formatMonthDay, formatTime, t } from "@/lib/i18n";
 import { theme, ui } from "@/lib/theme";
 

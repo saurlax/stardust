@@ -1,22 +1,21 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { Ionicons } from "@expo/vector-icons";
 import { type ModelMessage, streamText } from "ai";
 import * as ImagePicker from "expo-image-picker";
 import { router, Stack } from "expo-router";
 import { fetch as expoFetch } from "expo/fetch";
 import { useEffect, useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ChatMessages } from "@/components/ChatMessages";
 import { ChatPrompt } from "@/components/ChatPrompt";
-import { IconButton } from "@/components/ui/IconButton";
+import { Button } from "@/components/ui/Button";
 import { useConfig } from "@/context/config";
 import type { ChatMessage, MessageRole } from "@/lib/chat/types";
 import { t } from "@/lib/i18n";
@@ -313,24 +312,26 @@ export default function Index() {
             </View>
           ),
           headerLeft: () => (
-            <IconButton
+            <Button
               accessibilityRole="button"
               accessibilityLabel={t("chat.openPersonalPage")}
               hitSlop={10}
               onPress={() => router.push("/personal")}
-            >
-              <Ionicons name="menu" size={24} color="#111827" />
-            </IconButton>
+              icon="menu"
+              rounded
+              color="neutral"
+            />
           ),
           headerRight: () => (
-            <IconButton
+            <Button
               accessibilityRole="button"
               accessibilityLabel={t("chat.openSettings")}
               hitSlop={10}
               onPress={() => router.push("/settings")}
-            >
-              <Ionicons name="settings-outline" size={22} color="#111827" />
-            </IconButton>
+              icon="settings-outline"
+              rounded
+              color="neutral"
+            />
           ),
         }}
       />

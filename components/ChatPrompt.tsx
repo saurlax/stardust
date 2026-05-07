@@ -1,14 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Image,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 
-import { IconButton } from "@/components/ui/IconButton";
+import { Button } from "@/components/ui";
 import { t } from "@/lib/i18n";
 import { theme } from "@/lib/theme";
 
@@ -105,22 +105,24 @@ export function ChatPrompt({
         )}
 
         <View style={styles.rightActions}>
-          <IconButton
+          <Button
             accessibilityRole="button"
             accessibilityLabel={t("chat.camera")}
             hitSlop={10}
             onPress={onPressCamera}
-          >
-            <Ionicons name="camera" size={22} color="#111827" />
-          </IconButton>
-          <IconButton
+            icon="camera"
+            rounded
+            color="neutral"
+          />
+          <Button
             accessibilityRole="button"
             accessibilityLabel={t("chat.add")}
             hitSlop={10}
             onPress={onPressAdd}
-          >
-            <Ionicons name="add" size={26} color="#111827" />
-          </IconButton>
+            icon="add"
+            rounded
+            color="neutral"
+          />
         </View>
       </View>
     </View>
