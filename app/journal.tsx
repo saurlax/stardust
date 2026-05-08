@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/components/ui";
 import { formatMonthDay, locale, t } from "@/lib/i18n";
-import { ui } from "@/lib/theme";
+import { theme, ui } from "@/components/ui";
 
 type DiaryEntry = {
   id: string;
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontSize: 12,
     fontWeight: "600",
-    color: "#374151",
+    color: theme.colors.textStrong,
   },
   timelineTrack: {
     position: "absolute",
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     bottom: -6,
     borderLeftWidth: 1,
     borderStyle: "dashed",
-    borderColor: "#D1D5DB",
+    borderColor: theme.colors.borderMuted,
   },
   trackTail: {
     bottom: 8,
@@ -178,12 +178,12 @@ const styles = StyleSheet.create({
   },
   entryTime: {
     fontSize: 12,
-    color: "#6B7280",
+    color: theme.colors.textMuted,
     fontWeight: "500",
   },
   entryNote: {
     fontSize: 14,
-    color: "#111827",
+    color: theme.colors.text,
     lineHeight: 20,
   },
 });

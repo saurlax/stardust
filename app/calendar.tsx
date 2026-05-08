@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/components/ui";
 import { formatMonthDay, formatTime, t } from "@/lib/i18n";
-import { theme, ui } from "@/lib/theme";
+import { theme, ui } from "@/components/ui";
 
 type CalendarEvent = {
   id: string;
@@ -32,7 +32,7 @@ type CalendarDay = {
 
 const APP_CALENDAR_TITLE = "Stardust";
 const APP_CALENDAR_NAME = "stardust-internal";
-const APP_CALENDAR_COLOR = "#111827";
+const APP_CALENDAR_COLOR = theme.colors.text;
 
 const normalizeEvents = (events: Calendar.Event[]): CalendarEvent[] =>
   events
@@ -194,7 +194,7 @@ export default function CalendarScreen() {
 
         {loading ? (
           <Card style={styles.stateBox}>
-            <ActivityIndicator color="#111827" />
+            <ActivityIndicator color={theme.colors.text} />
             <Text style={styles.stateText}>{t("calendar.loading")}</Text>
           </Card>
         ) : null}
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontSize: 12,
     fontWeight: "600",
-    color: "#374151",
+    color: theme.colors.textStrong,
   },
   timelineTrack: {
     position: "absolute",
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     bottom: -6,
     borderLeftWidth: 1,
     borderStyle: "dashed",
-    borderColor: "#D1D5DB",
+    borderColor: theme.colors.borderMuted,
   },
   trackTail: {
     bottom: 8,

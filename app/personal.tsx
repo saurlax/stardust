@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { NebulaView } from "@/components/NebulaView";
 import { Card } from "@/components/ui";
 import { t } from "@/lib/i18n";
-import { theme, ui } from "@/lib/theme";
+import { theme, ui } from "@/components/ui";
 
 export default function PersonalScreen() {
   return (
@@ -20,7 +20,7 @@ export default function PersonalScreen() {
       <View style={styles.content}>
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={20} color="#FFFFFF" />
+            <Ionicons name="person" size={20} color={theme.colors.textOnDark} />
           </View>
           <View style={styles.profileTextWrap}>
             <Text style={styles.profileName}>{t("personal.profileName")}</Text>
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   personalCardTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: theme.colors.textOnDark,
   },
   personalCardDescription: {
     marginTop: 4,

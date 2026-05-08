@@ -7,7 +7,7 @@ import {
     type KeyboardTypeOptions,
 } from "react-native";
 
-import { theme, ui } from "@/lib/theme";
+import { theme, ui } from "./theme";
 import { Card } from "./Card";
 
 type InputProps = {
@@ -47,7 +47,7 @@ export function Input({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={theme.colors.borderMuted}
           style={styles.input}
           autoCapitalize="none"
           autoCorrect={false}

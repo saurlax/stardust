@@ -2,6 +2,8 @@ import { GLView } from "expo-gl";
 import { useEffect, useRef } from "react";
 import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 
+import { theme } from "@/components/ui";
+
 type NebulaNode = {
   angle: number;
   radius: number;
@@ -259,6 +261,6 @@ export function NebulaView({ style }: NebulaViewProps) {
 const styles = StyleSheet.create({
   fill: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#111111",
+    backgroundColor: theme.colors.nebula,
   },
 });

@@ -7,7 +7,7 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import { theme, ui } from "@/lib/theme";
+import { theme, ui } from "./theme";
 
 type CardProps = {
   children?: React.ReactNode;

@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
 import { t } from "@/lib/i18n";
+import { theme } from "@/components/ui";
 
 export default function MemoryScreen() {
   return (
@@ -13,7 +14,7 @@ export default function MemoryScreen() {
           headerTransparent: true,
           headerTitle: t("memory.title"),
           headerTitleStyle: styles.headerTitle,
-          headerTintColor: "#FFFFFF",
+          headerTintColor: theme.colors.textOnDark,
           statusBarStyle: "light",
         }}
       />
@@ -30,7 +31,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    color: "#FFFFFF",
+    color: theme.colors.textOnDark,
     fontSize: 16,
     fontWeight: "600",
   },

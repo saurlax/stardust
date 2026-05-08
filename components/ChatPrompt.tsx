@@ -10,7 +10,7 @@ import {
 
 import { Button } from "@/components/ui";
 import { t } from "@/lib/i18n";
-import { theme } from "@/lib/theme";
+import { theme } from "@/components/ui";
 
 type ChatPromptProps = {
   inputMode: "text" | "voice";
@@ -53,7 +53,7 @@ export function ChatPrompt({
             onPress={onClearSelectedImage}
             style={styles.previewRemoveButton}
           >
-            <Ionicons name="close" size={14} color="#111827" />
+            <Ionicons name="close" size={14} color={theme.colors.text} />
           </Pressable>
         </View>
       ) : null}
@@ -75,7 +75,7 @@ export function ChatPrompt({
           <Ionicons
             name={inputMode === "text" ? "mic" : "keypad"}
             size={22}
-            color="#111827"
+            color={theme.colors.text}
           />
         </Pressable>
 
@@ -86,7 +86,7 @@ export function ChatPrompt({
             placeholder={
               sending ? t("chat.thinking") : t("chat.messagePlaceholder")
             }
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.colors.borderMuted}
             style={styles.textInput}
             returnKeyType="send"
             onSubmitEditing={onSendText}
@@ -132,7 +132,7 @@ export function ChatPrompt({
 const styles = StyleSheet.create({
   promptWrap: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#E5E7EB",
+    borderTopColor: theme.colors.border,
     paddingHorizontal: 10,
     paddingTop: 8,
     paddingBottom: 8,
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   previewImage: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#E5E7EB",
+    backgroundColor: theme.colors.border,
   },
   previewRemoveButton: {
     position: "absolute",
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFFE6",
+    backgroundColor: theme.colors.surfaceOverlay,
   },
   inputBar: {
     flexDirection: "row",

@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/Button";
 import { useConfig } from "@/context/config";
 import type { ChatMessage, MessageRole } from "@/lib/chat/types";
 import { t } from "@/lib/i18n";
-import { theme, ui } from "@/lib/theme";
+import { theme, ui } from "@/components/ui";
 
 const DEFAULT_IMAGE_PROMPT = t("chat.defaultImagePrompt");
 

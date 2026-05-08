@@ -9,11 +9,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Button, Input } from "@/components/ui";
+import { Button, Input, theme, ui } from "@/components/ui";
 import { useConfig } from "@/context/config";
 import { createDefaultAiConfig, type AiConfig } from "@/lib/config";
 import { t } from "@/lib/i18n";
-import { theme, ui } from "@/lib/theme";
 
 export default function SettingsScreen() {
   const { config, ready, updateConfig } = useConfig();

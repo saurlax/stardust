@@ -9,72 +9,9 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import { ui } from "@/lib/theme";
+import { buttonPalette, theme, ui } from "./theme";
 
 type IconConfig = string;
-
-const buttonPalette = {
-  primary: {
-    softBackground: "#DBEAFE",
-    softText: "#1D4ED8",
-    subtleBorder: "#BFDBFE",
-    subtleBackground: "#DBEAFE",
-    subtleText: "#1D4ED8",
-    solidBackground: "#2563EB",
-    solidText: "#FFFFFF",
-    line: "#2563EB",
-  },
-  info: {
-    softBackground: "#CFFAFE",
-    softText: "#155E75",
-    subtleBorder: "#A5F3FC",
-    subtleBackground: "#CFFAFE",
-    subtleText: "#155E75",
-    solidBackground: "#0891B2",
-    solidText: "#FFFFFF",
-    line: "#0E7490",
-  },
-  warning: {
-    softBackground: "#FEF3C7",
-    softText: "#92400E",
-    subtleBorder: "#FDE68A",
-    subtleBackground: "#FEF3C7",
-    subtleText: "#92400E",
-    solidBackground: "#D97706",
-    solidText: "#FFFFFF",
-    line: "#B45309",
-  },
-  error: {
-    softBackground: "#FEE2E2",
-    softText: "#B91C1C",
-    subtleBorder: "#FECACA",
-    subtleBackground: "#FEE2E2",
-    subtleText: "#B91C1C",
-    solidBackground: "#DC2626",
-    solidText: "#FFFFFF",
-    line: "#B91C1C",
-  },
-  success: {
-    softBackground: "#D1FAE5",
-    softText: "#065F46",
-    subtleBorder: "#A7F3D0",
-    subtleBackground: "#D1FAE5",
-    subtleText: "#065F46",
-    solidBackground: "#059669",
-    solidText: "#FFFFFF",
-    line: "#047857",
-  },
-  neutral: {
-    softBackground: "#F3F4F6",
-    softText: "#374151",
-    subtleBorder: "#E5E7EB",
-    subtleBackground: "#F3F4F6",
-    subtleText: "#374151",
-    solidBackground: "#6B7280",
-    solidText: "#FFFFFF",
-    line: "#6B7280",
-  },
-} as const;
 
 type ButtonColor = keyof typeof buttonPalette;
 type ButtonVariant = "soft" | "subtle" | "solid" | "outline" | "ghost" | "link";
@@ -178,9 +115,9 @@ export function Button({
 
   const getIconColor = () => {
     if (useLegacyStyle || (color && variant)) {
-      return (variantStyles.text?.color as string) ?? "#111827";
+      return (variantStyles.text?.color as string) ?? theme.colors.text;
     }
-    return "#111827";
+    return theme.colors.text;
   };
 
   const renderContent = () => {

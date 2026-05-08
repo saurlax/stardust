@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui";
 import type { ChatMessage } from "@/lib/chat/types";
 import { t } from "@/lib/i18n";
+import { theme } from "@/components/ui";
 
 type ChatMessagesProps = {
   messages: ChatMessage[];
@@ -66,7 +67,7 @@ export function ChatMessages({
             >
               {isPending ? (
                 <View style={styles.pendingRow}>
-                  <ActivityIndicator size="small" color="#6B7280" />
+                  <ActivityIndicator size="small" color={theme.colors.textMuted} />
                 </View>
               ) : (
                 <>
@@ -88,7 +89,7 @@ export function ChatMessages({
               {showMeta ? (
                 <View style={styles.messageMeta}>
                   {isLoading ? (
-                    <ActivityIndicator size="small" color="#6B7280" />
+                    <ActivityIndicator size="small" color={theme.colors.textMuted} />
                   ) : null}
                   {canCopy ? (
                     <Button
@@ -135,11 +136,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  bubbleAssistant: { backgroundColor: "#F3F4F6" },
-  bubbleError: { backgroundColor: "#FEF2F2" },
-  bubbleUser: { backgroundColor: "#2563EB" },
-  bubbleText: { fontSize: 16, lineHeight: 20, color: "#111827" },
-  userText: { color: "#FFFFFF" },
+  bubbleAssistant: { backgroundColor: theme.colors.surfaceMuted },
+  bubbleError: { backgroundColor: theme.colors.dangerSoft },
+  bubbleUser: { backgroundColor: theme.colors.primary },
+  bubbleText: { fontSize: 16, lineHeight: 20, color: theme.colors.text },
+  userText: { color: theme.colors.textOnDark },
   pendingRow: {
     minWidth: 24,
     minHeight: 20,
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 12,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: theme.colors.border,
   },
   messageMeta: {
     marginTop: 8,
