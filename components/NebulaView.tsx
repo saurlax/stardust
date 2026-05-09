@@ -1,30 +1,46 @@
 import { GLView } from "expo-gl";
-import { useEffect, useRef } from "react";
-import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
 import { theme } from "@/components/ui";
 
-type NebulaNode = {
-  angle: number;
-  radius: number;
-  height: number;
-  depth: number;
-  size: number;
-  alpha: number;
-  speed: number;
-  phase: number;
+type RenderNode = {
+  id: string;
+  title?: string;
+  x: number;
+  y: number;
+  z: number;
+  size?: number;
+  alpha?: number;
+  speed?: number;
+  phase?: number;
+  linksTo?: string[];
 };
 
-const nebulaNodes: NebulaNode[] = Array.from({ length: 28 }, (_, index) => ({
-  angle: (index / 28) * Math.PI * 2,
-  radius: 0.34 + (index % 5) * 0.05,
-  height: 0.1 + (index % 4) * 0.03,
-  depth: 0.15 + (index % 3) * 0.05,
-  size: 4.5 + (index % 4) * 1.6,
-  alpha: 0.55 + (index % 6) * 0.06,
-  speed: 0.16 + (index % 7) * 0.03,
-  phase: index * 0.37,
-}));
+export type NebulaTree = {
+  nodes: RenderNode[];
+};
+
+const defaultTree: NebulaTree = {
+  nodes: Array.from({ length: 28 }, (_, index) => ({
+    id: `n-${index}`,
+    x: Math.cos((index / 28) * Math.PI * 2) * (0.34 + (index % 5) * 0.05),
+    y: Math.sin((index / 28) * Math.PI * 2 * 1.3) * (0.1 + (index % 4) * 0.03),
+    z: Math.sin((index / 28) * Math.PI * 2 * 0.75) * (0.15 + (index % 3) * 0.05),
+    size: 4.5 + (index % 4) * 1.6,
+    alpha: 0.55 + (index % 6) * 0.06,
+    speed: 0.16 + (index % 7) * 0.03,
+    phase: index * 0.37,
+  })),
+};
 
 const vertexShaderSource = `
 attribute vec3 aPosition;
@@ -157,47 +173,72 @@ const rotatePoint = (x: number, y: number, z: number, time: number) => {
   return [x1, y1, z2] as const;
 };
 
-const buildNebulaVertices = (time: number) => {
+const nodePulse = (node: RenderNode, time: number) => {
+  const phase = node.phase ?? 0;
+  const speed = node.speed ?? 0.2;
+  return Math.sin(time * 0.0018 * (0.8 + speed) + phase) * 0.04;
+};
+
+const buildNebulaVertices = (tree: NebulaTree, time: number) => {
   const points: number[] = [];
   const lines: number[] = [];
-  const center = rotatePoint(0, 0, 0.2 + Math.sin(time * 0.0012) * 0.02, time);
+  const idToPoint = new Map<string, readonly [number, number, number]>();
 
+  const center = rotatePoint(0, 0, 0.2 + Math.sin(time * 0.0012) * 0.02, time);
   points.push(center[0], center[1], center[2], 24, 1);
 
-  let previous = center;
+  for (const node of tree.nodes) {
+    const pulse = nodePulse(node, time);
+    const rotated = rotatePoint(node.x + pulse * 0.5, node.y + pulse * 0.35, node.z + pulse * 0.25, time);
+    const alpha = node.alpha ?? 0.7;
+    points.push(rotated[0], rotated[1], rotated[2], node.size ?? 6, alpha);
+    lines.push(center[0], center[1], center[2], 1.0, alpha * 0.28);
+    lines.push(rotated[0], rotated[1], rotated[2], 1.0, alpha * 0.28);
+    idToPoint.set(node.id, rotated);
+  }
 
-  nebulaNodes.forEach((node) => {
-    const orbit = node.angle + time * 0.0004 * node.speed;
-    const pulse = Math.sin(time * 0.0018 + node.phase) * 0.04;
-    const radius = node.radius + pulse;
-    const x = Math.cos(orbit) * radius;
-    const y = Math.sin(orbit * 1.3 + node.phase) * node.height;
-    const z = Math.sin(orbit * 0.75 + node.phase) * node.depth;
-    const rotated = rotatePoint(x, y, z, time);
+  for (let index = 0; index < tree.nodes.length; index += 1) {
+    const node = tree.nodes[index];
+    const source = idToPoint.get(node.id);
+    if (!source) continue;
 
-    points.push(rotated[0], rotated[1], rotated[2], node.size, node.alpha);
+    if (node.linksTo && node.linksTo.length > 0) {
+      for (const targetId of node.linksTo) {
+        const target = idToPoint.get(targetId);
+        if (!target) continue;
+        lines.push(source[0], source[1], source[2], 1.0, 0.18);
+        lines.push(target[0], target[1], target[2], 1.0, 0.18);
+      }
+      continue;
+    }
 
-    lines.push(center[0], center[1], center[2], 1.0, node.alpha * 0.32);
-    lines.push(rotated[0], rotated[1], rotated[2], 1.0, node.alpha * 0.32);
-
-    lines.push(previous[0], previous[1], previous[2], 1.0, node.alpha * 0.16);
-    lines.push(rotated[0], rotated[1], rotated[2], 1.0, node.alpha * 0.16);
-
-    previous = rotated;
-  });
+    if (index > 0) {
+      const prev = idToPoint.get(tree.nodes[index - 1].id);
+      if (!prev) continue;
+      lines.push(prev[0], prev[1], prev[2], 1.0, 0.14);
+      lines.push(source[0], source[1], source[2], 1.0, 0.14);
+    }
+  }
 
   return {
     points: new Float32Array(points),
     lines: new Float32Array(lines),
+    idToPoint,
   };
 };
 
 type NebulaViewProps = {
   style?: StyleProp<ViewStyle>;
+  tree?: NebulaTree;
+  showLabels?: boolean;
 };
 
-export function NebulaView({ style }: NebulaViewProps) {
+export function NebulaView({ style, tree, showLabels = true }: NebulaViewProps) {
+  const nebulaTree = useMemo(() => tree ?? defaultTree, [tree]);
   const rafRef = useRef<number | null>(null);
+  const sizeRef = useRef({ width: 0, height: 0 });
+  const labelRefs = useRef<Record<string, View | null>>({});
+  const [webLabels, setWebLabels] = useState<Record<string, { x: number; y: number; alpha: number }>>({});
 
   useEffect(
     () => () => {
@@ -208,83 +249,152 @@ export function NebulaView({ style }: NebulaViewProps) {
     [],
   );
 
+  const onLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    sizeRef.current = { width, height };
+  };
+
   return (
-    <GLView
-      style={[styles.fill, style]}
-      onContextCreate={(gl) => {
-        try {
-          const pointProgram = createProgram(gl, pointFragmentShaderSource);
-          const lineProgram = createProgram(gl, lineFragmentShaderSource);
-          const pointBuffer = gl.createBuffer();
-          const lineBuffer = gl.createBuffer();
+    <View style={[styles.fill, style]} onLayout={onLayout}>
+      <GLView
+        style={StyleSheet.absoluteFillObject}
+        onContextCreate={(gl) => {
+          try {
+            const pointProgram = createProgram(gl, pointFragmentShaderSource);
+            const lineProgram = createProgram(gl, lineFragmentShaderSource);
+            const pointBuffer = gl.createBuffer();
+            const lineBuffer = gl.createBuffer();
 
-          if (!pointBuffer || !lineBuffer) {
-            throw new Error("Unable to create buffers.");
-          }
+            if (!pointBuffer || !lineBuffer) {
+              throw new Error("Unable to create buffers.");
+            }
 
-          const bindAttributes = (program: any, buffer: any) => {
-            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            const bindAttributes = (program: any, buffer: any) => {
+              gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
-            const positionLocation = gl.getAttribLocation(program, "aPosition");
-            const sizeLocation = gl.getAttribLocation(program, "aSize");
-            const alphaLocation = gl.getAttribLocation(program, "aAlpha");
+              const positionLocation = gl.getAttribLocation(program, "aPosition");
+              const sizeLocation = gl.getAttribLocation(program, "aSize");
+              const alphaLocation = gl.getAttribLocation(program, "aAlpha");
 
-            gl.enableVertexAttribArray(positionLocation);
-            gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 20, 0);
-            gl.enableVertexAttribArray(sizeLocation);
-            gl.vertexAttribPointer(sizeLocation, 1, gl.FLOAT, false, 20, 12);
-            gl.enableVertexAttribArray(alphaLocation);
-            gl.vertexAttribPointer(alphaLocation, 1, gl.FLOAT, false, 20, 16);
-          };
+              gl.enableVertexAttribArray(positionLocation);
+              gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 20, 0);
+              gl.enableVertexAttribArray(sizeLocation);
+              gl.vertexAttribPointer(sizeLocation, 1, gl.FLOAT, false, 20, 12);
+              gl.enableVertexAttribArray(alphaLocation);
+              gl.vertexAttribPointer(alphaLocation, 1, gl.FLOAT, false, 20, 16);
+            };
 
-          const render = (time: number) => {
-            const width = gl.drawingBufferWidth;
-            const height = gl.drawingBufferHeight;
-            const aspect = width / height;
-            const { points, lines } = buildNebulaVertices(time);
+            const render = (time: number) => {
+              const width = gl.drawingBufferWidth;
+              const height = gl.drawingBufferHeight;
+              const aspect = width / height;
+              const { points, lines, idToPoint } = buildNebulaVertices(nebulaTree, time);
 
-            gl.viewport(0, 0, width, height);
+              gl.viewport(0, 0, width, height);
+              if (theme.isDark) {
+                gl.clearColor(0.06, 0.06, 0.07, 1);
+              } else {
+                gl.clearColor(0.88, 0.93, 1.0, 1);
+              }
+              gl.clear(gl.COLOR_BUFFER_BIT);
+              gl.enable(gl.BLEND);
+              gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+
+              gl.useProgram(lineProgram);
+              gl.uniform1f(gl.getUniformLocation(lineProgram, "uAspect"), aspect);
+              gl.uniform1f(gl.getUniformLocation(lineProgram, "uTime"), time);
+              gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
+              gl.bufferData(gl.ARRAY_BUFFER, lines, gl.DYNAMIC_DRAW);
+              bindAttributes(lineProgram, lineBuffer);
+              gl.drawArrays(gl.LINES, 0, lines.length / 5);
+
+              gl.useProgram(pointProgram);
+              gl.uniform1f(gl.getUniformLocation(pointProgram, "uAspect"), aspect);
+              gl.uniform1f(gl.getUniformLocation(pointProgram, "uTime"), time);
+              gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+              gl.bufferData(gl.ARRAY_BUFFER, points, gl.DYNAMIC_DRAW);
+              bindAttributes(pointProgram, pointBuffer);
+              gl.drawArrays(gl.POINTS, 0, points.length / 5);
+
+              if (showLabels) {
+                const viewSize = sizeRef.current;
+                if (viewSize.width > 0 && viewSize.height > 0) {
+                  const nextWebLabels: Record<string, { x: number; y: number; alpha: number }> = {};
+                  for (const node of nebulaTree.nodes) {
+                    if (!node.title) continue;
+                    const ref = labelRefs.current[node.id];
+                    const p = idToPoint.get(node.id);
+                    if (!p) continue;
+                    const depth = 1.15 / (1.0 + p[2] * 0.7);
+                    const px = (((p[0] / aspect) * depth + 1) * 0.5) * viewSize.width;
+                    const py = ((1 - (p[1] * depth + 1) * 0.5) * viewSize.height) - 16;
+                    const alpha = Math.max(0.35, Math.min(1, (node.alpha ?? 0.7) * depth));
+                    if (Platform.OS === "web") {
+                      nextWebLabels[node.id] = { x: px - 20, y: py, alpha };
+                      continue;
+                    }
+                    if (ref && typeof (ref as any).setNativeProps === "function") {
+                      ref.setNativeProps({
+                        style: {
+                          opacity: alpha,
+                          transform: [{ translateX: px - 20 }, { translateY: py }],
+                        },
+                      });
+                    }
+                  }
+                  if (Platform.OS === "web") {
+                    setWebLabels(nextWebLabels);
+                  }
+                }
+              }
+
+              gl.endFrameEXP();
+              rafRef.current = requestAnimationFrame(render);
+            };
+
+            render(0);
+          } catch {
             if (theme.isDark) {
-              gl.clearColor(0.06, 0.06, 0.07, 1);
+              gl.clearColor(0.08, 0.08, 0.08, 1);
             } else {
-              gl.clearColor(0.88, 0.93, 1.0, 1);
+              gl.clearColor(0.93, 0.96, 1.0, 1);
             }
             gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-
-            gl.useProgram(lineProgram);
-            gl.uniform1f(gl.getUniformLocation(lineProgram, "uAspect"), aspect);
-            gl.uniform1f(gl.getUniformLocation(lineProgram, "uTime"), time);
-            gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, lines, gl.DYNAMIC_DRAW);
-            bindAttributes(lineProgram, lineBuffer);
-            gl.drawArrays(gl.LINES, 0, lines.length / 5);
-
-            gl.useProgram(pointProgram);
-            gl.uniform1f(gl.getUniformLocation(pointProgram, "uAspect"), aspect);
-            gl.uniform1f(gl.getUniformLocation(pointProgram, "uTime"), time);
-            gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, points, gl.DYNAMIC_DRAW);
-            bindAttributes(pointProgram, pointBuffer);
-            gl.drawArrays(gl.POINTS, 0, points.length / 5);
-
             gl.endFrameEXP();
-            rafRef.current = requestAnimationFrame(render);
-          };
-
-          render(0);
-        } catch {
-          if (theme.isDark) {
-            gl.clearColor(0.08, 0.08, 0.08, 1);
-          } else {
-            gl.clearColor(0.93, 0.96, 1.0, 1);
           }
-          gl.clear(gl.COLOR_BUFFER_BIT);
-          gl.endFrameEXP();
-        }
-      }}
-    />
+        }}
+      />
+
+      {showLabels ? (
+        <View style={[StyleSheet.absoluteFillObject, styles.labelsOverlay]}>
+          {nebulaTree.nodes
+            .filter((node) => !!node.title)
+            .map((node) => (
+            <View
+              key={node.id}
+              ref={(ref) => {
+                labelRefs.current[node.id] = ref;
+              }}
+              style={[
+                styles.labelChip,
+                Platform.OS === "web" && webLabels[node.id]
+                  ? {
+                      opacity: webLabels[node.id].alpha,
+                      transform: [
+                        { translateX: webLabels[node.id].x },
+                        { translateY: webLabels[node.id].y },
+                      ],
+                    }
+                  : null,
+              ]}
+            >
+              <Text style={styles.labelText}>{node.title}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+    </View>
   );
 }
 
@@ -292,5 +402,31 @@ const styles = StyleSheet.create({
   fill: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: theme.colors.nebula,
+    overflow: "hidden",
+  },
+  labelsOverlay: {
+    pointerEvents: "none",
+  },
+  labelChip: {
+    position: "absolute",
+    transform: [{ translateX: -20 }],
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.isDark ? "rgba(255,255,255,0.32)" : "rgba(15,23,42,0.2)",
+    backgroundColor: theme.isDark ? "rgba(0,0,0,0.42)" : "rgba(255,255,255,0.82)",
+  },
+  labelText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: theme.isDark ? "#F8FAFC" : "#0F172A",
+    ...(Platform.OS === "web"
+      ? { textShadow: theme.isDark ? "0 1px 2px rgba(0,0,0,0.75)" : "0 1px 2px rgba(255,255,255,0.9)" }
+      : {
+          textShadowColor: theme.isDark ? "rgba(0,0,0,0.75)" : "rgba(255,255,255,0.9)",
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 2,
+        }),
   },
 });

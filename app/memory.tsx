@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { NebulaView } from "@/components/NebulaView";
 import { theme } from "@/components/ui";
 import { t } from "@/lib/i18n";
+import { memoryTreeMock } from "@/lib/memoryTreeMock";
 
 export default function MemoryScreen() {
   return (
@@ -20,7 +21,7 @@ export default function MemoryScreen() {
           headerShadowVisible: false,
         }}
       />
-      <NebulaView style={styles.nebulaView} />
+      <NebulaView style={styles.nebulaView} tree={memoryTreeMock} showLabels />
     </SafeAreaView>
   );
 }

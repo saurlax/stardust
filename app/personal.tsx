@@ -5,8 +5,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
 import { Card } from "@/components/ui";
-import { t } from "@/lib/i18n";
 import { theme, ui } from "@/components/ui";
+import { t } from "@/lib/i18n";
+import { memoryTreeMock } from "@/lib/memoryTreeMock";
 
 export default function PersonalScreen() {
   return (
@@ -24,9 +25,7 @@ export default function PersonalScreen() {
           </View>
           <View style={styles.profileTextWrap}>
             <Text style={styles.profileName}>{t("personal.profileName")}</Text>
-            <Text style={styles.profileSubtitle}>
-              {t("personal.profileSubtitle")}
-            </Text>
+            <Text style={styles.profileSubtitle}>{t("personal.profileSubtitle")}</Text>
           </View>
         </View>
 
@@ -38,7 +37,7 @@ export default function PersonalScreen() {
           >
             <Card
               style={styles.personalCard}
-              background={<NebulaView style={styles.nebulaStage} />}
+              background={<NebulaView style={styles.nebulaStage} tree={memoryTreeMock} showLabels={false} />}
               title={t("personal.memoryTitle")}
               description={t("personal.memoryDescription")}
               overlayStyle={styles.personalOverlay}
@@ -47,11 +46,7 @@ export default function PersonalScreen() {
             />
           </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push("/journal")}
-            style={styles.tapCard}
-          >
+          <Pressable accessibilityRole="button" onPress={() => router.push("/journal")} style={styles.tapCard}>
             <Card
               style={styles.entryCard}
               title={t("personal.journalTitle")}
@@ -62,11 +57,7 @@ export default function PersonalScreen() {
             />
           </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push("/calendar")}
-            style={styles.tapCard}
-          >
+          <Pressable accessibilityRole="button" onPress={() => router.push("/calendar")} style={styles.tapCard}>
             <Card
               style={styles.entryCard}
               title={t("personal.calendarTitle")}
