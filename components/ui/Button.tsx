@@ -11,8 +11,7 @@ import {
 
 import { buttonPalette, theme, ui } from "./theme";
 
-type IconConfig = string;
-
+type IconConfig = keyof typeof Ionicons.glyphMap;
 type ButtonColor = keyof typeof buttonPalette;
 type ButtonVariant = "soft" | "subtle" | "solid" | "outline" | "ghost" | "link";
 
@@ -36,6 +35,7 @@ const resolveVariantStyles = (color: ButtonColor, variant: ButtonVariant) => {
       container: {
         backgroundColor: palette.solidBackground,
         borderColor: palette.solidBackground,
+        ...theme.shadows.subtleGlow,
       },
       text: { color: palette.solidText },
     };
@@ -108,38 +108,17 @@ export function Button({
   const nextVariant: ButtonVariant = variant ?? "soft";
   const variantStyles = resolveVariantStyles(nextColor, nextVariant);
 
-  const getIconSize = () => {
-    if (compact) return 14;
-    return 22;
-  };
-
-  const getIconColor = () => {
-    if (useLegacyStyle || (color && variant)) {
-      return (variantStyles.text?.color as string) ?? theme.colors.text;
-    }
-    return theme.colors.text;
-  };
+  const iconColor =
+    ((variantStyles.text?.color as string | undefined) ?? theme.colors.text);
 
   const renderContent = () => {
     if (icon) {
-      return (
-        <Ionicons
-          name={icon as any}
-          size={getIconSize()}
-          color={getIconColor()}
-        />
-      );
+      return <Ionicons name={icon} size={compact ? 14 : 22} color={iconColor} />;
     }
 
     if (typeof children === "string") {
       return (
-        <Text
-          style={[
-            styles.label,
-            !useLegacyStyle && variantStyles.text,
-            textStyle,
-          ]}
-        >
+        <Text style={[styles.label, !useLegacyStyle && variantStyles.text, textStyle]}>
           {children}
         </Text>
       );
@@ -153,13 +132,7 @@ export function Button({
       {...props}
       disabled={disabled}
       style={({ pressed }) => [
-        useLegacyStyle || icon
-          ? compact
-            ? ui.iconButtonCompact
-            : ui.iconButton
-          : compact
-            ? ui.iconButtonCompact
-            : styles.base,
+        compact ? ui.iconButtonCompact : icon ? ui.iconButton : styles.base,
         !useLegacyStyle && !icon && variantStyles.container,
         !useLegacyStyle && !icon && nextVariant === "link" && styles.link,
         !compact && block && !icon && styles.block,
@@ -203,7 +176,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   pressed: {
-    opacity: 0.78,
+    opacity: 0.84,
+    transform: [{ scale: 0.99 }],
   },
   disabled: {
     opacity: 0.45,

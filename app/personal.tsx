@@ -115,12 +115,12 @@ const styles = StyleSheet.create({
   personalCardTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: theme.colors.textOnDark,
+    color: theme.colors.text,
   },
   personalCardDescription: {
     marginTop: 4,
     fontSize: 13,
-    color: "rgba(255, 255, 255, 0.82)",
+    color: theme.colors.textMuted,
   },
   personalOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     justifyContent: "flex-start",
     alignItems: "flex-start",
-    backgroundColor: "rgba(0, 0, 0, 0.06)",
+    backgroundColor: "transparent",
   },
   nebulaStage: {
     ...StyleSheet.absoluteFillObject,

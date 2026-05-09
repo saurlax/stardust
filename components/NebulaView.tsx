@@ -51,7 +51,8 @@ void main() {
 }
 `;
 
-const pointFragmentShaderSource = `
+const pointFragmentShaderSource = theme.isDark
+  ? `
 precision mediump float;
 
 varying float vAlpha;
@@ -64,15 +65,39 @@ void main() {
   float intensity = mix(glow, core, 0.35);
   gl_FragColor = vec4(vec3(0.97), intensity * vAlpha);
 }
+`
+  : `
+precision mediump float;
+
+varying float vAlpha;
+
+void main() {
+  vec2 offset = gl_PointCoord - vec2(0.5);
+  float distanceFromCenter = length(offset);
+  float glow = smoothstep(0.5, 0.0, distanceFromCenter);
+  float core = smoothstep(0.16, 0.0, distanceFromCenter);
+  float intensity = mix(glow, core, 0.4);
+  gl_FragColor = vec4(vec3(0.35, 0.58, 0.95), intensity * vAlpha);
+}
 `;
 
-const lineFragmentShaderSource = `
+const lineFragmentShaderSource = theme.isDark
+  ? `
 precision mediump float;
 
 varying float vAlpha;
 
 void main() {
   gl_FragColor = vec4(vec3(0.82), vAlpha * 0.42);
+}
+`
+  : `
+precision mediump float;
+
+varying float vAlpha;
+
+void main() {
+  gl_FragColor = vec4(vec3(0.25, 0.42, 0.85), vAlpha * 0.26);
 }
 `;
 
@@ -219,7 +244,11 @@ export function NebulaView({ style }: NebulaViewProps) {
             const { points, lines } = buildNebulaVertices(time);
 
             gl.viewport(0, 0, width, height);
-            gl.clearColor(0.06, 0.06, 0.07, 1);
+            if (theme.isDark) {
+              gl.clearColor(0.06, 0.06, 0.07, 1);
+            } else {
+              gl.clearColor(0.88, 0.93, 1.0, 1);
+            }
             gl.clear(gl.COLOR_BUFFER_BIT);
             gl.enable(gl.BLEND);
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
@@ -233,10 +262,7 @@ export function NebulaView({ style }: NebulaViewProps) {
             gl.drawArrays(gl.LINES, 0, lines.length / 5);
 
             gl.useProgram(pointProgram);
-            gl.uniform1f(
-              gl.getUniformLocation(pointProgram, "uAspect"),
-              aspect,
-            );
+            gl.uniform1f(gl.getUniformLocation(pointProgram, "uAspect"), aspect);
             gl.uniform1f(gl.getUniformLocation(pointProgram, "uTime"), time);
             gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, points, gl.DYNAMIC_DRAW);
@@ -249,7 +275,11 @@ export function NebulaView({ style }: NebulaViewProps) {
 
           render(0);
         } catch {
-          gl.clearColor(0.08, 0.08, 0.08, 1);
+          if (theme.isDark) {
+            gl.clearColor(0.08, 0.08, 0.08, 1);
+          } else {
+            gl.clearColor(0.93, 0.96, 1.0, 1);
+          }
           gl.clear(gl.COLOR_BUFFER_BIT);
           gl.endFrameEXP();
         }

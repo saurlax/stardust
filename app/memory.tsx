@@ -3,8 +3,8 @@ import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
-import { t } from "@/lib/i18n";
 import { theme } from "@/components/ui";
+import { t } from "@/lib/i18n";
 
 export default function MemoryScreen() {
   return (
@@ -13,9 +13,11 @@ export default function MemoryScreen() {
         options={{
           headerTransparent: true,
           headerTitle: t("memory.title"),
+          headerTintColor: theme.colors.text,
           headerTitleStyle: styles.headerTitle,
-          headerTintColor: theme.colors.textOnDark,
-          statusBarStyle: "light",
+          headerStyle: { backgroundColor: "transparent" },
+          headerBackground: () => null,
+          headerShadowVisible: false,
         }}
       />
       <NebulaView style={styles.nebulaView} />
@@ -31,7 +33,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    color: theme.colors.textOnDark,
+    color: theme.colors.text,
     fontSize: 16,
     fontWeight: "600",
   },

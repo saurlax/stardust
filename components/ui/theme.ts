@@ -1,36 +1,114 @@
-import { StyleSheet } from "react-native";
+import { Appearance, StyleSheet } from "react-native";
+
+const colorScheme = Appearance.getColorScheme();
+const isDark = colorScheme === "dark";
+
+type ThemeColors = {
+  background: string;
+  surface: string;
+  surfaceMuted: string;
+  surfaceSoft: string;
+  border: string;
+  borderMuted: string;
+  text: string;
+  textMuted: string;
+  textStrong: string;
+  primary: string;
+  primaryMuted: string;
+  primarySoft: string;
+  danger: string;
+  dangerSoft: string;
+  success: string;
+  successSoft: string;
+  warning: string;
+  warningSoft: string;
+  info: string;
+  infoSoft: string;
+  surfaceOverlay: string;
+  textOnDark: string;
+  nebula: string;
+  gradientStart: string;
+  gradientMid: string;
+  gradientEnd: string;
+  accentA: string;
+  accentB: string;
+  accentC: string;
+};
+
+const darkColors: ThemeColors = {
+  background: "#060716",
+  surface: "rgba(255,255,255,0.03)",
+  surfaceMuted: "rgba(255,255,255,0.02)",
+  surfaceSoft: "rgba(255,255,255,0.04)",
+  border: "rgba(255,255,255,0.06)",
+  borderMuted: "rgba(255,255,255,0.04)",
+  text: "#E6EEF8",
+  textMuted: "rgba(230,238,248,0.72)",
+  textStrong: "#CFE8FF",
+  primary: "#3B82F6",
+  primaryMuted: "#93C5FD",
+  primarySoft: "rgba(59,130,246,0.16)",
+  danger: "#EF4444",
+  dangerSoft: "#2A0A0A",
+  success: "#10B981",
+  successSoft: "rgba(16,185,129,0.08)",
+  warning: "#F59E0B",
+  warningSoft: "rgba(245,158,11,0.06)",
+  info: "#9CA3AF",
+  infoSoft: "rgba(6,182,212,0.06)",
+  surfaceOverlay: "rgba(255,255,255,0.06)",
+  textOnDark: "#FFFFFF",
+  nebula: "#05040A",
+  gradientStart: "#111827",
+  gradientMid: "#374151",
+  gradientEnd: "#030712",
+  accentA: "#6B7280",
+  accentB: "#9CA3AF",
+  accentC: "#D1D5DB",
+};
+
+const lightColors: ThemeColors = {
+  background: "#F5F8FF",
+  surface: "rgba(255,255,255,0.78)",
+  surfaceMuted: "rgba(255,255,255,0.6)",
+  surfaceSoft: "rgba(255,255,255,0.9)",
+  border: "rgba(75,85,99,0.18)",
+  borderMuted: "rgba(75,85,99,0.12)",
+  text: "#10213D",
+  textMuted: "rgba(16,33,61,0.66)",
+  textStrong: "#091327",
+  primary: "#2563EB",
+  primaryMuted: "#93C5FD",
+  primarySoft: "rgba(37,99,235,0.14)",
+  danger: "#DC2626",
+  dangerSoft: "rgba(220,38,38,0.1)",
+  success: "#059669",
+  successSoft: "rgba(5,150,105,0.1)",
+  warning: "#D97706",
+  warningSoft: "rgba(217,119,6,0.1)",
+  info: "#9CA3AF",
+  infoSoft: "rgba(8,145,178,0.1)",
+  surfaceOverlay: "rgba(255,255,255,0.52)",
+  textOnDark: "#FFFFFF",
+  nebula: "#DDEBFF",
+  gradientStart: "#F3F4F6",
+  gradientMid: "#E5E7EB",
+  gradientEnd: "#D1D5DB",
+  accentA: "#4B5563",
+  accentB: "#9CA3AF",
+  accentC: "#E5E7EB",
+};
+
+const colors = isDark ? darkColors : lightColors;
 
 export const theme = {
-  colors: {
-    background: "#FAFAF8",
-    surface: "#FFFFFF",
-    surfaceMuted: "#F5F5F4",
-    surfaceSoft: "#E7E5E4",
-    border: "#E7E5E4",
-    borderMuted: "#D6D3D1",
-    text: "#1C1917",
-    textMuted: "#78716C",
-    textStrong: "#44403C",
-    primary: "#3B82F6",
-    primaryMuted: "#DBEAFE",
-    primarySoft: "#EFF6FF",
-    danger: "#EF4444",
-    dangerSoft: "#FEF2F2",
-    success: "#10B981",
-    successSoft: "#ECFDF5",
-    warning: "#F59E0B",
-    warningSoft: "#FFFBEB",
-    info: "#06B6D4",
-    infoSoft: "#ECFEFF",
-    surfaceOverlay: "#FFFFFFE6",
-    textOnDark: "#FFFFFF",
-    nebula: "#111111",
-  },
+  isDark,
+  colors,
   radii: {
-    card: 16,
-    input: 12,
-    pill: 20,
-    avatar: 28,
+    card: 18,
+    input: 14,
+    pill: 26,
+    avatar: 32,
   },
   spacing: {
     xxs: 4,
@@ -38,71 +116,87 @@ export const theme = {
     sm: 8,
     md: 12,
     lg: 14,
-    xl: 16,
-    xxl: 24,
+    xl: 18,
+    xxl: 28,
+  },
+  shadows: {
+    subtleGlow: {
+      shadowColor: colors.accentA,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: isDark ? 0.08 : 0.14,
+      shadowRadius: 18,
+      elevation: 6,
+    },
+    strongGlow: {
+      shadowColor: colors.accentA,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: isDark ? 0.16 : 0.22,
+      shadowRadius: 28,
+      elevation: 10,
+    },
   },
 } as const;
 
 export const buttonPalette = {
   primary: {
-    softBackground: "#EFF6FF",
-    softText: "#1D4ED8",
-    subtleBorder: "#BFDBFE",
-    subtleBackground: "#DBEAFE",
-    subtleText: "#1D4ED8",
-    solidBackground: "#3B82F6",
+    softBackground: theme.colors.primarySoft,
+    softText: theme.colors.primary,
+    subtleBorder: theme.isDark ? "rgba(59,130,246,0.28)" : "rgba(37,99,235,0.26)",
+    subtleBackground: theme.isDark ? "rgba(59,130,246,0.12)" : "rgba(37,99,235,0.1)",
+    subtleText: theme.colors.primary,
+    solidBackground: theme.colors.primary,
     solidText: "#FFFFFF",
-    line: "#3B82F6",
+    line: theme.colors.primary,
   },
   info: {
-    softBackground: "#ECFEFF",
-    softText: "#0E7490",
-    subtleBorder: "#A5F3FC",
-    subtleBackground: "#CFFAFE",
-    subtleText: "#0E7490",
-    solidBackground: "#06B6D4",
-    solidText: "#FFFFFF",
-    line: "#0891B2",
+    softBackground: theme.colors.infoSoft,
+    softText: theme.colors.info,
+    subtleBorder: theme.isDark ? "rgba(6,182,212,0.14)" : "rgba(8,145,178,0.22)",
+    subtleBackground: theme.isDark ? "rgba(6,182,212,0.06)" : "rgba(8,145,178,0.08)",
+    subtleText: theme.colors.info,
+    solidBackground: theme.colors.info,
+    solidText: theme.isDark ? "#051018" : "#FFFFFF",
+    line: theme.colors.info,
   },
   warning: {
-    softBackground: "#FFFBEB",
-    softText: "#B45309",
-    subtleBorder: "#FDE68A",
-    subtleBackground: "#FEF3C7",
-    subtleText: "#B45309",
-    solidBackground: "#F59E0B",
+    softBackground: theme.colors.warningSoft,
+    softText: theme.colors.warning,
+    subtleBorder: theme.isDark ? "rgba(245,158,11,0.12)" : "rgba(217,119,6,0.2)",
+    subtleBackground: theme.isDark ? "rgba(245,158,11,0.06)" : "rgba(217,119,6,0.08)",
+    subtleText: theme.colors.warning,
+    solidBackground: theme.colors.warning,
     solidText: "#FFFFFF",
-    line: "#D97706",
+    line: theme.colors.warning,
   },
   error: {
-    softBackground: "#FEF2F2",
-    softText: "#DC2626",
-    subtleBorder: "#FECACA",
-    subtleBackground: "#FEE2E2",
-    subtleText: "#DC2626",
-    solidBackground: "#EF4444",
+    softBackground: theme.colors.dangerSoft,
+    softText: theme.colors.danger,
+    subtleBorder: theme.isDark ? "rgba(239,68,68,0.12)" : "rgba(220,38,38,0.2)",
+    subtleBackground: theme.isDark ? "rgba(239,68,68,0.06)" : "rgba(220,38,38,0.08)",
+    subtleText: theme.colors.danger,
+    solidBackground: theme.colors.danger,
     solidText: "#FFFFFF",
-    line: "#EF4444",
+    line: theme.colors.danger,
   },
   success: {
-    softBackground: "#ECFDF5",
-    softText: "#047857",
-    subtleBorder: "#A7F3D0",
-    subtleBackground: "#D1FAE5",
-    subtleText: "#047857",
-    solidBackground: "#10B981",
+    softBackground: theme.colors.successSoft,
+    softText: theme.colors.success,
+    subtleBorder: theme.isDark ? "rgba(16,185,129,0.12)" : "rgba(5,150,105,0.2)",
+    subtleBackground: theme.isDark ? "rgba(16,185,129,0.06)" : "rgba(5,150,105,0.08)",
+    subtleText: theme.colors.success,
+    solidBackground: theme.colors.success,
     solidText: "#FFFFFF",
-    line: "#059669",
+    line: theme.colors.success,
   },
   neutral: {
-    softBackground: "#F5F5F4",
-    softText: "#44403C",
-    subtleBorder: "#E7E5E4",
-    subtleBackground: "#E7E5E4",
-    subtleText: "#44403C",
-    solidBackground: "#78716C",
-    solidText: "#FFFFFF",
-    line: "#78716C",
+    softBackground: theme.colors.surfaceMuted,
+    softText: theme.colors.text,
+    subtleBorder: theme.colors.border,
+    subtleBackground: theme.colors.surfaceSoft,
+    subtleText: theme.colors.text,
+    solidBackground: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(16,33,61,0.08)",
+    solidText: theme.colors.text,
+    line: theme.colors.text,
   },
 } as const;
 
@@ -149,56 +243,57 @@ export const ui = {
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowColor: theme.colors.accentA,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: theme.isDark ? 0.06 : 0.12,
+    shadowRadius: 18,
+    elevation: 6,
   },
   input: {
-    minHeight: 46,
+    minHeight: 48,
     borderRadius: theme.radii.input,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     color: theme.colors.text,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: "transparent",
     fontSize: 15,
   },
   readOnlyInput: {
     justifyContent: "center" as const,
-    backgroundColor: theme.colors.surfaceMuted,
+    backgroundColor: "transparent",
   },
   iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    backgroundColor: theme.colors.surfaceMuted,
-  },
-  iconButtonCompact: {
-    width: 22,
-    height: 22,
+    width: 48,
+    height: 48,
     borderRadius: 999,
     alignItems: "center" as const,
     justifyContent: "center" as const,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.025)" : "rgba(16,33,61,0.06)",
+  },
+  iconButtonCompact: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.02)" : "rgba(16,33,61,0.06)",
   },
   primaryAvatar: {
-    width: 56,
-    height: 56,
+    width: 64,
+    height: 64,
     borderRadius: theme.radii.avatar,
     alignItems: "center" as const,
     justifyContent: "center" as const,
-    backgroundColor: theme.colors.text,
+    backgroundColor: theme.colors.surfaceSoft,
   },
   subtleButton: {
-    minHeight: 40,
+    minHeight: 44,
     justifyContent: "center" as const,
     alignItems: "center" as const,
     borderRadius: theme.radii.pill,
-    backgroundColor: theme.colors.surfaceSoft,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.03)" : "rgba(16,33,61,0.06)",
   },
 } as const;
+
