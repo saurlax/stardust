@@ -1,23 +1,16 @@
-import { GLView } from "expo-gl";
+import { Canvas, Circle, Line, vec } from "@shopify/react-native-skia";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-  type LayoutChangeEvent,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Platform, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from "react-native";
 
 import { theme } from "@/components/ui";
 
 type RenderNode = {
   id: string;
   title?: string;
-  x: number;
-  y: number;
-  z: number;
+  x?: number;
+  y?: number;
+  z?: number;
   size?: number;
   alpha?: number;
   speed?: number;
@@ -29,373 +22,350 @@ export type NebulaTree = {
   nodes: RenderNode[];
 };
 
+type LayoutNode = {
+  id: string;
+  title?: string;
+  x: number;
+  y: number;
+  z: number;
+  size: number;
+  alpha: number;
+  speed: number;
+  phase: number;
+  parentIds: string[];
+};
+
 const defaultTree: NebulaTree = {
   nodes: Array.from({ length: 28 }, (_, index) => ({
     id: `n-${index}`,
-    x: Math.cos((index / 28) * Math.PI * 2) * (0.34 + (index % 5) * 0.05),
-    y: Math.sin((index / 28) * Math.PI * 2 * 1.3) * (0.1 + (index % 4) * 0.03),
-    z: Math.sin((index / 28) * Math.PI * 2 * 0.75) * (0.15 + (index % 3) * 0.05),
-    size: 4.5 + (index % 4) * 1.6,
-    alpha: 0.55 + (index % 6) * 0.06,
-    speed: 0.16 + (index % 7) * 0.03,
-    phase: index * 0.37,
+    title: `n-${index}`,
   })),
 };
 
-const vertexShaderSource = `
-attribute vec3 aPosition;
-attribute float aSize;
-attribute float aAlpha;
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-uniform float uAspect;
-uniform float uTime;
-
-varying float vAlpha;
-
-void main() {
-  vec3 p = aPosition;
-  float time = uTime * 0.001;
-  float swirl = sin(time * 1.2 + p.z * 6.0) * 0.03;
-  p.x += swirl * cos(time + p.y * 4.0);
-  p.y += swirl * sin(time * 0.8 + p.x * 4.0);
-
-  float depth = 1.15 / (1.0 + p.z * 0.7);
-  vec2 projected = vec2(p.x / uAspect, p.y) * depth;
-  gl_Position = vec4(projected, 0.0, 1.0);
-  gl_PointSize = max(aSize * depth * 1.35, 1.0);
-  vAlpha = aAlpha * clamp(depth, 0.35, 1.0);
-}
-`;
-
-const pointFragmentShaderSource = theme.isDark
-  ? `
-precision mediump float;
-
-varying float vAlpha;
-
-void main() {
-  vec2 offset = gl_PointCoord - vec2(0.5);
-  float distanceFromCenter = length(offset);
-  float glow = smoothstep(0.5, 0.0, distanceFromCenter);
-  float core = smoothstep(0.18, 0.0, distanceFromCenter);
-  float intensity = mix(glow, core, 0.35);
-  gl_FragColor = vec4(vec3(0.97), intensity * vAlpha);
-}
-`
-  : `
-precision mediump float;
-
-varying float vAlpha;
-
-void main() {
-  vec2 offset = gl_PointCoord - vec2(0.5);
-  float distanceFromCenter = length(offset);
-  float glow = smoothstep(0.5, 0.0, distanceFromCenter);
-  float core = smoothstep(0.16, 0.0, distanceFromCenter);
-  float intensity = mix(glow, core, 0.4);
-  gl_FragColor = vec4(vec3(0.35, 0.58, 0.95), intensity * vAlpha);
-}
-`;
-
-const lineFragmentShaderSource = theme.isDark
-  ? `
-precision mediump float;
-
-varying float vAlpha;
-
-void main() {
-  gl_FragColor = vec4(vec3(0.82), vAlpha * 0.42);
-}
-`
-  : `
-precision mediump float;
-
-varying float vAlpha;
-
-void main() {
-  gl_FragColor = vec4(vec3(0.25, 0.42, 0.85), vAlpha * 0.26);
-}
-`;
-
-const createShader = (gl: any, type: number, source: string) => {
-  const shader = gl.createShader(type);
-  if (!shader) throw new Error("Unable to create shader.");
-
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const info = gl.getShaderInfoLog(shader);
-    gl.deleteShader(shader);
-    throw new Error(info || "Failed to compile shader.");
-  }
-
-  return shader;
+const animateNodePoint = (node: LayoutNode, time: number) => {
+  const wobbleAmp = 0.005 + node.speed * 0.008;
+  const x = node.x + Math.sin(time * 0.001 + node.phase * 1.3) * wobbleAmp;
+  const y = node.y + Math.cos(time * 0.0009 + node.phase * 1.7) * wobbleAmp * 0.85;
+  const z = node.z + Math.sin(time * 0.00075 + node.phase * 0.6) * wobbleAmp * 0.35;
+  return [x, y, z] as const;
 };
 
-const createProgram = (gl: any, fragmentSource: string) => {
-  const program = gl.createProgram();
-  if (!program) throw new Error("Unable to create program.");
-
-  const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-  const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
-
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    const info = gl.getProgramInfoLog(program);
-    gl.deleteProgram(program);
-    throw new Error(info || "Failed to link program.");
-  }
-
-  gl.deleteShader(vertexShader);
-  gl.deleteShader(fragmentShader);
-
-  return program;
-};
-
-const rotatePoint = (x: number, y: number, z: number, time: number) => {
-  const rotateY = time * 0.00018;
-  const rotateX = Math.sin(time * 0.00013) * 0.34;
-
-  const cosY = Math.cos(rotateY);
-  const sinY = Math.sin(rotateY);
-  const cosX = Math.cos(rotateX);
-  const sinX = Math.sin(rotateX);
-
-  const x1 = x * cosY + z * sinY;
-  const z1 = -x * sinY + z * cosY;
-  const y1 = y * cosX - z1 * sinX;
-  const z2 = y * sinX + z1 * cosX;
-
-  return [x1, y1, z2] as const;
-};
-
-const nodePulse = (node: RenderNode, time: number) => {
-  const phase = node.phase ?? 0;
-  const speed = node.speed ?? 0.2;
-  return Math.sin(time * 0.0018 * (0.8 + speed) + phase) * 0.04;
-};
-
-const buildNebulaVertices = (tree: NebulaTree, time: number) => {
-  const points: number[] = [];
-  const lines: number[] = [];
-  const idToPoint = new Map<string, readonly [number, number, number]>();
-
-  const center = rotatePoint(0, 0, 0.2 + Math.sin(time * 0.0012) * 0.02, time);
-  points.push(center[0], center[1], center[2], 24, 1);
+const buildLayoutNodes = (tree: NebulaTree): LayoutNode[] => {
+  const byId = new Map(tree.nodes.map((node) => [node.id, node] as const));
+  const root = tree.nodes.find((node) => node.id === "root") ?? tree.nodes[0];
+  const parentMap = new Map<string, string[]>();
+  const childrenMap = new Map<string, string[]>();
 
   for (const node of tree.nodes) {
-    const pulse = nodePulse(node, time);
-    const rotated = rotatePoint(node.x + pulse * 0.5, node.y + pulse * 0.35, node.z + pulse * 0.25, time);
-    const alpha = node.alpha ?? 0.7;
-    points.push(rotated[0], rotated[1], rotated[2], node.size ?? 6, alpha);
-    lines.push(center[0], center[1], center[2], 1.0, alpha * 0.28);
-    lines.push(rotated[0], rotated[1], rotated[2], 1.0, alpha * 0.28);
-    idToPoint.set(node.id, rotated);
+    const parents = (node.linksTo ?? []).filter((parentId) => byId.has(parentId));
+    parentMap.set(node.id, parents);
+    for (const parentId of parents) {
+      const children = childrenMap.get(parentId) ?? [];
+      children.push(node.id);
+      childrenMap.set(parentId, children);
+    }
   }
 
-  for (let index = 0; index < tree.nodes.length; index += 1) {
-    const node = tree.nodes[index];
-    const source = idToPoint.get(node.id);
-    if (!source) continue;
+  const depthMap = new Map<string, number>();
+  if (root) depthMap.set(root.id, 0);
+  const queue = root ? [root.id] : [];
 
-    if (node.linksTo && node.linksTo.length > 0) {
-      for (const targetId of node.linksTo) {
-        const target = idToPoint.get(targetId);
-        if (!target) continue;
-        lines.push(source[0], source[1], source[2], 1.0, 0.18);
-        lines.push(target[0], target[1], target[2], 1.0, 0.18);
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    const currentDepth = depthMap.get(currentId) ?? 0;
+    for (const node of tree.nodes) {
+      const parents = parentMap.get(node.id) ?? [];
+      if (!parents.includes(currentId)) continue;
+      const nextDepth = currentDepth + 1;
+      const prevDepth = depthMap.get(node.id);
+      if (prevDepth === undefined || nextDepth < prevDepth) {
+        depthMap.set(node.id, nextDepth);
+        queue.push(node.id);
       }
-      continue;
-    }
-
-    if (index > 0) {
-      const prev = idToPoint.get(tree.nodes[index - 1].id);
-      if (!prev) continue;
-      lines.push(prev[0], prev[1], prev[2], 1.0, 0.14);
-      lines.push(source[0], source[1], source[2], 1.0, 0.14);
     }
   }
 
-  return {
-    points: new Float32Array(points),
-    lines: new Float32Array(lines),
-    idToPoint,
+  for (const node of tree.nodes) {
+    if (!depthMap.has(node.id)) {
+      depthMap.set(node.id, root && node.id !== root.id ? 1 : 0);
+    }
+  }
+
+  const maxDepth = Math.max(...Array.from(depthMap.values()), 1);
+  const pos = new Map<string, { x: number; y: number; z: number }>();
+  const placed = new Set<string>();
+
+  if (root) {
+    pos.set(root.id, { x: 0, y: -0.02, z: 0.18 });
+    placed.add(root.id);
+  }
+
+  const placeChildren = (parentId: string, startAngle: number, endAngle: number) => {
+    const children = (childrenMap.get(parentId) ?? []).filter((childId) => !placed.has(childId));
+    if (children.length === 0) return;
+    const span = endAngle - startAngle;
+    const step = span / children.length;
+
+    children.forEach((childId, index) => {
+      const depth = depthMap.get(childId) ?? 1;
+      const radius = 0.24 + depth * 0.19;
+      const angle = startAngle + step * (index + 0.5);
+      const z = Math.sin(angle * 1.1) * 0.08 * (1 - depth / (maxDepth + 1));
+      pos.set(childId, {
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius * 0.9,
+        z,
+      });
+      placed.add(childId);
+    });
+
+    children.forEach((childId, index) => {
+      const childStart = startAngle + step * index;
+      const childEnd = startAngle + step * (index + 1);
+      placeChildren(childId, childStart, childEnd);
+    });
   };
+
+  if (root) {
+    placeChildren(root.id, -Math.PI, Math.PI);
+  }
+
+  for (const node of tree.nodes) {
+    if (placed.has(node.id)) continue;
+    const depth = depthMap.get(node.id) ?? 1;
+    const angle = (placed.size / Math.max(tree.nodes.length, 1)) * Math.PI * 2;
+    const radius = 0.24 + depth * 0.19;
+    pos.set(node.id, {
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius * 0.9,
+      z: Math.sin(angle) * 0.05,
+    });
+    placed.add(node.id);
+  }
+
+  return tree.nodes.map((node, index) => {
+    const p = pos.get(node.id) ?? { x: 0, y: 0, z: 0 };
+    const depth = depthMap.get(node.id) ?? 0;
+    const depthRatio = depth / maxDepth;
+    return {
+      id: node.id,
+      title: node.title,
+      x: clamp(node.x ?? p.x, -0.75, 0.75),
+      y: clamp(node.y ?? p.y, -0.65, 0.65),
+      z: clamp(node.z ?? p.z, -0.35, 0.35),
+      size: node.size ?? (depth === 0 ? 9.5 : 6.8 - depthRatio * 2.4),
+      alpha: node.alpha ?? (depth === 0 ? 1 : 0.9 - depthRatio * 0.25),
+      speed: node.speed ?? (0.12 + depth * 0.035),
+      phase: node.phase ?? index * 0.41,
+      parentIds: parentMap.get(node.id) ?? [],
+    };
+  });
 };
 
 type NebulaViewProps = {
   style?: StyleProp<ViewStyle>;
   tree?: NebulaTree;
   showLabels?: boolean;
+  interactive?: boolean;
 };
 
-export function NebulaView({ style, tree, showLabels = true }: NebulaViewProps) {
+export function NebulaView({ style, tree, showLabels = true, interactive = false }: NebulaViewProps) {
   const nebulaTree = useMemo(() => tree ?? defaultTree, [tree]);
-  const rafRef = useRef<number | null>(null);
-  const sizeRef = useRef({ width: 0, height: 0 });
-  const labelRefs = useRef<Record<string, View | null>>({});
-  const [webLabels, setWebLabels] = useState<Record<string, { x: number; y: number; alpha: number }>>({});
+  const layoutNodes = useMemo(() => buildLayoutNodes(nebulaTree), [nebulaTree]);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [time, setTime] = useState(0);
+  const [viewport, setViewport] = useState({ scale: 1, tx: 0, ty: 0 });
+  const viewportRef = useRef(viewport);
+  const lastTickRef = useRef(0);
 
-  useEffect(
-    () => () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
+  useEffect(() => {
+    viewportRef.current = viewport;
+  }, [viewport]);
+
+  useEffect(() => {
+    let raf = 0;
+    const loop = (t: number) => {
+      if (t - lastTickRef.current >= 33) {
+        lastTickRef.current = t;
+        setTime(t);
       }
-    },
-    [],
-  );
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   const onLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
-    sizeRef.current = { width, height };
+    setSize({ width, height });
   };
 
-  return (
+  const animated = useMemo(() => {
+    const nodes = layoutNodes.map((node) => ({ node, p: animateNodePoint(node, time) }));
+    const byId = new Map(nodes.map((item) => [item.node.id, item.p] as const));
+    return { nodes, byId };
+  }, [layoutNodes, time]);
+
+  const projected = useMemo(() => {
+    const aspect = size.width > 0 && size.height > 0 ? size.width / size.height : 1;
+    const centerX = size.width * 0.5;
+    const centerY = size.height * 0.5;
+    const out = new Map<string, { x: number; y: number; depth: number; alpha: number; size: number }>();
+
+    for (const { node, p } of animated.nodes) {
+      const depth = 1.15 / (1 + p[2] * 0.7);
+      const baseX = (((p[0] / aspect) * depth + 1) * 0.5) * size.width;
+      const baseY = (1 - (p[1] * depth + 1) * 0.5) * size.height;
+      const px = (baseX - centerX) * viewport.scale + centerX + viewport.tx;
+      const py = (baseY - centerY) * viewport.scale + centerY + viewport.ty;
+      out.set(node.id, {
+        x: px,
+        y: py,
+        depth,
+        alpha: Math.max(0.36, Math.min(1, node.alpha * depth)),
+        size: Math.max(1.5, node.size * depth * 0.95 * viewport.scale),
+      });
+    }
+
+    return out;
+  }, [animated.nodes, size.height, size.width, viewport.scale, viewport.tx, viewport.ty]);
+
+  const lines = useMemo(() => {
+    const edges: Array<{ from: string; to: string; alpha: number }> = [];
+    for (const node of layoutNodes) {
+      for (const parentId of node.parentIds) {
+        edges.push({ from: node.id, to: parentId, alpha: 0.7 });
+      }
+    }
+    return edges;
+  }, [layoutNodes]);
+
+  const lineColor = theme.isDark ? "#D1D5DB" : "#0C2A66";
+  const pointCore = theme.isDark ? "#F4F7FF" : "#2E5FB3";
+  const pointGlow = theme.isDark ? "rgba(212,224,255,0.22)" : "rgba(56,96,173,0.2)";
+  const panStart = useRef({ tx: 0, ty: 0 });
+  const pinchStart = useRef(1);
+
+  const panGesture = Gesture.Pan()
+    .enabled(interactive && Platform.OS !== "web")
+    .onBegin(() => {
+      panStart.current = { tx: viewportRef.current.tx, ty: viewportRef.current.ty };
+    })
+    .onUpdate((event) => {
+      setViewport((prev) => ({
+        ...prev,
+        tx: panStart.current.tx + event.translationX,
+        ty: panStart.current.ty + event.translationY,
+      }));
+    });
+
+  const pinchGesture = Gesture.Pinch()
+    .enabled(interactive && Platform.OS !== "web")
+    .onBegin(() => {
+      pinchStart.current = viewportRef.current.scale;
+    })
+    .onUpdate((event) => {
+      setViewport((prev) => ({
+        ...prev,
+        scale: clamp(pinchStart.current * event.scale, 0.65, 2.6),
+      }));
+    });
+
+  const gesture = Gesture.Simultaneous(panGesture, pinchGesture);
+
+  if (Platform.OS === "web") {
+    return (
+      <View style={[styles.fill, style]} onLayout={onLayout}>
+        {showLabels ? (
+          <View style={[StyleSheet.absoluteFillObject, styles.labelsOverlay]}>
+            {layoutNodes
+              .filter((node) => !!node.title)
+              .map((node) => {
+                const p = projected.get(node.id);
+                if (!p) return null;
+                return (
+                  <View
+                    key={node.id}
+                    style={[
+                      styles.labelChip,
+                      {
+                        opacity: p.alpha,
+                        transform: [{ translateX: p.x - 22 }, { translateY: p.y - 16 }],
+                      },
+                    ]}
+                  >
+                    <Text style={styles.labelText}>{node.title}</Text>
+                  </View>
+                );
+              })}
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  const content = (
     <View style={[styles.fill, style]} onLayout={onLayout}>
-      <GLView
-        style={StyleSheet.absoluteFillObject}
-        onContextCreate={(gl) => {
-          try {
-            const pointProgram = createProgram(gl, pointFragmentShaderSource);
-            const lineProgram = createProgram(gl, lineFragmentShaderSource);
-            const pointBuffer = gl.createBuffer();
-            const lineBuffer = gl.createBuffer();
+      <Canvas style={StyleSheet.absoluteFillObject}>
+        {lines.map((edge) => {
+          const from = projected.get(edge.from);
+          const to = projected.get(edge.to);
+          if (!from || !to) return null;
+          const alpha = Math.max(0.24, Math.min(0.92, ((from.alpha + to.alpha) * 0.5) * edge.alpha));
+          return (
+            <Line
+              key={`${edge.from}->${edge.to}`}
+              p1={vec(from.x, from.y)}
+              p2={vec(to.x, to.y)}
+              color={lineColor}
+              opacity={alpha}
+              strokeWidth={theme.isDark ? 1.1 : 1.35}
+            />
+          );
+        })}
 
-            if (!pointBuffer || !lineBuffer) {
-              throw new Error("Unable to create buffers.");
-            }
-
-            const bindAttributes = (program: any, buffer: any) => {
-              gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-
-              const positionLocation = gl.getAttribLocation(program, "aPosition");
-              const sizeLocation = gl.getAttribLocation(program, "aSize");
-              const alphaLocation = gl.getAttribLocation(program, "aAlpha");
-
-              gl.enableVertexAttribArray(positionLocation);
-              gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 20, 0);
-              gl.enableVertexAttribArray(sizeLocation);
-              gl.vertexAttribPointer(sizeLocation, 1, gl.FLOAT, false, 20, 12);
-              gl.enableVertexAttribArray(alphaLocation);
-              gl.vertexAttribPointer(alphaLocation, 1, gl.FLOAT, false, 20, 16);
-            };
-
-            const render = (time: number) => {
-              const width = gl.drawingBufferWidth;
-              const height = gl.drawingBufferHeight;
-              const aspect = width / height;
-              const { points, lines, idToPoint } = buildNebulaVertices(nebulaTree, time);
-
-              gl.viewport(0, 0, width, height);
-              if (theme.isDark) {
-                gl.clearColor(0.06, 0.06, 0.07, 1);
-              } else {
-                gl.clearColor(0.88, 0.93, 1.0, 1);
-              }
-              gl.clear(gl.COLOR_BUFFER_BIT);
-              gl.enable(gl.BLEND);
-              gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-
-              gl.useProgram(lineProgram);
-              gl.uniform1f(gl.getUniformLocation(lineProgram, "uAspect"), aspect);
-              gl.uniform1f(gl.getUniformLocation(lineProgram, "uTime"), time);
-              gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
-              gl.bufferData(gl.ARRAY_BUFFER, lines, gl.DYNAMIC_DRAW);
-              bindAttributes(lineProgram, lineBuffer);
-              gl.drawArrays(gl.LINES, 0, lines.length / 5);
-
-              gl.useProgram(pointProgram);
-              gl.uniform1f(gl.getUniformLocation(pointProgram, "uAspect"), aspect);
-              gl.uniform1f(gl.getUniformLocation(pointProgram, "uTime"), time);
-              gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
-              gl.bufferData(gl.ARRAY_BUFFER, points, gl.DYNAMIC_DRAW);
-              bindAttributes(pointProgram, pointBuffer);
-              gl.drawArrays(gl.POINTS, 0, points.length / 5);
-
-              if (showLabels) {
-                const viewSize = sizeRef.current;
-                if (viewSize.width > 0 && viewSize.height > 0) {
-                  const nextWebLabels: Record<string, { x: number; y: number; alpha: number }> = {};
-                  for (const node of nebulaTree.nodes) {
-                    if (!node.title) continue;
-                    const ref = labelRefs.current[node.id];
-                    const p = idToPoint.get(node.id);
-                    if (!p) continue;
-                    const depth = 1.15 / (1.0 + p[2] * 0.7);
-                    const px = (((p[0] / aspect) * depth + 1) * 0.5) * viewSize.width;
-                    const py = ((1 - (p[1] * depth + 1) * 0.5) * viewSize.height) - 16;
-                    const alpha = Math.max(0.35, Math.min(1, (node.alpha ?? 0.7) * depth));
-                    if (Platform.OS === "web") {
-                      nextWebLabels[node.id] = { x: px - 20, y: py, alpha };
-                      continue;
-                    }
-                    if (ref && typeof (ref as any).setNativeProps === "function") {
-                      ref.setNativeProps({
-                        style: {
-                          opacity: alpha,
-                          transform: [{ translateX: px - 20 }, { translateY: py }],
-                        },
-                      });
-                    }
-                  }
-                  if (Platform.OS === "web") {
-                    setWebLabels(nextWebLabels);
-                  }
-                }
-              }
-
-              gl.endFrameEXP();
-              rafRef.current = requestAnimationFrame(render);
-            };
-
-            render(0);
-          } catch {
-            if (theme.isDark) {
-              gl.clearColor(0.08, 0.08, 0.08, 1);
-            } else {
-              gl.clearColor(0.93, 0.96, 1.0, 1);
-            }
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.endFrameEXP();
-          }
-        }}
-      />
+        {animated.nodes.map(({ node }) => {
+          const p = projected.get(node.id);
+          if (!p) return null;
+          return [
+            <Circle key={`${node.id}-g`} cx={p.x} cy={p.y} r={p.size * 1.6} color={pointGlow} opacity={p.alpha * 0.5} />,
+            <Circle key={`${node.id}-c`} cx={p.x} cy={p.y} r={p.size} color={pointCore} opacity={p.alpha} />,
+          ];
+        })}
+      </Canvas>
 
       {showLabels ? (
         <View style={[StyleSheet.absoluteFillObject, styles.labelsOverlay]}>
-          {nebulaTree.nodes
+          {layoutNodes
             .filter((node) => !!node.title)
-            .map((node) => (
-            <View
-              key={node.id}
-              ref={(ref) => {
-                labelRefs.current[node.id] = ref;
-              }}
-              style={[
-                styles.labelChip,
-                Platform.OS === "web" && webLabels[node.id]
-                  ? {
-                      opacity: webLabels[node.id].alpha,
-                      transform: [
-                        { translateX: webLabels[node.id].x },
-                        { translateY: webLabels[node.id].y },
-                      ],
-                    }
-                  : null,
-              ]}
-            >
-              <Text style={styles.labelText}>{node.title}</Text>
-            </View>
-          ))}
+            .map((node) => {
+              const p = projected.get(node.id);
+              if (!p) return null;
+              return (
+                <View
+                  key={node.id}
+                  style={[
+                    styles.labelChip,
+                    {
+                      opacity: p.alpha,
+                      transform: [{ translateX: p.x - 22 }, { translateY: p.y - 16 }],
+                    },
+                  ]}
+                >
+                  <Text style={styles.labelText}>{node.title}</Text>
+                </View>
+              );
+            })}
         </View>
       ) : null}
-
     </View>
   );
+
+  if (!interactive) return content;
+
+  return <GestureDetector gesture={gesture}>{content}</GestureDetector>;
 }
 
 const styles = StyleSheet.create({
@@ -409,7 +379,6 @@ const styles = StyleSheet.create({
   },
   labelChip: {
     position: "absolute",
-    transform: [{ translateX: -20 }],
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,

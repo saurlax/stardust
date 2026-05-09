@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { NebulaView } from "@/components/NebulaView";
 import { theme } from "@/components/ui";
@@ -11,20 +12,22 @@ export default function RootLayout() {
     Platform.OS === "android" ? theme.colors.background : theme.colors.surfaceOverlay;
 
   return (
-    <ConfigProvider>
-      <View style={styles.root}>
-        <NebulaView style={styles.background} />
-        <Stack
-          screenOptions={{
-            headerShadowVisible: false,
-            statusBarStyle: theme.isDark ? "light" : "dark",
-            headerStyle: { backgroundColor: headerBackgroundColor },
-            headerTintColor: theme.colors.text,
-            headerTitleStyle: { color: theme.colors.text },
-          }}
-        />
-      </View>
-    </ConfigProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <ConfigProvider>
+        <View style={styles.root}>
+          <NebulaView style={styles.background} />
+          <Stack
+            screenOptions={{
+              headerShadowVisible: false,
+              statusBarStyle: theme.isDark ? "light" : "dark",
+              headerStyle: { backgroundColor: headerBackgroundColor },
+              headerTintColor: theme.colors.text,
+              headerTitleStyle: { color: theme.colors.text },
+            }}
+          />
+        </View>
+      </ConfigProvider>
+    </GestureHandlerRootView>
   );
 }
 

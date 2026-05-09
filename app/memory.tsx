@@ -20,7 +20,7 @@ export default function MemoryScreen() {
           headerShadowVisible: false,
         }}
       />
-      <NebulaView style={styles.nebulaView} tree={memoryTreeMock} showLabels />
+      <NebulaView style={styles.nebulaView} tree={memoryTreeMock} showLabels interactive />
     </SafeAreaView>
   );
 }
