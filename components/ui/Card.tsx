@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
   },
   content: {
     position: "relative",
+    flex: 1,
   },
   header: {
     paddingHorizontal: 16,
@@ -95,10 +96,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: theme.colors.text,
+    backgroundColor: "transparent",
   },
   description: {
     marginTop: 4,
     fontSize: 13,
     color: theme.colors.textMuted,
+    backgroundColor: "transparent",
   },
 });

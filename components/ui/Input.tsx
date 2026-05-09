@@ -68,5 +68,5 @@ const styles = StyleSheet.create({
   readOnlyField: {
     ...ui.readOnlyInput,
   },
-  readOnlyText: { color: theme.colors.textMuted, fontSize: 15 },
+  readOnlyText: { color: theme.colors.textMuted, fontSize: 15, backgroundColor: "transparent" },
 });

@@ -15,7 +15,6 @@ export default function MemoryScreen() {
           headerTransparent: true,
           headerTitle: t("memory.title"),
           headerTintColor: theme.colors.text,
-          headerTitleStyle: styles.headerTitle,
           headerStyle: { backgroundColor: "transparent" },
           headerBackground: () => null,
           headerShadowVisible: false,
@@ -32,10 +31,5 @@ const styles = StyleSheet.create({
   },
   nebulaView: {
     flex: 1,
-  },
-  headerTitle: {
-    color: theme.colors.text,
-    fontSize: 16,
-    fontWeight: "600",
   },
 });

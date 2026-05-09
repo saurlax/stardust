@@ -1,4 +1,4 @@
-import { Appearance, StyleSheet } from "react-native";
+import { Appearance, Platform, StyleSheet } from "react-native";
 
 const colorScheme = Appearance.getColorScheme();
 const isDark = colorScheme === "dark";
@@ -100,6 +100,7 @@ const lightColors: ThemeColors = {
 };
 
 const colors = isDark ? darkColors : lightColors;
+const isAndroid = Platform.OS === "android";
 
 export const theme = {
   isDark,
@@ -245,9 +246,9 @@ export const ui = {
     backgroundColor: theme.colors.surface,
     shadowColor: theme.colors.accentA,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: theme.isDark ? 0.06 : 0.12,
+    shadowOpacity: isAndroid ? 0 : theme.isDark ? 0.06 : 0.12,
     shadowRadius: 18,
-    elevation: 6,
+    elevation: isAndroid ? 0 : 6,
   },
   input: {
     minHeight: 48,

@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 import { NebulaView } from "@/components/NebulaView";
 import { theme } from "@/components/ui";
@@ -7,6 +7,9 @@ import { ConfigProvider } from "@/context/config";
 import "@/lib/i18n";
 
 export default function RootLayout() {
+  const headerBackgroundColor =
+    Platform.OS === "android" ? theme.colors.background : theme.colors.surfaceOverlay;
+
   return (
     <ConfigProvider>
       <View style={styles.root}>
@@ -15,7 +18,7 @@ export default function RootLayout() {
           screenOptions={{
             headerShadowVisible: false,
             statusBarStyle: theme.isDark ? "light" : "dark",
-            headerStyle: { backgroundColor: theme.colors.surfaceOverlay },
+            headerStyle: { backgroundColor: headerBackgroundColor },
             headerTintColor: theme.colors.text,
             headerTitleStyle: { color: theme.colors.text },
           }}
