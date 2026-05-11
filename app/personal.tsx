@@ -2,14 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useState } from "react";
 
 import { NebulaView } from "@/components/NebulaView";
-import { Card } from "@/components/ui";
-import { theme, ui } from "@/components/ui";
+import { Card, theme, ui } from "@/components/ui";
 import { t } from "@/lib/i18n";
 import { memoryTreeMock } from "@/lib/memoryTreeMock";
 
 export default function PersonalScreen() {
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       <Stack.Screen
@@ -25,7 +26,9 @@ export default function PersonalScreen() {
           </View>
           <View style={styles.profileTextWrap}>
             <Text style={styles.profileName}>{t("personal.profileName")}</Text>
-            <Text style={styles.profileSubtitle}>{t("personal.profileSubtitle")}</Text>
+            <Text style={styles.profileSubtitle}>
+              {t("personal.profileSubtitle")}
+            </Text>
           </View>
         </View>
 
@@ -33,11 +36,23 @@ export default function PersonalScreen() {
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/memory")}
-            style={[styles.entryCard, styles.memoryEntryCard]}
+            onHoverIn={() => setHoveredCard("memory")}
+            onHoverOut={() => setHoveredCard(null)}
+            style={[
+              styles.entryCard,
+              styles.memoryEntryCard,
+              hoveredCard === "memory" && styles.cardHovered,
+            ]}
           >
             <Card
               style={styles.personalCard}
-              background={<NebulaView style={styles.nebulaStage} tree={memoryTreeMock} showLabels={false} />}
+              background={
+                <NebulaView
+                  style={styles.nebulaStage}
+                  tree={memoryTreeMock}
+                  showLabels={false}
+                />
+              }
               title={t("personal.memoryTitle")}
               description={t("personal.memoryDescription")}
               overlayStyle={styles.personalOverlay}
@@ -46,7 +61,16 @@ export default function PersonalScreen() {
             />
           </Pressable>
 
-          <Pressable accessibilityRole="button" onPress={() => router.push("/journal")} style={styles.tapCard}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/journal")}
+            onHoverIn={() => setHoveredCard("journal")}
+            onHoverOut={() => setHoveredCard(null)}
+            style={[
+              styles.tapCard,
+              hoveredCard === "journal" && styles.cardHovered,
+            ]}
+          >
             <Card
               style={styles.entryCard}
               title={t("personal.journalTitle")}
@@ -57,7 +81,16 @@ export default function PersonalScreen() {
             />
           </Pressable>
 
-          <Pressable accessibilityRole="button" onPress={() => router.push("/calendar")} style={styles.tapCard}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/calendar")}
+            onHoverIn={() => setHoveredCard("calendar")}
+            onHoverOut={() => setHoveredCard(null)}
+            style={[
+              styles.tapCard,
+              hoveredCard === "calendar" && styles.cardHovered,
+            ]}
+          >
             <Card
               style={styles.entryCard}
               title={t("personal.calendarTitle")}
@@ -150,5 +183,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 13,
     color: theme.colors.textMuted,
+  },
+  cardHovered: {
+    transform: [{ translateY: -4 }],
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
 });
