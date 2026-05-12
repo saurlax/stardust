@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
 
 import { NebulaView } from "@/components/NebulaView";
 import { Card, theme, ui } from "@/components/ui";
@@ -10,7 +9,6 @@ import { t } from "@/lib/i18n";
 import { memoryTreeMock } from "@/lib/memoryTreeMock";
 
 export default function PersonalScreen() {
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       <Stack.Screen
@@ -36,13 +34,7 @@ export default function PersonalScreen() {
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/memory")}
-            onHoverIn={() => setHoveredCard("memory")}
-            onHoverOut={() => setHoveredCard(null)}
-            style={[
-              styles.entryCard,
-              styles.memoryEntryCard,
-              hoveredCard === "memory" && styles.cardHovered,
-            ]}
+            style={[styles.entryCard, styles.memoryEntryCard]}
           >
             <Card
               style={styles.personalCard}
@@ -64,12 +56,7 @@ export default function PersonalScreen() {
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/journal")}
-            onHoverIn={() => setHoveredCard("journal")}
-            onHoverOut={() => setHoveredCard(null)}
-            style={[
-              styles.tapCard,
-              hoveredCard === "journal" && styles.cardHovered,
-            ]}
+            style={[styles.tapCard]}
           >
             <Card
               style={styles.entryCard}
@@ -84,12 +71,7 @@ export default function PersonalScreen() {
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/calendar")}
-            onHoverIn={() => setHoveredCard("calendar")}
-            onHoverOut={() => setHoveredCard(null)}
-            style={[
-              styles.tapCard,
-              hoveredCard === "calendar" && styles.cardHovered,
-            ]}
+            style={[styles.tapCard]}
           >
             <Card
               style={styles.entryCard}
@@ -183,13 +165,5 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 13,
     color: theme.colors.textMuted,
-  },
-  cardHovered: {
-    transform: [{ translateY: -4 }],
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
 });

@@ -1,16 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
-    Image,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
-import { Button } from "@/components/ui";
+import { Button, theme } from "@/components/ui";
 import { t } from "@/lib/i18n";
-import { theme } from "@/components/ui";
 
 type ChatPromptProps = {
   inputMode: "text" | "voice";
@@ -123,6 +122,18 @@ export function ChatPrompt({
             rounded
             color="neutral"
           />
+          {inputMode === "text" ? (
+            <Button
+              accessibilityRole="button"
+              accessibilityLabel={t("chat.send")}
+              hitSlop={10}
+              onPress={onSendText}
+              icon="send"
+              rounded
+              color="neutral"
+              disabled={sending || (!text.trim() && !selectedImageUri)}
+            />
+          ) : null}
         </View>
       </View>
     </View>

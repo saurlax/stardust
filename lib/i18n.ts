@@ -32,6 +32,7 @@ const translations = {
       holdToTalk: "Hold to talk",
       camera: "Camera",
       add: "Add",
+      send: "Send",
     },
     settings: {
       title: "Settings",
@@ -112,6 +113,7 @@ const translations = {
       holdToTalk: "长按说话",
       camera: "相机",
       add: "添加",
+      send: "发送",
     },
     settings: {
       title: "设置",
