@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
 import {
   Image,
   Pressable,
@@ -10,6 +11,10 @@ import {
 
 import { Button, theme } from "@/components/ui";
 import { t } from "@/lib/i18n";
+
+const TEXT_INPUT_MIN_HEIGHT = 40;
+const TEXT_INPUT_MAX_HEIGHT = 120;
+const TEXT_INPUT_LINE_HEIGHT = 20;
 
 type ChatPromptProps = {
   inputMode: "text" | "voice";
@@ -38,6 +43,22 @@ export function ChatPrompt({
   onPressCamera,
   onPressAdd,
 }: ChatPromptProps) {
+  const [textInputHeight, setTextInputHeight] = useState(TEXT_INPUT_MIN_HEIGHT);
+
+  const syncTextInputHeight = (nextHeight: number) => {
+    setTextInputHeight(
+      Math.max(
+        TEXT_INPUT_MIN_HEIGHT,
+        Math.min(TEXT_INPUT_MAX_HEIGHT, nextHeight),
+      ),
+    );
+  };
+
+  useEffect(() => {
+    const lineCount = text.split("\n").length;
+    syncTextInputHeight(lineCount * TEXT_INPUT_LINE_HEIGHT + 20);
+  }, [text]);
+
   return (
     <View style={styles.promptWrap}>
       {selectedImageUri ? (
@@ -79,19 +100,36 @@ export function ChatPrompt({
         </Pressable>
 
         {inputMode === "text" ? (
-          <TextInput
-            value={text}
-            onChangeText={onChangeText}
-            placeholder={
-              sending ? t("chat.thinking") : t("chat.messagePlaceholder")
-            }
-            placeholderTextColor={theme.colors.borderMuted}
-            style={styles.textInput}
-            returnKeyType="send"
-            onSubmitEditing={onSendText}
-            blurOnSubmit={false}
-            editable={!sending}
-          />
+          <View style={styles.textInputWrap}>
+            <TextInput
+              value={text}
+              onChangeText={onChangeText}
+              placeholder={
+                sending ? t("chat.thinking") : t("chat.messagePlaceholder")
+              }
+              placeholderTextColor={theme.colors.borderMuted}
+              style={[styles.textInput, { height: textInputHeight }]}
+              multiline
+              numberOfLines={1}
+              scrollEnabled={textInputHeight >= TEXT_INPUT_MAX_HEIGHT}
+              onContentSizeChange={(event) => {
+                syncTextInputHeight(event.nativeEvent.contentSize.height);
+              }}
+              editable={!sending}
+            />
+
+            <Text
+              pointerEvents="none"
+              onTextLayout={(event) => {
+                syncTextInputHeight(
+                  event.nativeEvent.lines.length * TEXT_INPUT_LINE_HEIGHT + 20,
+                );
+              }}
+              style={styles.textInputMirror}
+            >
+              {text || " "}
+            </Text>
+          </View>
         ) : (
           <Pressable
             accessibilityRole="button"
@@ -185,16 +223,32 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: theme.colors.surfaceMuted,
   },
-  textInput: {
+  textInputWrap: {
     flex: 1,
-    minHeight: 40,
-    maxHeight: 120,
+    position: "relative",
+  },
+  textInput: {
+    width: "100%",
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 18,
     backgroundColor: theme.colors.surfaceSoft,
     color: theme.colors.text,
     fontSize: 16,
+    lineHeight: TEXT_INPUT_LINE_HEIGHT,
+    textAlignVertical: "top",
+  },
+  textInputMirror: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    opacity: 0,
+    color: theme.colors.text,
+    fontSize: 16,
+    lineHeight: TEXT_INPUT_LINE_HEIGHT,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   voiceButton: {
     flex: 1,
