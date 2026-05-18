@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router, Stack } from "expo-router";
 import { fetch as expoFetch } from "expo/fetch";
 import { useEffect, useRef, useState } from "react";
+import { useShareIntentContext } from "expo-share-intent";
 import {
     KeyboardAvoidingView,
     Platform,
@@ -31,6 +32,7 @@ const readImageBinary = async (uri: string) => {
 
 export default function Index() {
   const { config, ready } = useConfig();
+  const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "m1",
@@ -45,6 +47,7 @@ export default function Index() {
   const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>();
   const [sending, setSending] = useState(false);
   const messagesRef = useRef(messages);
+  const handledShareRef = useRef<string>();
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -296,6 +299,22 @@ export default function Index() {
     });
     void sendPrompt(message.request?.prompt || "", true, message.id);
   };
+
+  useEffect(() => {
+    if (!hasShareIntent || !shareIntent || sending || !ready) return;
+
+    const signature = JSON.stringify(shareIntent);
+    if (handledShareRef.current === signature) return;
+    handledShareRef.current = signature;
+
+    const sharedImage = shareIntent.files?.find((file) => file.mimeType.startsWith("image/"));
+    setText(shareIntent.text || shareIntent.webUrl || "");
+    setSelectedImageUri(sharedImage?.path);
+    setSelectedImageMimeType(sharedImage?.mimeType);
+    router.replace("/");
+    void sendPrompt(shareIntent.text || shareIntent.webUrl || "");
+    resetShareIntent();
+  }, [hasShareIntent, ready, resetShareIntent, sending, shareIntent]);
 
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>

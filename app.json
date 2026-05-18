@@ -28,6 +28,22 @@
       "expo-router",
       "expo-calendar",
       [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsText": true,
+            "NSExtensionActivationSupportsImageWithMaxCount": 5
+          },
+          "iosShareExtensionName": "Share to Stardust",
+          "iosHideView": true,
+          "androidIntentFilters": ["text/*", "image/*"],
+          "androidMultiIntentFilters": ["image/*"],
+          "androidMainActivityAttributes": {
+            "android:launchMode": "singleTask"
+          }
+        }
+      ],
+      [
         "expo-localization",
         {
           "supportedLocales": {

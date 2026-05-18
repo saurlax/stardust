@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
+import { ShareIntentProvider } from "expo-share-intent";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { NebulaView } from "@/components/NebulaView";
@@ -13,20 +14,22 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <ConfigProvider>
-        <View style={styles.root}>
-          <NebulaView style={styles.background} />
-          <Stack
-            screenOptions={{
-              headerShadowVisible: false,
-              statusBarStyle: theme.isDark ? "light" : "dark",
-              headerStyle: { backgroundColor: headerBackgroundColor },
-              headerTintColor: theme.colors.text,
-              headerTitleStyle: { color: theme.colors.text },
-            }}
-          />
-        </View>
-      </ConfigProvider>
+      <ShareIntentProvider options={{ resetOnBackground: true }}>
+        <ConfigProvider>
+          <View style={styles.root}>
+            <NebulaView style={styles.background} />
+            <Stack
+              screenOptions={{
+                headerShadowVisible: false,
+                statusBarStyle: theme.isDark ? "light" : "dark",
+                headerStyle: { backgroundColor: headerBackgroundColor },
+                headerTintColor: theme.colors.text,
+                headerTitleStyle: { color: theme.colors.text },
+              }}
+            />
+          </View>
+        </ConfigProvider>
+      </ShareIntentProvider>
     </GestureHandlerRootView>
   );
 }
