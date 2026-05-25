@@ -7,6 +7,7 @@ export type AiProviderId = "openai-compact";
 export type AiConfig = {
   provider: AiProviderId;
   baseURL: string;
+  apiBaseURL: string;
   apiKey: string;
   model: string;
   temperature: string;
@@ -20,6 +21,7 @@ export type AppConfig = {
 export const createDefaultAiConfig = (): AiConfig => ({
   provider: "openai-compact",
   baseURL: "https://api.openai.com/v1",
+  apiBaseURL: process.env.EXPO_PUBLIC_API_BASE_URL?.trim() || "",
   apiKey: "",
   model: "gpt-4o-mini",
   temperature: "0.7",
@@ -33,6 +35,7 @@ export const createDefaultConfig = (): AppConfig => ({
 const normalizeAi = (value?: Partial<AiConfig>): AiConfig => ({
   provider: value?.provider || "openai-compact",
   baseURL: value?.baseURL?.trim() || createDefaultConfig().ai.baseURL,
+  apiBaseURL: value?.apiBaseURL?.trim() || createDefaultConfig().ai.apiBaseURL,
   apiKey: value?.apiKey?.trim() || "",
   model: value?.model?.trim() || createDefaultConfig().ai.model,
   temperature:

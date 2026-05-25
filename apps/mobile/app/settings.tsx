@@ -76,6 +76,15 @@ export default function SettingsScreen() {
           />
 
           <Input
+            label={t("settings.apiBaseURL")}
+            value={form.apiBaseURL}
+            onChangeText={(value) => updateField("apiBaseURL", value)}
+            placeholder={t("settings.apiBaseURLPlaceholder")}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          <Input
             label={t("settings.apiKey")}
             value={form.apiKey}
             onChangeText={(value) => updateField("apiKey", value)}
