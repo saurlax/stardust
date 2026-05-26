@@ -1,169 +1,85 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
-import { Card, theme, ui } from "@/components/ui";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
 import { t } from "@/lib/i18n";
 import { memoryTreeMock } from "@/lib/memoryTreeMock";
 
 export default function PersonalScreen() {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const avatarIconColor = colorScheme === "dark" ? "#0A0A0A" : "#FAFAFA";
+
   return (
-    <SafeAreaView style={styles.screen} edges={["bottom"]}>
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <Stack.Screen
         options={{
           title: t("personal.title"),
         }}
       />
 
-      <View style={styles.content}>
-        <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={20} color={theme.colors.textOnDark} />
+      <View className="flex-1 gap-4 p-4">
+        <View className="flex-row items-center gap-2.5 px-0.5 py-0.5">
+          <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
+            <Ionicons name="person" size={20} color={avatarIconColor} />
           </View>
-          <View style={styles.profileTextWrap}>
-            <Text style={styles.profileName}>{t("personal.profileName")}</Text>
-            <Text style={styles.profileSubtitle}>
+          <View className="flex-1 gap-1">
+            <Text className="text-base font-semibold">{t("personal.profileName")}</Text>
+            <Text className="text-xs text-muted-foreground">
               {t("personal.profileSubtitle")}
             </Text>
           </View>
         </View>
 
-        <View style={styles.cardsContainer}>
+        <View className="gap-3">
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/memory")}
-            style={[styles.entryCard, styles.memoryEntryCard]}
+            className="rounded-xl"
           >
-            <Card
-              style={styles.personalCard}
-              background={
-                <NebulaView
-                  style={styles.nebulaStage}
-                  tree={memoryTreeMock}
-                  showLabels={false}
-                />
-              }
-              title={t("personal.memoryTitle")}
-              description={t("personal.memoryDescription")}
-              overlayStyle={styles.personalOverlay}
-              titleStyle={styles.personalCardTitle}
-              descriptionStyle={styles.personalCardDescription}
-            />
+            <Card className="h-56 overflow-hidden p-0">
+              <NebulaView
+                style={StyleSheet.absoluteFillObject}
+                tree={memoryTreeMock}
+                showLabels={false}
+              />
+              <CardHeader className="absolute left-0 top-0 p-4">
+                <CardTitle>{t("personal.memoryTitle")}</CardTitle>
+                <CardDescription>{t("personal.memoryDescription")}</CardDescription>
+              </CardHeader>
+            </Card>
           </Pressable>
 
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/journal")}
-            style={[styles.tapCard]}
+            className="rounded-xl"
           >
-            <Card
-              style={styles.entryCard}
-              title={t("personal.journalTitle")}
-              description={t("personal.journalDescription")}
-              overlayStyle={styles.entryOverlay}
-              titleStyle={styles.entryTitle}
-              descriptionStyle={styles.entryDescription}
-            />
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("personal.journalTitle")}</CardTitle>
+                <CardDescription>{t("personal.journalDescription")}</CardDescription>
+              </CardHeader>
+            </Card>
           </Pressable>
 
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/calendar")}
-            style={[styles.tapCard]}
+            className="rounded-xl"
           >
-            <Card
-              style={styles.entryCard}
-              title={t("personal.calendarTitle")}
-              description={t("personal.calendarDescription")}
-              overlayStyle={styles.entryOverlay}
-              titleStyle={styles.entryTitle}
-              descriptionStyle={styles.entryDescription}
-            />
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("personal.calendarTitle")}</CardTitle>
+                <CardDescription>{t("personal.calendarDescription")}</CardDescription>
+              </CardHeader>
+            </Card>
           </Pressable>
         </View>
       </View>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: ui.screen,
-  content: {
-    flex: 1,
-    padding: 16,
-    gap: 16,
-  },
-  profileHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 2,
-    paddingVertical: 2,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.radii.avatar,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.text,
-  },
-  profileTextWrap: { flex: 1, gap: 3 },
-  profileName: { fontSize: 16, fontWeight: "600", color: theme.colors.text },
-  profileSubtitle: { fontSize: 12, color: theme.colors.textMuted },
-  personalCard: {
-    position: "relative",
-    height: 220,
-    overflow: "hidden",
-  },
-  personalCardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.text,
-  },
-  personalCardDescription: {
-    marginTop: 4,
-    fontSize: 13,
-    color: theme.colors.textMuted,
-  },
-  personalOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    justifyContent: "flex-start",
-    alignItems: "flex-start",
-    backgroundColor: "transparent",
-  },
-  nebulaStage: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.text,
-  },
-  cardsContainer: { gap: 12 },
-  tapCard: {
-    borderRadius: theme.radii.card,
-  },
-  entryCard: {
-    minHeight: 72,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-  },
-  entryOverlay: {
-    justifyContent: "center",
-  },
-  memoryEntryCard: {
-    minHeight: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    borderWidth: 0,
-    borderColor: "transparent",
-    borderRadius: 0,
-  },
-  entryTitle: { fontSize: 16, fontWeight: "600", color: theme.colors.text },
-  entryDescription: {
-    marginTop: 4,
-    fontSize: 13,
-    color: theme.colors.textMuted,
-  },
-});

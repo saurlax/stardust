@@ -1,9 +1,7 @@
 import { Canvas, Circle, Line, vec } from "@shopify/react-native-skia";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { Platform, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from "react-native";
-
-import { theme } from "@/components/ui";
+import { Platform, StyleSheet, Text, useColorScheme, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from "react-native";
 
 type RenderNode = {
   id: string;
@@ -172,6 +170,8 @@ type NebulaViewProps = {
 };
 
 export function NebulaView({ style, tree, showLabels = true, interactive = false }: NebulaViewProps) {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const isDark = colorScheme === "dark";
   const nebulaTree = useMemo(() => tree ?? defaultTree, [tree]);
   const layoutNodes = useMemo(() => buildLayoutNodes(nebulaTree), [nebulaTree]);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -233,7 +233,7 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
   }, [animated.nodes, size.height, size.width, viewport.scale, viewport.tx, viewport.ty]);
 
   const lines = useMemo(() => {
-    const edges: Array<{ from: string; to: string; alpha: number }> = [];
+    const edges: { from: string; to: string; alpha: number }[] = [];
     for (const node of layoutNodes) {
       for (const parentId of node.parentIds) {
         edges.push({ from: node.id, to: parentId, alpha: 0.7 });
@@ -242,9 +242,9 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
     return edges;
   }, [layoutNodes]);
 
-  const lineColor = theme.isDark ? "#D1D5DB" : "#0C2A66";
-  const pointCore = theme.isDark ? "#F4F7FF" : "#2E5FB3";
-  const pointGlow = theme.isDark ? "rgba(212,224,255,0.22)" : "rgba(56,96,173,0.2)";
+  const lineColor = isDark ? "#D4D4D4" : "#404040";
+  const pointCore = isDark ? "#FAFAFA" : "#0A0A0A";
+  const pointGlow = isDark ? "rgba(250,250,250,0.22)" : "rgba(10,10,10,0.14)";
   const panStart = useRef({ tx: 0, ty: 0 });
   const pinchStart = useRef(1);
 
@@ -277,7 +277,7 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
 
   if (Platform.OS === "web") {
     return (
-      <View style={[styles.fill, style]} onLayout={onLayout}>
+      <View style={[styles.fill, { backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF" }, style]} onLayout={onLayout}>
         {showLabels ? (
           <View style={[StyleSheet.absoluteFillObject, styles.labelsOverlay]}>
             {layoutNodes
@@ -290,13 +290,14 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
                     key={node.id}
                     style={[
                       styles.labelChip,
+                      isDark ? styles.labelChipDark : styles.labelChipLight,
                       {
                         opacity: p.alpha,
                         transform: [{ translateX: p.x - 22 }, { translateY: p.y - 16 }],
                       },
                     ]}
                   >
-                    <Text style={styles.labelText}>{node.title}</Text>
+                    <Text style={[styles.labelText, isDark ? styles.labelTextDark : styles.labelTextLight]}>{node.title}</Text>
                   </View>
                 );
               })}
@@ -307,7 +308,7 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
   }
 
   const content = (
-    <View style={[styles.fill, style]} onLayout={onLayout}>
+    <View style={[styles.fill, { backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF" }, style]} onLayout={onLayout}>
       <Canvas style={StyleSheet.absoluteFillObject}>
         {lines.map((edge) => {
           const from = projected.get(edge.from);
@@ -321,7 +322,7 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
               p2={vec(to.x, to.y)}
               color={lineColor}
               opacity={alpha}
-              strokeWidth={theme.isDark ? 1.1 : 1.35}
+              strokeWidth={isDark ? 1.1 : 1.35}
             />
           );
         })}
@@ -348,13 +349,14 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
                   key={node.id}
                   style={[
                     styles.labelChip,
+                    isDark ? styles.labelChipDark : styles.labelChipLight,
                     {
                       opacity: p.alpha,
                       transform: [{ translateX: p.x - 22 }, { translateY: p.y - 16 }],
                     },
                   ]}
                 >
-                  <Text style={styles.labelText}>{node.title}</Text>
+                  <Text style={[styles.labelText, isDark ? styles.labelTextDark : styles.labelTextLight]}>{node.title}</Text>
                 </View>
               );
             })}
@@ -371,7 +373,6 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
 const styles = StyleSheet.create({
   fill: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.nebula,
     overflow: "hidden",
   },
   labelsOverlay: {
@@ -383,17 +384,35 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: theme.isDark ? "rgba(255,255,255,0.32)" : "rgba(15,23,42,0.2)",
-    backgroundColor: theme.isDark ? "rgba(0,0,0,0.42)" : "rgba(255,255,255,0.82)",
+  },
+  labelChipDark: {
+    borderColor: "rgba(255,255,255,0.32)",
+    backgroundColor: "rgba(0,0,0,0.42)",
+  },
+  labelChipLight: {
+    borderColor: "rgba(15,23,42,0.2)",
+    backgroundColor: "rgba(255,255,255,0.82)",
   },
   labelText: {
     fontSize: 10,
     fontWeight: "600",
-    color: theme.isDark ? "#F8FAFC" : "#0F172A",
+  },
+  labelTextDark: {
+    color: "#F8FAFC",
     ...(Platform.OS === "web"
-      ? { textShadow: theme.isDark ? "0 1px 2px rgba(0,0,0,0.75)" : "0 1px 2px rgba(255,255,255,0.9)" }
+      ? { textShadow: "0 1px 2px rgba(0,0,0,0.75)" }
       : {
-          textShadowColor: theme.isDark ? "rgba(0,0,0,0.75)" : "rgba(255,255,255,0.9)",
+          textShadowColor: "rgba(0,0,0,0.75)",
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 2,
+        }),
+  },
+  labelTextLight: {
+    color: "#0F172A",
+    ...(Platform.OS === "web"
+      ? { textShadow: "0 1px 2px rgba(255,255,255,0.9)" }
+      : {
+          textShadowColor: "rgba(255,255,255,0.9)",
           textShadowOffset: { width: 0, height: 1 },
           textShadowRadius: 2,
         }),

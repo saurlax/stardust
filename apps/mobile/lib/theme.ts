@@ -1,0 +1,122 @@
+import { DarkTheme, DefaultTheme, type Theme } from "@react-navigation/native";
+
+export const THEME = {
+  light: {
+    background: "hsl(0 0% 100%)",
+    foreground: "hsl(0 0% 3.9%)",
+    card: "hsl(0 0% 100%)",
+    cardForeground: "hsl(0 0% 3.9%)",
+    popover: "hsl(0 0% 100%)",
+    popoverForeground: "hsl(0 0% 3.9%)",
+    primary: "hsl(0 0% 9%)",
+    primaryForeground: "hsl(0 0% 98%)",
+    secondary: "hsl(0 0% 96.1%)",
+    secondaryForeground: "hsl(0 0% 9%)",
+    muted: "hsl(0 0% 96.1%)",
+    mutedForeground: "hsl(0 0% 45.1%)",
+    accent: "hsl(0 0% 96.1%)",
+    accentForeground: "hsl(0 0% 9%)",
+    destructive: "hsl(0 84.2% 60.2%)",
+    border: "hsl(0 0% 89.8%)",
+    input: "hsl(0 0% 89.8%)",
+    ring: "hsl(0 0% 63%)",
+    radius: "0.625rem",
+  },
+  dark: {
+    background: "hsl(0 0% 3.9%)",
+    foreground: "hsl(0 0% 98%)",
+    card: "hsl(0 0% 3.9%)",
+    cardForeground: "hsl(0 0% 98%)",
+    popover: "hsl(0 0% 3.9%)",
+    popoverForeground: "hsl(0 0% 98%)",
+    primary: "hsl(0 0% 98%)",
+    primaryForeground: "hsl(0 0% 9%)",
+    secondary: "hsl(0 0% 14.9%)",
+    secondaryForeground: "hsl(0 0% 98%)",
+    muted: "hsl(0 0% 14.9%)",
+    mutedForeground: "hsl(0 0% 63.9%)",
+    accent: "hsl(0 0% 14.9%)",
+    accentForeground: "hsl(0 0% 98%)",
+    destructive: "hsl(0 70.9% 59.4%)",
+    border: "hsl(0 0% 14.9%)",
+    input: "hsl(0 0% 14.9%)",
+    ring: "hsl(300 0% 45%)",
+    radius: "0.625rem",
+  },
+} as const;
+
+/*
+Stardust theme snapshot. Replace THEME with this object later to compare against the default RNR theme.
+Extracted tokens: primary #2563EB light / #3B82F6 dark, background #F5F8FF light / #060716 dark,
+text #10213D light / #E6EEF8 dark, card radius 18px, input radius 14px, pill radius 26px, avatar radius 32px.
+
+export const STARDUST_THEME = {
+  light: {
+    background: "hsl(218 100% 98%)",
+    foreground: "hsl(219 58% 15%)",
+    card: "hsl(0 0% 100%)",
+    cardForeground: "hsl(219 58% 15%)",
+    popover: "hsl(0 0% 100%)",
+    popoverForeground: "hsl(219 58% 15%)",
+    primary: "hsl(221 83% 53%)",
+    primaryForeground: "hsl(0 0% 100%)",
+    secondary: "hsl(218 44% 94%)",
+    secondaryForeground: "hsl(219 58% 15%)",
+    muted: "hsl(218 44% 94%)",
+    mutedForeground: "hsl(218 18% 45%)",
+    accent: "hsl(217 91% 60%)",
+    accentForeground: "hsl(0 0% 100%)",
+    destructive: "hsl(0 72% 51%)",
+    border: "hsl(220 13% 75%)",
+    input: "hsl(220 13% 75%)",
+    ring: "hsl(221 83% 53%)",
+    radius: "0.9rem",
+  },
+  dark: {
+    background: "hsl(236 57% 5%)",
+    foreground: "hsl(207 56% 94%)",
+    card: "hsl(236 45% 8%)",
+    cardForeground: "hsl(207 56% 94%)",
+    popover: "hsl(236 45% 8%)",
+    popoverForeground: "hsl(207 56% 94%)",
+    primary: "hsl(217 91% 60%)",
+    primaryForeground: "hsl(0 0% 100%)",
+    secondary: "hsl(230 30% 14%)",
+    secondaryForeground: "hsl(207 56% 94%)",
+    muted: "hsl(230 30% 14%)",
+    mutedForeground: "hsl(215 20% 65%)",
+    accent: "hsl(217 91% 60%)",
+    accentForeground: "hsl(0 0% 100%)",
+    destructive: "hsl(0 84% 60%)",
+    border: "hsl(0 0% 100% / 0.08)",
+    input: "hsl(0 0% 100% / 0.08)",
+    ring: "hsl(217 91% 60%)",
+    radius: "0.9rem",
+  },
+} as const;
+*/
+
+export const NAV_THEME: Record<"light" | "dark", Theme> = {
+  light: {
+    ...DefaultTheme,
+    colors: {
+      background: THEME.light.background,
+      border: THEME.light.border,
+      card: THEME.light.card,
+      notification: THEME.light.destructive,
+      primary: THEME.light.primary,
+      text: THEME.light.foreground,
+    },
+  },
+  dark: {
+    ...DarkTheme,
+    colors: {
+      background: THEME.dark.background,
+      border: THEME.dark.border,
+      card: THEME.dark.card,
+      notification: THEME.dark.destructive,
+      primary: THEME.dark.primary,
+      text: THEME.dark.foreground,
+    },
+  },
+};

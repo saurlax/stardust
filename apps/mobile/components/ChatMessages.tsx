@@ -1,17 +1,19 @@
+import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  useColorScheme,
+  View,
 } from "react-native";
 
-import { Button } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
 import type { ChatMessage } from "@/lib/chat/types";
 import { t } from "@/lib/i18n";
-import { theme } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
 type ChatMessagesProps = {
   messages: ChatMessage[];
@@ -24,6 +26,10 @@ export function ChatMessages({
   sending,
   onRetryMessage,
 }: ChatMessagesProps) {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
+  const mutedColor = colorScheme === "dark" ? "#A3A3A3" : "#737373";
+
   const copyMessage = async (content: string) => {
     await Clipboard.setStringAsync(content);
   };
@@ -32,7 +38,7 @@ export function ChatMessages({
     <FlatList
       data={messages}
       keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.listContent}
+      contentContainerStyle={{ paddingHorizontal: 14, paddingVertical: 10 }}
       renderItem={({ item }) => {
         const isUser = item.role === "user";
         const isError = item.status === "error";
@@ -50,114 +56,83 @@ export function ChatMessages({
 
         return (
           <View
-            style={[
-              styles.messageRow,
-              isUser ? styles.rowRight : styles.rowLeft,
-            ]}
+            className={cn(
+              "mb-2.5 flex-row",
+              isUser ? "justify-end" : "justify-start",
+            )}
           >
-            <View
-              style={[
-                styles.bubble,
-                isUser
-                  ? styles.bubbleUser
-                  : isError
-                    ? styles.bubbleError
-                    : styles.bubbleAssistant,
-              ]}
-            >
-              {isPending ? (
-                <View style={styles.pendingRow}>
-                  <ActivityIndicator size="small" color={theme.colors.textMuted} />
-                </View>
-              ) : (
-                <>
-                  {item.content ? (
-                    <Text
-                      style={[styles.bubbleText, isUser && styles.userText]}
-                    >
-                      {item.content}
-                    </Text>
-                  ) : null}
-                  {item.imageUri ? (
-                    <Image
-                      source={{ uri: item.imageUri }}
-                      style={styles.messageImage}
-                    />
-                  ) : null}
-                </>
+            <Card
+              className={cn(
+                "max-w-[80%] gap-0 py-0",
+                isUser && "bg-primary",
+                isError && "bg-destructive/10",
               )}
-              {showMeta ? (
-                <View style={styles.messageMeta}>
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color={theme.colors.textMuted} />
-                  ) : null}
-                  {canCopy ? (
-                    <Button
-                      compact
-                      rounded
-                      color="neutral"
-                      accessibilityRole="button"
-                      accessibilityLabel={t("chat.copyMessage")}
-                      hitSlop={10}
-                      onPress={() => void copyMessage(item.content)}
-                      icon="copy-outline"
-                    />
-                  ) : null}
-                  {canRetry ? (
-                    <Button
-                      compact
-                      rounded
-                      color="neutral"
-                      accessibilityRole="button"
-                      accessibilityLabel={t("chat.retryMessage")}
-                      hitSlop={10}
-                      onPress={() => onRetryMessage(item)}
-                      icon="refresh"
-                    />
-                  ) : null}
-                </View>
-              ) : null}
-            </View>
+            >
+              <CardContent className="px-4 py-3">
+                {isPending ? (
+                  <View className="min-h-5 min-w-6 items-center justify-center">
+                    <ActivityIndicator size="small" color={mutedColor} />
+                  </View>
+                ) : (
+                  <>
+                    {item.content ? (
+                      <Text
+                        className={cn(
+                          "text-base leading-5",
+                          isUser && "text-primary-foreground",
+                        )}
+                      >
+                        {item.content}
+                      </Text>
+                    ) : null}
+                    {item.imageUri ? (
+                      <Image
+                        source={{ uri: item.imageUri }}
+                        className="mt-2 h-[200px] w-[200px] rounded-md bg-muted"
+                      />
+                    ) : null}
+                  </>
+                )}
+                {showMeta ? (
+                  <View className="flex-row items-center gap-0.5">
+                    {isLoading ? (
+                      <ActivityIndicator size="small" color={mutedColor} />
+                    ) : null}
+                    {canCopy ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        accessibilityRole="button"
+                        accessibilityLabel={t("chat.copyMessage")}
+                        hitSlop={10}
+                        onPress={() => void copyMessage(item.content)}
+                      >
+                        <Ionicons
+                          name="copy-outline"
+                          size={13}
+                          color={iconColor}
+                        />
+                      </Button>
+                    ) : null}
+                    {canRetry ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        accessibilityRole="button"
+                        accessibilityLabel={t("chat.retryMessage")}
+                        hitSlop={10}
+                        onPress={() => onRetryMessage(item)}
+                      >
+                        <Ionicons name="refresh" size={13} color={iconColor} />
+                      </Button>
+                    ) : null}
+                  </View>
+                ) : null}
+              </CardContent>
+            </Card>
           </View>
         );
       }}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  listContent: { paddingHorizontal: 14, paddingVertical: 10 },
-  messageRow: { flexDirection: "row", marginBottom: 10 },
-  rowLeft: { justifyContent: "flex-start" },
-  rowRight: { justifyContent: "flex-end" },
-  bubble: {
-    maxWidth: "80%",
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  bubbleAssistant: { backgroundColor: theme.colors.surfaceMuted },
-  bubbleError: { backgroundColor: theme.colors.dangerSoft },
-  bubbleUser: { backgroundColor: theme.colors.primary },
-  bubbleText: { fontSize: 16, lineHeight: 20, color: theme.colors.text },
-  userText: { color: theme.colors.textOnDark },
-  pendingRow: {
-    minWidth: 24,
-    minHeight: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  messageImage: {
-    marginTop: 8,
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-    backgroundColor: theme.colors.border,
-  },
-  messageMeta: {
-    marginTop: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-});

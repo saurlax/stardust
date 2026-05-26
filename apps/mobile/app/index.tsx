@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { type ModelMessage, streamText } from "ai";
 import * as ImagePicker from "expo-image-picker";
@@ -5,22 +6,16 @@ import { router, Stack } from "expo-router";
 import { fetch as expoFetch } from "expo/fetch";
 import { useEffect, useRef, useState } from "react";
 import { useShareIntentContext } from "expo-share-intent";
-import {
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ChatMessages } from "@/components/ChatMessages";
 import { ChatPrompt } from "@/components/ChatPrompt";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import { useConfig } from "@/context/config";
 import type { ChatMessage, MessageRole } from "@/lib/chat/types";
 import { t } from "@/lib/i18n";
-import { theme, ui } from "@/components/ui";
 
 const DEFAULT_IMAGE_PROMPT = t("chat.defaultImagePrompt");
 
@@ -31,6 +26,8 @@ const readImageBinary = async (uri: string) => {
 };
 
 export default function Index() {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const { config, ready } = useConfig();
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -47,7 +44,7 @@ export default function Index() {
   const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>();
   const [sending, setSending] = useState(false);
   const messagesRef = useRef(messages);
-  const handledShareRef = useRef<string>();
+  const handledShareRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -317,15 +314,15 @@ export default function Index() {
   }, [hasShareIntent, ready, resetShareIntent, sending, shareIntent]);
 
   return (
-    <SafeAreaView style={styles.screen} edges={["bottom"]}>
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <Stack.Screen
         options={{
           title: t("chat.title"),
           headerTitleAlign: "center",
           headerTitle: () => (
-            <View style={styles.headerTitle}>
-              <Text style={styles.title}>{t("chat.title")}</Text>
-              <Text style={styles.subtitle}>
+            <View className="items-center justify-center">
+              <Text className="text-center text-[22px] font-bold">{t("chat.title")}</Text>
+              <Text className="mt-0.5 text-center text-xs text-muted-foreground">
                 {ready ? t("chat.providerReady") : t("chat.providerLoading")}
               </Text>
             </View>
@@ -336,10 +333,12 @@ export default function Index() {
               accessibilityLabel={t("chat.openPersonalPage")}
               hitSlop={10}
               onPress={() => router.push("/personal")}
-              icon="menu"
-              rounded
-              color="neutral"
-            />
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+            >
+              <Ionicons name="menu" size={22} color={iconColor} />
+            </Button>
           ),
           headerRight: () => (
             <Button
@@ -347,16 +346,18 @@ export default function Index() {
               accessibilityLabel={t("chat.openSettings")}
               hitSlop={10}
               onPress={() => router.push("/settings")}
-              icon="settings-outline"
-              rounded
-              color="neutral"
-            />
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+            >
+              <Ionicons name="settings-outline" size={22} color={iconColor} />
+            </Button>
           ),
         }}
       />
 
       <KeyboardAvoidingView
-        style={styles.screen}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={90}
       >
@@ -386,20 +387,3 @@ export default function Index() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: ui.screen,
-  headerTitle: { alignItems: "center", justifyContent: "center" },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: theme.colors.text,
-    textAlign: "center",
-  },
-  subtitle: {
-    marginTop: 2,
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    textAlign: "center",
-  },
-});

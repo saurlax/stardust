@@ -1,18 +1,30 @@
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Button, Input, theme, ui } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Text } from "@/components/ui/text";
 import { useConfig } from "@/context/config";
 import { createDefaultAiConfig, type AiConfig } from "@/lib/config";
 import { t } from "@/lib/i18n";
+
+type SettingsFieldProps = React.ComponentProps<typeof Input> & {
+  label: string;
+};
+
+function SettingsField({ label, id, ...props }: SettingsFieldProps) {
+  const fieldId = id ?? label;
+
+  return (
+    <View className="gap-2">
+      <Label htmlFor={fieldId}>{label}</Label>
+      <Input id={fieldId} {...props} />
+    </View>
+  );
+}
 
 export default function SettingsScreen() {
   const { config, ready, updateConfig } = useConfig();
@@ -43,7 +55,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={["bottom"]}>
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <Stack.Screen
         options={{
           title: t("settings.title"),
@@ -53,29 +65,31 @@ export default function SettingsScreen() {
       />
 
       <KeyboardAvoidingView
-        style={styles.screen}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={{ gap: 14, padding: 16 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.description}>{t("settings.description")}</Text>
+          <Text className="text-sm leading-5 text-muted-foreground">
+            {t("settings.description")}
+          </Text>
 
-          <Input
+          <SettingsField
             label={t("settings.provider")}
             value={t("settings.providerValue")}
-            readOnly
+            editable={false}
           />
 
-          <Input
+          <SettingsField
             label={t("settings.baseURL")}
             value={form.baseURL}
             onChangeText={(value) => updateField("baseURL", value)}
             placeholder={t("settings.baseURLPlaceholder")}
           />
 
-          <Input
+          <SettingsField
             label={t("settings.apiBaseURL")}
             value={form.apiBaseURL}
             onChangeText={(value) => updateField("apiBaseURL", value)}
@@ -84,7 +98,7 @@ export default function SettingsScreen() {
             autoCorrect={false}
           />
 
-          <Input
+          <SettingsField
             label={t("settings.apiKey")}
             value={form.apiKey}
             onChangeText={(value) => updateField("apiKey", value)}
@@ -92,14 +106,14 @@ export default function SettingsScreen() {
             secureTextEntry
           />
 
-          <Input
+          <SettingsField
             label={t("settings.model")}
             value={form.model}
             onChangeText={(value) => updateField("model", value)}
             placeholder={t("settings.modelPlaceholder")}
           />
 
-          <Input
+          <SettingsField
             label={t("settings.temperature")}
             value={form.temperature}
             onChangeText={(value) => updateField("temperature", value)}
@@ -107,39 +121,19 @@ export default function SettingsScreen() {
             keyboardType="decimal-pad"
           />
 
-          {message ? <Text style={styles.message}>{message}</Text> : null}
+          {message ? <Text className="text-sm font-semibold text-green-600">{message}</Text> : null}
 
           <Button
             accessibilityRole="button"
             accessibilityLabel={t("settings.saveSettings")}
             onPress={onSave}
             disabled={saving || !ready}
-            color="primary"
-            variant="soft"
-            block
-            style={styles.saveButton}
+            className="mt-1 w-full"
           >
-            {saving ? t("settings.saving") : t("settings.save")}
+            <Text>{saving ? t("settings.saving") : t("settings.save")}</Text>
           </Button>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: ui.screen,
-  content: {
-    padding: 16,
-    gap: 14,
-  },
-  description: ui.description,
-  message: {
-    color: theme.colors.success,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  saveButton: {
-    marginTop: 6,
-  },
-});

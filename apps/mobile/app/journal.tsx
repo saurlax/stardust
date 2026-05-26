@@ -1,10 +1,10 @@
 import { Stack } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card } from "@/components/ui";
+import { Card, CardContent, CardDescription } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
 import { formatMonthDay, locale, t } from "@/lib/i18n";
-import { theme, ui } from "@/components/ui";
 
 type DiaryEntry = {
   id: string;
@@ -86,7 +86,7 @@ const diaryDaysByLocale: Record<string, DiaryDay[]> = {
 
 export default function JournalScreen() {
   return (
-    <SafeAreaView style={styles.screen} edges={["bottom"]}>
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <Stack.Screen
         options={{
           title: t("journal.title"),
@@ -94,12 +94,12 @@ export default function JournalScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={{ gap: 12, padding: 18, paddingBottom: 28 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>{t("journal.headerTitle")}</Text>
-          <Text style={styles.subtitle}>{t("journal.subtitle")}</Text>
+        <View className="mb-2 px-0.5">
+          <Text className="text-xl font-semibold">{t("journal.headerTitle")}</Text>
+          <Text className="mt-1 text-sm text-muted-foreground">{t("journal.subtitle")}</Text>
         </View>
 
         {(diaryDaysByLocale[locale] ?? diaryDaysByLocale.en).map(
@@ -107,24 +107,24 @@ export default function JournalScreen() {
             const isLastDay = index === days.length - 1;
 
             return (
-              <View key={day.date.toISOString()} style={styles.dayBlock}>
-                <Text style={styles.dateLabel}>{formatMonthDay(day.date)}</Text>
+              <View key={day.date.toISOString()} className="relative">
+                <Text className="mb-2 ml-0.5 text-xs font-semibold">
+                  {formatMonthDay(day.date)}
+                </Text>
 
                 <View
-                  style={[styles.timelineTrack, isLastDay && styles.trackTail]}
+                  className="absolute left-1.5 top-6 border-l border-dashed border-border"
+                  style={{ bottom: isLastDay ? 8 : -6 }}
                 />
 
-                <View style={styles.cardsCol}>
+                <View className="gap-2.5 pb-3.5 pl-4">
                   {day.entries.map((entry) => (
-                    <View key={entry.id} style={styles.entryRow}>
-                      <Card
-                        style={styles.entryCard}
-                        description={entry.time}
-                        descriptionStyle={styles.entryTime}
-                      >
-                        <Text style={styles.entryNote}>{entry.note}</Text>
-                      </Card>
-                    </View>
+                    <Card key={entry.id} className="min-h-[72px] justify-center gap-1 py-4">
+                      <CardContent className="gap-1">
+                        <CardDescription>{entry.time}</CardDescription>
+                        <Text className="text-sm leading-5">{entry.note}</Text>
+                      </CardContent>
+                    </Card>
                   ))}
                 </View>
               </View>
@@ -135,55 +135,3 @@ export default function JournalScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: ui.screen,
-  content: ui.content,
-  header: ui.header,
-  title: ui.title,
-  subtitle: ui.subtitle,
-  dayBlock: {
-    position: "relative",
-  },
-  dateLabel: {
-    marginLeft: 2,
-    marginBottom: 8,
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.textStrong,
-  },
-  timelineTrack: {
-    position: "absolute",
-    left: 6,
-    top: 24,
-    bottom: -6,
-    borderLeftWidth: 1,
-    borderStyle: "dashed",
-    borderColor: theme.colors.borderMuted,
-  },
-  trackTail: {
-    bottom: 8,
-  },
-  cardsCol: {
-    gap: 10,
-    paddingLeft: 16,
-    paddingBottom: 14,
-  },
-  entryRow: {
-    position: "relative",
-  },
-  entryCard: {
-    minHeight: 72,
-    justifyContent: "center",
-  },
-  entryTime: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    fontWeight: "500",
-  },
-  entryNote: {
-    fontSize: 14,
-    color: theme.colors.text,
-    lineHeight: 20,
-  },
-});

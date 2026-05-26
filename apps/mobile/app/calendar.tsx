@@ -2,19 +2,18 @@ import * as Calendar from "expo-calendar";
 import { Stack } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  useColorScheme,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card } from "@/components/ui";
+import { Card, CardContent } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
 import { formatMonthDay, formatTime, t } from "@/lib/i18n";
-import { theme, ui } from "@/components/ui";
 
 type CalendarEvent = {
   id: string;
@@ -32,7 +31,7 @@ type CalendarDay = {
 
 const APP_CALENDAR_TITLE = "Stardust";
 const APP_CALENDAR_NAME = "stardust-internal";
-const APP_CALENDAR_COLOR = theme.colors.text;
+const APP_CALENDAR_COLOR = "#0A0A0A";
 
 const normalizeEvents = (events: Calendar.Event[]): CalendarEvent[] =>
   events
@@ -126,6 +125,8 @@ const ensureAppCalendarId = async () => {
 };
 
 export default function CalendarScreen() {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const indicatorColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -173,7 +174,7 @@ export default function CalendarScreen() {
   }, [refresh]);
 
   return (
-    <SafeAreaView style={styles.screen} edges={["bottom"]}>
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <Stack.Screen
         options={{
           title: t("calendar.title"),
@@ -181,33 +182,31 @@ export default function CalendarScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={{ gap: 12, padding: 18, paddingBottom: 28 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>{t("calendar.headerTitle")}</Text>
-          <Text style={styles.subtitle}>{t("calendar.subtitle")}</Text>
+        <View className="mb-1 px-0.5">
+          <Text className="text-xl font-semibold">{t("calendar.headerTitle")}</Text>
+          <Text className="mt-1 text-sm text-muted-foreground">{t("calendar.subtitle")}</Text>
         </View>
 
         {loading ? (
-          <Card style={styles.stateBox}>
-            <ActivityIndicator color={theme.colors.text} />
-            <Text style={styles.stateText}>{t("calendar.loading")}</Text>
+          <Card className="min-h-24 items-center justify-center px-4">
+            <ActivityIndicator color={indicatorColor} />
+            <Text variant="muted">{t("calendar.loading")}</Text>
           </Card>
         ) : null}
 
         {!loading && error ? (
-          <Card style={styles.stateBox}>
-            <Text style={styles.errorText}>{error}</Text>
+          <Card className="min-h-24 items-center justify-center px-4">
+            <Text className="text-center text-sm text-destructive">{error}</Text>
           </Card>
         ) : null}
 
         {!loading && !error && !days.length ? (
-          <Card style={styles.stateBox}>
-            <Text style={styles.stateText}>{t("calendar.noEvents")}</Text>
+          <Card className="min-h-24 items-center justify-center px-4">
+            <Text variant="muted">{t("calendar.noEvents")}</Text>
           </Card>
         ) : null}
 
@@ -216,27 +215,26 @@ export default function CalendarScreen() {
               const isLastDay = index === days.length - 1;
 
               return (
-                <View key={day.dateKey} style={styles.dayBlock}>
-                  <Text style={styles.dateLabel}>{day.label}</Text>
+                <View key={day.dateKey} className="relative">
+                  <Text className="mb-2 ml-0.5 text-xs font-semibold">{day.label}</Text>
 
                   <View
-                    style={[
-                      styles.timelineTrack,
-                      isLastDay && styles.trackTail,
-                    ]}
+                    className="absolute left-1.5 top-6 border-l border-dashed border-border"
+                    style={{ bottom: isLastDay ? 8 : -6 }}
                   />
 
-                  <View style={styles.cardsCol}>
+                  <View className="gap-2.5 pb-3.5 pl-4">
                     {day.events.map((event) => (
-                      <Card key={event.id} style={styles.entryCard}>
-                        <Text style={styles.entryTime}>
-                          {formatTime(event.startDate)} -{" "}
-                          {formatTime(event.endDate)}
-                        </Text>
-                        <Text style={styles.entryTitle}>{event.title}</Text>
-                        {event.location ? (
-                          <Text style={styles.entryMeta}>{event.location}</Text>
-                        ) : null}
+                      <Card key={event.id} className="min-h-[72px] justify-center py-4">
+                        <CardContent className="gap-1">
+                          <Text variant="muted">
+                            {formatTime(event.startDate)} - {formatTime(event.endDate)}
+                          </Text>
+                          <Text className="text-sm font-semibold leading-5">{event.title}</Text>
+                          {event.location ? (
+                            <Text variant="muted">{event.location}</Text>
+                          ) : null}
+                        </CardContent>
                       </Card>
                     ))}
                   </View>
@@ -248,77 +246,3 @@ export default function CalendarScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: ui.screen,
-  content: ui.content,
-  header: {
-    ...ui.header,
-    marginBottom: 4,
-  },
-  title: ui.title,
-  subtitle: ui.subtitle,
-  stateBox: {
-    minHeight: 100,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-  },
-  stateText: ui.mutedText,
-  errorText: {
-    color: theme.colors.danger,
-    fontSize: 13,
-    textAlign: "center",
-  },
-  dayBlock: {
-    position: "relative",
-  },
-  dateLabel: {
-    marginLeft: 2,
-    marginBottom: 8,
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.textStrong,
-  },
-  timelineTrack: {
-    position: "absolute",
-    left: 6,
-    top: 24,
-    bottom: -6,
-    borderLeftWidth: 1,
-    borderStyle: "dashed",
-    borderColor: theme.colors.borderMuted,
-  },
-  trackTail: {
-    bottom: 8,
-  },
-  cardsCol: {
-    gap: 10,
-    paddingLeft: 16,
-    paddingBottom: 14,
-  },
-  entryCard: {
-    minHeight: 72,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    justifyContent: "center",
-  },
-  entryTime: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    fontWeight: "500",
-  },
-  entryTitle: {
-    marginTop: 6,
-    fontSize: 14,
-    color: theme.colors.text,
-    lineHeight: 20,
-    fontWeight: "600",
-  },
-  entryMeta: {
-    marginTop: 4,
-    fontSize: 12,
-    color: theme.colors.textMuted,
-  },
-});
