@@ -8,12 +8,26 @@ import (
 type Config struct {
 	Port             string
 	CORSAllowOrigins []string
+
+	// OpenAI
+	OpenAIBaseURL string
+	OpenAIAPIKey  string
+	OpenAIModel   string
+
+	// OpenViking
+	OpenVikingBaseURL string
 }
 
 func Load() Config {
 	return Config{
 		Port:             getEnv("PORT", "8080"),
 		CORSAllowOrigins: splitCSV(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:3000,http://localhost:8081,http://127.0.0.1:3000,http://127.0.0.1:8081")),
+
+		OpenAIBaseURL: getEnv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+		OpenAIAPIKey:  getEnv("OPENAI_API_KEY", ""),
+		OpenAIModel:   getEnv("OPENAI_MODEL", "gpt-4o"),
+
+		OpenVikingBaseURL: getEnv("OPEN_VIKING_BASE_URL", "http://localhost:1933"),
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/recover"
 
 	"stardust/api/internal/config"
+	"stardust/api/internal/handler"
 )
 
 func New(cfg config.Config) *fiber.App {
@@ -24,11 +25,23 @@ func New(cfg config.Config) *fiber.App {
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
 
-	api := app.Group("/api")
-	v1 := api.Group("/v1")
-	v1.Get("/ping", func(c fiber.Ctx) error {
-		return c.JSON(fiber.Map{"message": "pong"})
-	})
+	// 初始化 handlers
+	convHandler := &handler.ConversationsHandler{}
+	msgHandler := handler.NewMessagesHandler(cfg)
+	vaultHandler := handler.NewVaultHandler(cfg)
+
+	v1 := app.Group("/api/v1")
+
+	// Conversations
+	v1.Post("/conversations", convHandler.Create)
+	v1.Get("/conversations", convHandler.List)
+	v1.Delete("/conversations/:id", convHandler.Delete)
+
+	// Messages（SSE 流式）
+	v1.Post("/conversations/:id/messages", msgHandler.Send)
+
+	// Vault（代理 OpenViking）
+	v1.Get("/vault/*", vaultHandler.Get)
 
 	return app
 }
