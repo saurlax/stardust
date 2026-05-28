@@ -77,19 +77,6 @@ export default function SettingsScreen() {
           </Text>
 
           <SettingsField
-            label={t("settings.provider")}
-            value={t("settings.providerValue")}
-            editable={false}
-          />
-
-          <SettingsField
-            label={t("settings.baseURL")}
-            value={form.baseURL}
-            onChangeText={(value) => updateField("baseURL", value)}
-            placeholder={t("settings.baseURLPlaceholder")}
-          />
-
-          <SettingsField
             label={t("settings.apiBaseURL")}
             value={form.apiBaseURL}
             onChangeText={(value) => updateField("apiBaseURL", value)}
@@ -98,30 +85,11 @@ export default function SettingsScreen() {
             autoCorrect={false}
           />
 
-          <SettingsField
-            label={t("settings.apiKey")}
-            value={form.apiKey}
-            onChangeText={(value) => updateField("apiKey", value)}
-            placeholder={t("settings.apiKeyPlaceholder")}
-            secureTextEntry
-          />
-
-          <SettingsField
-            label={t("settings.model")}
-            value={form.model}
-            onChangeText={(value) => updateField("model", value)}
-            placeholder={t("settings.modelPlaceholder")}
-          />
-
-          <SettingsField
-            label={t("settings.temperature")}
-            value={form.temperature}
-            onChangeText={(value) => updateField("temperature", value)}
-            placeholder={t("settings.temperaturePlaceholder")}
-            keyboardType="decimal-pad"
-          />
-
-          {message ? <Text className="text-sm font-semibold text-green-600">{message}</Text> : null}
+          {message ? (
+            <Text className="text-sm font-semibold text-green-600">
+              {message}
+            </Text>
+          ) : null}
 
           <Button
             accessibilityRole="button"

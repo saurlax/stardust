@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  useColorScheme,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    useColorScheme,
+    View,
 } from "react-native";
 
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,11 @@ export function ChatMessages({
                         )}
                       >
                         {item.content}
+                      </Text>
+                    ) : null}
+                    {isError && item.error ? (
+                      <Text className="text-sm leading-5 text-destructive">
+                        {item.error}
                       </Text>
                     ) : null}
                     {item.imageUri ? (

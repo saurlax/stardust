@@ -8,11 +8,17 @@ const getDefaultApiBaseUrl = () => {
   return "http://localhost:8080";
 };
 
-export const getApiBaseUrl = () =>
-  trimSlash(process.env.EXPO_PUBLIC_API_BASE_URL?.trim() || getDefaultApiBaseUrl());
+export const getApiBaseUrl = (override?: string) =>
+  trimSlash(
+    override?.trim() ||
+      process.env.EXPO_PUBLIC_API_BASE_URL?.trim() ||
+      getDefaultApiBaseUrl(),
+  );
 
 export const ping = async (baseUrl?: string) => {
-  const response = await fetch(`${trimSlash(baseUrl || getApiBaseUrl())}/api/v1/ping`);
+  const response = await fetch(
+    `${trimSlash(baseUrl || getApiBaseUrl())}/api/v1/ping`,
+  );
 
   if (!response.ok) {
     throw new Error(`API request failed with status ${response.status}`);

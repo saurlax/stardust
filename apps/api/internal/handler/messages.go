@@ -15,118 +15,92 @@ import (
 	"stardust/api/internal/config"
 )
 
-// SSE 事件类型
-const (
-	EventTextDelta       = "text_delta"
-	EventMemoryCandidate = "memory_candidate"
-	EventContextLoaded   = "context_loaded"
-	EventDone            = "done"
-	EventError           = "error"
-)
-
-// MemoryCandidate 是 Agent 从对话中提取的候选记忆条目
+// MemoryCandidate 候选记忆条目
 type MemoryCandidate struct {
 	ID      string `json:"id"`
 	Type    string `json:"type"` // preference | memory | task | opinion
 	Content string `json:"content"`
 }
 
-// SendMessageRequest 是发送消息的请求体
-type SendMessageRequest struct {
-	Role       string `json:"role"` // user | tool_result
-	Content    string `json:"content"`
-	ToolCallID string `json:"tool_call_id,omitempty"` // tool_result 时使用
-	Confirmed  *bool  `json:"confirmed,omitempty"`    // tool_result 时使用
-}
-
-// MessagesHandler 管理 messages 相关路由
-type MessagesHandler struct {
+// LLMHandler 负责调用 LLM
+type LLMHandler struct {
 	cfg config.Config
 }
 
-func NewMessagesHandler(cfg config.Config) *MessagesHandler {
-	return &MessagesHandler{cfg: cfg}
+func NewLLMHandler(cfg config.Config) *LLMHandler {
+	return &LLMHandler{cfg: cfg}
 }
 
-// Send 发送消息并以 SSE 流式返回 Agent 回复
-// POST /v1/conversations/:id/messages
-func (h *MessagesHandler) Send(c fiber.Ctx) error {
-	convID := c.Params("id")
+// sendResponse 流式或非流式返回 LLM 回复，isNewChat 时额外发送 data-chatId 事件
+func (h *LLMHandler) sendResponse(c fiber.Ctx, chatID string, msgSnapshot []Message, stream bool, isNewChat bool) error {
+	assistantMsgID := uuid.New().String()
 
-	// 查找会话
-	conversationStoreMu.Lock()
-	conv, exists := conversationStore[convID]
-	if !exists {
-		conversationStoreMu.Unlock()
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "conversation not found"})
+	if !stream {
+		var buf bytes.Buffer
+		nopWriter := bufio.NewWriter(io.Discard)
+		if err := h.streamLLM(nopWriter, msgSnapshot, &buf, assistantMsgID); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+		content := buf.String()
+		assistantMsg := Message{
+			ID:        assistantMsgID,
+			Role:      "assistant",
+			Content:   content,
+			CreatedAt: time.Now(),
+		}
+		chatStoreMu.Lock()
+		if ch, ok := chatStore[chatID]; ok {
+			ch.Messages = append(ch.Messages, assistantMsg)
+			ch.UpdatedAt = time.Now()
+		}
+		chatStoreMu.Unlock()
+		return c.JSON(fiber.Map{"chatId": chatID, "content": content})
 	}
 
-	var req SendMessageRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		conversationStoreMu.Unlock()
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
-	}
-
-	// 将用户消息追加到会话历史
-	userMsg := Message{
-		ID:         uuid.New().String(),
-		Role:       req.Role,
-		Content:    req.Content,
-		ToolCallID: req.ToolCallID,
-		Confirmed:  req.Confirmed,
-		CreatedAt:  time.Now(),
-	}
-	conv.Messages = append(conv.Messages, userMsg)
-	conv.UpdatedAt = time.Now()
-
-	// 构建发给 LLM 的消息列表（快照，避免长时间持锁）
-	msgSnapshot := make([]Message, len(conv.Messages))
-	copy(msgSnapshot, conv.Messages)
-	conversationStoreMu.Unlock()
-
-	// 设置 SSE 响应头
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
 	c.Set("Connection", "keep-alive")
 	c.Set("X-Accel-Buffering", "no")
-
-	// 流式写入
-	assistantMsgID := uuid.New().String()
+	c.Set("x-vercel-ai-ui-message-stream", "v1")
 
 	return c.SendStreamWriter(func(w *bufio.Writer) {
 		var fullContent bytes.Buffer
 
-		// 调用 LLM 流式接口
-		err := h.streamLLM(w, msgSnapshot, &fullContent)
+		writeUIEvent(w, map[string]any{"type": "start", "messageId": assistantMsgID})
+		if isNewChat {
+			writeUIEvent(w, map[string]any{"type": "data-chatId", "id": uuid.New().String(), "data": chatID})
+		}
+		w.Flush()
+
+		err := h.streamLLM(w, msgSnapshot, &fullContent, assistantMsgID)
 		if err != nil {
-			writeSSE(w, EventError, fiber.Map{"message": err.Error()})
+			writeUIEvent(w, map[string]any{"type": "error", "errorText": err.Error()})
+			fmt.Fprintf(w, "data: [DONE]\n\n")
 			w.Flush()
 			return
 		}
 
-		// 将 assistant 回复写入会话历史
 		assistantMsg := Message{
 			ID:        assistantMsgID,
 			Role:      "assistant",
 			Content:   fullContent.String(),
 			CreatedAt: time.Now(),
 		}
-		conversationStoreMu.Lock()
-		if c, ok := conversationStore[convID]; ok {
-			c.Messages = append(c.Messages, assistantMsg)
-			c.UpdatedAt = time.Now()
+		chatStoreMu.Lock()
+		if ch, ok := chatStore[chatID]; ok {
+			ch.Messages = append(ch.Messages, assistantMsg)
+			ch.UpdatedAt = time.Now()
 		}
-		conversationStoreMu.Unlock()
+		chatStoreMu.Unlock()
 
-		// 发送 done 事件
-		writeSSE(w, EventDone, fiber.Map{"message_id": assistantMsgID})
+		writeUIEvent(w, map[string]any{"type": "finish"})
+		fmt.Fprintf(w, "data: [DONE]\n\n")
 		w.Flush()
 	})
 }
 
-// streamLLM 调用 LLM 的流式接口，将 text_delta 事件写入 SSE，并把完整内容写入 buf
-func (h *MessagesHandler) streamLLM(w *bufio.Writer, messages []Message, buf *bytes.Buffer) error {
-	// 构建 OpenAI 兼容的请求体
+// streamLLM 调用 LLM 流式接口，将事件写入 SSE，完整内容写入 buf
+func (h *LLMHandler) streamLLM(w *bufio.Writer, messages []Message, buf *bytes.Buffer, msgID string) error {
 	type llmMessage struct {
 		Role    string `json:"role"`
 		Content string `json:"content"`
@@ -137,7 +111,6 @@ func (h *MessagesHandler) streamLLM(w *bufio.Writer, messages []Message, buf *by
 		Stream   bool         `json:"stream"`
 	}
 
-	// 系统提示：指导 Agent 在回复中识别可记录的内容
 	systemPrompt := `你是 Stardust，用户的个人 AI 伴侣。
 你的职责是陪伴用户对话，同时悄悄留意对话中值得长期记录的内容。
 在回复用户时，如果你发现了值得记录的内容（偏好、记忆、任务、观点），
@@ -184,7 +157,6 @@ CANDIDATES-->
 		return fmt.Errorf("LLM 返回错误 %d: %s", resp.StatusCode, string(body))
 	}
 
-	// 解析 SSE 流
 	type streamDelta struct {
 		Content string `json:"content"`
 	}
@@ -194,6 +166,15 @@ CANDIDATES-->
 	}
 	type streamChunk struct {
 		Choices []streamChoice `json:"choices"`
+	}
+
+	textPartID := uuid.New().String()
+	writeUIEvent(w, map[string]any{"type": "text-start", "id": textPartID})
+	w.Flush()
+
+	writeTextEnd := func() {
+		writeUIEvent(w, map[string]any{"type": "text-end", "id": textPartID})
+		w.Flush()
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
@@ -220,22 +201,31 @@ CANDIDATES-->
 		}
 
 		buf.WriteString(delta)
-		writeSSE(w, EventTextDelta, fiber.Map{"delta": delta})
+		writeUIEvent(w, map[string]any{"type": "text-delta", "id": textPartID, "delta": delta})
 		w.Flush()
 	}
 
-	// 解析完整回复中的 CANDIDATES 块
+	writeTextEnd()
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
 	fullText := buf.String()
 	candidates := extractCandidates(fullText)
 	if len(candidates) > 0 {
-		writeSSE(w, EventMemoryCandidate, fiber.Map{"candidates": candidates})
+		writeUIEvent(w, map[string]any{
+			"type": "data-memoryCandidate",
+			"id":   uuid.New().String(),
+			"data": candidates,
+		})
 		w.Flush()
 	}
 
-	return scanner.Err()
+	return nil
 }
 
-// extractCandidates 从 LLM 回复中提取 <!--CANDIDATES ... CANDIDATES--> 块
+// extractCandidates 从回复中提取 CANDIDATES 块
 func extractCandidates(text string) []MemoryCandidate {
 	const startTag = "<!--CANDIDATES\n"
 	const endTag = "\nCANDIDATES-->"
@@ -257,8 +247,8 @@ func extractCandidates(text string) []MemoryCandidate {
 	return candidates
 }
 
-// writeSSE 向 SSE 流写入一个事件
-func writeSSE(w *bufio.Writer, event string, data any) {
-	payload, _ := json.Marshal(data)
-	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, string(payload))
+// writeUIEvent 向 SSE 流写入一个事件
+func writeUIEvent(w *bufio.Writer, event map[string]any) {
+	payload, _ := json.Marshal(event)
+	fmt.Fprintf(w, "data: %s\n\n", string(payload))
 }

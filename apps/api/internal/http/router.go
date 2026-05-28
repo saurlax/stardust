@@ -26,19 +26,19 @@ func New(cfg config.Config) *fiber.App {
 	})
 
 	// 初始化 handlers
-	convHandler := &handler.ConversationsHandler{}
-	msgHandler := handler.NewMessagesHandler(cfg)
+	msgHandler := handler.NewLLMHandler(cfg)
+	chatHandler := handler.NewChatHandler(msgHandler)
 	vaultHandler := handler.NewVaultHandler(cfg)
 
 	v1 := app.Group("/api/v1")
 
-	// Conversations
-	v1.Post("/conversations", convHandler.Create)
-	v1.Get("/conversations", convHandler.List)
-	v1.Delete("/conversations/:id", convHandler.Delete)
-
-	// Messages（SSE 流式）
-	v1.Post("/conversations/:id/messages", msgHandler.Send)
+	// Chat（统一端点）
+	// GET    /v1/chat?chatId=xxx  → 获取会话历史
+	// POST   /v1/chat             → 新建会话 或 发送消息（body 带 content）
+	// DELETE /v1/chat?chatId=xxx  → 删除会话
+	v1.Get("/chat", chatHandler.Get)
+	v1.Post("/chat", chatHandler.Post)
+	v1.Delete("/chat", chatHandler.Delete)
 
 	// Vault（代理 OpenViking）
 	v1.Get("/vault/*", vaultHandler.Get)
