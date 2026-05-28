@@ -6,6 +6,7 @@ import (
 )
 
 type Config struct {
+	Host             string
 	Port             string
 	CORSAllowOrigins []string
 
@@ -20,6 +21,7 @@ type Config struct {
 
 func Load() Config {
 	return Config{
+		Host:             getEnv("HOST", "0.0.0.0"),
 		Port:             getEnv("PORT", "8080"),
 		CORSAllowOrigins: splitCSV(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:3000,http://localhost:8081,http://127.0.0.1:3000,http://127.0.0.1:8081")),
 
@@ -32,7 +34,7 @@ func Load() Config {
 }
 
 func (c Config) Address() string {
-	return ":" + c.Port
+	return c.Host + ":" + c.Port
 }
 
 func getEnv(key, fallback string) string {
