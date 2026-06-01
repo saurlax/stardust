@@ -5,7 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router, Stack } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { fetch as expoFetch } from "expo/fetch";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -114,32 +114,31 @@ export default function Index() {
     }),
   ];
 
-  const sendPrompt = (
-    prompt: string,
-    imageUri?: string,
-    imageMimeType?: string,
-  ) => {
-    const trimmed = prompt.trim();
-    const effectivePrompt = trimmed || (imageUri ? DEFAULT_IMAGE_PROMPT : "");
-    if (!effectivePrompt || sending || !ready) return;
+  const sendPrompt = useCallback(
+    (prompt: string, imageUri?: string, imageMimeType?: string) => {
+      const trimmed = prompt.trim();
+      const effectivePrompt = trimmed || (imageUri ? DEFAULT_IMAGE_PROMPT : "");
+      if (!effectivePrompt || sending || !ready) return;
 
-    setLastError(null);
-    setText("");
-    setSelectedImageUri(undefined);
-    setSelectedImageMimeType(undefined);
+      setLastError(null);
+      setText("");
+      setSelectedImageUri(undefined);
+      setSelectedImageMimeType(undefined);
 
-    type FilePart = { type: "file"; mediaType: string; url: string };
-    type TextPart = { type: "text"; text: string };
-    const parts: (TextPart | FilePart)[] = [];
+      type FilePart = { type: "file"; mediaType: string; url: string };
+      type TextPart = { type: "text"; text: string };
+      const parts: (TextPart | FilePart)[] = [];
 
-    // 图片直接传本地 URI，后端暂时忽略（后续加上传接口后改为上传后的 URL）
-    if (imageUri && imageMimeType) {
-      parts.push({ type: "file", mediaType: imageMimeType, url: imageUri });
-    }
-    parts.push({ type: "text", text: effectivePrompt });
+      // 图片直接传本地 URI，后端暂时忽略（后续加上传接口后改为上传后的 URL）
+      if (imageUri && imageMimeType) {
+        parts.push({ type: "file", mediaType: imageMimeType, url: imageUri });
+      }
+      parts.push({ type: "text", text: effectivePrompt });
 
-    sendMessage({ role: "user", parts });
-  };
+      sendMessage({ role: "user", parts });
+    },
+    [ready, sendMessage, sending],
+  );
 
   const sendText = () =>
     sendPrompt(text, selectedImageUri, selectedImageMimeType);
@@ -206,7 +205,7 @@ export default function Index() {
       sharedImage?.mimeType,
     );
     resetShareIntent();
-  }, [hasShareIntent, ready, resetShareIntent, sending, shareIntent]);
+  }, [hasShareIntent, ready, resetShareIntent, sendPrompt, sending, shareIntent]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
