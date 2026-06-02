@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    useColorScheme,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  useColorScheme,
+  View,
 } from "react-native";
 
 import { Button } from "@/components/ui/button";
@@ -106,7 +106,7 @@ export function ChatMessages({
                     {canCopy ? (
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
                         accessibilityRole="button"
                         accessibilityLabel={t("chat.copyMessage")}
                         hitSlop={10}
@@ -122,7 +122,7 @@ export function ChatMessages({
                     {canRetry ? (
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
                         accessibilityRole="button"
                         accessibilityLabel={t("chat.retryMessage")}
                         hitSlop={10}
