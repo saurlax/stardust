@@ -1,6 +1,10 @@
 # Stardust
 
 <p align="center">
+  <img src="./assets/logo.svg" alt="logo" width="160" />
+</p>
+
+<p align="center">
   <em>每一片日常碎片，都是属于你的星尘</em><br/>
   <em>它们终将汇聚，成为另一个你</em>
 </p>

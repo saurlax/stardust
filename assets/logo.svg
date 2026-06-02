@@ -1,0 +1,55 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="stardust-core" x1="64" y1="56" x2="190" y2="194" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8DD3FF"/>
+      <stop offset="0.52" stop-color="#4EA9FF"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="stardust-orbit" x1="42" y1="128" x2="214" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E6EEF8" stop-opacity="0.12"/>
+      <stop offset="0.45" stop-color="#7DD3FC" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#FDE68A" stop-opacity="0.9"/>
+    </linearGradient>
+    <radialGradient id="stardust-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(128 128) rotate(90) scale(92)">
+      <stop offset="0" stop-color="#60A5FA" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#60A5FA" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="128" cy="128" r="92" fill="url(#stardust-glow)"/>
+
+  <path
+    d="M128 48C145.675 70.552 157.448 82.325 180 100C157.448 117.675 145.675 129.448 128 152C110.325 129.448 98.552 117.675 76 100C98.552 82.325 110.325 70.552 128 48Z"
+    fill="url(#stardust-core)"
+  />
+
+  <path
+    d="M128 84C136.007 94.214 141.786 99.993 152 108C141.786 116.007 136.007 121.786 128 132C119.993 121.786 114.214 116.007 104 108C114.214 99.993 119.993 94.214 128 84Z"
+    fill="#F8FBFF"
+    fill-opacity="0.92"
+  />
+
+  <path
+    d="M52 146C74.998 170.356 106.484 184 141.012 184C166.977 184 191.219 176.286 211 162.917"
+    stroke="url(#stardust-orbit)"
+    stroke-width="12"
+    stroke-linecap="round"
+  />
+
+  <path
+    d="M69 124C83.744 91.443 116.504 70 153.117 70C171.668 70 189.233 75.511 204 85.292"
+    stroke="#E6EEF8"
+    stroke-opacity="0.28"
+    stroke-width="6"
+    stroke-linecap="round"
+    stroke-dasharray="1 13"
+  />
+
+  <circle cx="50" cy="147" r="7" fill="#F8FBFF"/>
+  <circle cx="211" cy="163" r="8" fill="#FDE68A"/>
+  <circle cx="187" cy="82" r="4.5" fill="#8DD3FF"/>
+  <circle cx="171" cy="65" r="3.5" fill="#F8FBFF" fill-opacity="0.9"/>
+  <circle cx="90" cy="182" r="4" fill="#BAE6FD"/>
+  <circle cx="165" cy="190" r="3" fill="#F8FBFF" fill-opacity="0.8"/>
+  <circle cx="196" cy="140" r="2.5" fill="#F8FBFF" fill-opacity="0.75"/>
+</svg>
