@@ -22,6 +22,7 @@ Run all commands from the repository root unless noted otherwise.
 - `pnpm --filter ./apps/mobile run android`: Run the Expo app on Android with `expo run:android`.
 - `pnpm --filter ./apps/mobile run ios`: Run the Expo app on iOS with `expo run:ios`.
 - `pnpm --filter ./apps/mobile run web`: Start the Expo web target.
+- `cd apps/mobile/android && $env:EXPO_NO_METRO_WORKSPACE_ROOT="1"; .\gradlew.bat assembleRelease --no-daemon`: Build a local Android release APK on Windows PowerShell.
 - `cd apps/api && go run ./cmd/server`: Run the API directly from the Go module.
 - `cd apps/api && go test ./...`: Run Go tests when API test files are added.
 
@@ -32,6 +33,8 @@ There is currently no root `build`, `test`, or TypeScript `typecheck` script. Do
 The repository is organized as a lightweight pnpm workspace. The root `package.json` only coordinates workspace scripts and development tooling such as Husky and commitlint. `pnpm-workspace.yaml` includes `apps/*` and `packages/*`, with `nodeLinker: hoisted`.
 
 `apps/mobile` is an Expo app using `expo-router` as the entry point. The root layout is `apps/mobile/app/_layout.tsx`, which wraps the app with gesture handling, share-intent handling, configuration state, a global nebula background, and a router stack. Route files under `apps/mobile/app` define the main screens: chat home, settings, personal page, memory visualization, journal, and calendar.
+
+Android release bundling in this monorepo requires `EXPO_NO_METRO_WORKSPACE_ROOT=1`. The repository includes `.github/workflows/android-release-build.yml`, which builds `assembleRelease`, uploads the APK as an artifact, and attaches it to a published GitHub Release.
 
 The mobile app uses React Native, Expo SDK 54, React 19, TypeScript strict mode, Expo Router, React Navigation, Skia, AsyncStorage, Expo Calendar, Expo Image Picker, Expo Share Intent, localization, and AI SDK packages. Path alias `@/*` points to the mobile app root.
 

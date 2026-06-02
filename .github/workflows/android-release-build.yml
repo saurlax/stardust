@@ -1,11 +1,15 @@
-name: android-debug-build
+name: android-release-build
 
 on:
   workflow_dispatch:
+  release:
+    types: [published]
 
 jobs:
-  build-debug-apk:
+  build-release-apk:
     runs-on: ubuntu-latest
+    env:
+      EXPO_NO_METRO_WORKSPACE_ROOT: "1"
     defaults:
       run:
         working-directory: apps/mobile/android
@@ -24,17 +28,17 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.17.1
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.17.1
 
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
@@ -43,12 +47,18 @@ jobs:
       - name: Grant Gradle wrapper permission
         run: chmod +x gradlew
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Build release APK
+        run: EXPO_NO_METRO_WORKSPACE_ROOT=1 ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v7
         with:
-          name: app-debug-apk
-          path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-release-apk
+          path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
+
+      - name: Upload APK to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
