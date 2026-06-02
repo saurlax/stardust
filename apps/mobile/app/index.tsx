@@ -125,13 +125,12 @@ export default function Index() {
       setSelectedImageUri(undefined);
       setSelectedImageMimeType(undefined);
 
-      type FilePart = { type: "file"; mediaType: string; url: string };
+      type FilePart = { type: "file"; url: string; mediaType: string };
       type TextPart = { type: "text"; text: string };
       const parts: (TextPart | FilePart)[] = [];
 
-      // 图片直接传本地 URI，后端暂时忽略（后续加上传接口后改为上传后的 URL）
       if (imageUri && imageMimeType) {
-        parts.push({ type: "file", mediaType: imageMimeType, url: imageUri });
+        parts.push({ type: "file", url: imageUri, mediaType: imageMimeType });
       }
       parts.push({ type: "text", text: effectivePrompt });
 
@@ -195,17 +194,15 @@ export default function Index() {
     const sharedImage = shareIntent.files?.find((file) =>
       file.mimeType.startsWith("image/"),
     );
-    setText(shareIntent.text || shareIntent.webUrl || "");
-    setSelectedImageUri(sharedImage?.path);
-    setSelectedImageMimeType(sharedImage?.mimeType);
-    router.replace("/");
-    sendPrompt(
-      shareIntent.text || shareIntent.webUrl || "",
-      sharedImage?.path,
-      sharedImage?.mimeType,
-    );
+    if (sharedImage?.path) {
+      setSelectedImageUri(sharedImage.path);
+      setSelectedImageMimeType(sharedImage.mimeType || "image/jpeg");
+    }
+    if (shareIntent.text || shareIntent.webUrl) {
+      setText(shareIntent.text || shareIntent.webUrl || "");
+    }
     resetShareIntent();
-  }, [hasShareIntent, ready, resetShareIntent, sendPrompt, sending, shareIntent]);
+  }, [hasShareIntent, ready, resetShareIntent, sending, shareIntent]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
