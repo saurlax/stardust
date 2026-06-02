@@ -112,6 +112,22 @@ export default function Index() {
         error: msgError,
       } satisfies ChatMessage;
     }),
+    ...(status === "submitted" ||
+    (status === "error" &&
+      (uiMessages.length === 0 ||
+        uiMessages[uiMessages.length - 1]?.role !== "assistant"))
+      ? [
+          {
+            id: "pending-assistant",
+            role: "assistant" as const,
+            content: "",
+            status: (status === "error"
+              ? "error"
+              : "pending") as ChatMessage["status"],
+            error: status === "error" ? (lastError ?? undefined) : undefined,
+          },
+        ]
+      : []),
   ];
 
   const sendPrompt = useCallback(
