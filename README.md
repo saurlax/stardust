@@ -124,12 +124,12 @@ pnpm dev:api
 ### 环境变量
 
 ```bash
-# 移动端
-cp apps/mobile/.env.example apps/mobile/.env
-
 # API 服务
 cp apps/api/.env.example apps/api/.env
 ```
+
+移动端不使用 `.env` 配置 API 地址。
+API 地址由设置页填写，并保存在设备本地的 AsyncStorage 中。
 
 ## 项目结构
 

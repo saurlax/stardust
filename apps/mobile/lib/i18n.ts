@@ -43,9 +43,6 @@ const translations = {
       apiBaseURL: "API Base URL",
       apiBaseURLPlaceholder: "http://localhost:8080",
       saved: "Saved locally.",
-      reset: "Reset to defaults.",
-      resetSettings: "Reset settings",
-      resetButton: "Reset to defaults",
     },
     personal: {
       title: "Personal",
@@ -115,9 +112,6 @@ const translations = {
       apiBaseURL: "API 地址",
       apiBaseURLPlaceholder: "http://localhost:8080",
       saved: "已保存在本地。",
-      reset: "已恢复默认值。",
-      resetSettings: "重置设置",
-      resetButton: "恢复默认值",
     },
     personal: {
       title: "个人",

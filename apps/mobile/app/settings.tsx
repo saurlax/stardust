@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { useConfig } from "@/context/config";
-import { createDefaultAiConfig, type AiConfig } from "@/lib/config";
+import { getCachedAiConfig, type AiConfig } from "@/lib/config";
 import { t } from "@/lib/i18n";
 
 type SettingsFieldProps = React.ComponentProps<typeof Input> & {
@@ -28,7 +28,7 @@ function SettingsField({ label, id, ...props }: SettingsFieldProps) {
 
 export default function SettingsScreen() {
   const { config, ready, updateConfig } = useConfig();
-  const [form, setForm] = useState<AiConfig>(createDefaultAiConfig());
+  const [form, setForm] = useState<AiConfig>(getCachedAiConfig());
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 

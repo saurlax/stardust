@@ -12,7 +12,7 @@ export type AppConfig = {
 };
 
 export const createDefaultAiConfig = (): AiConfig => ({
-  apiBaseURL: process.env.EXPO_PUBLIC_API_BASE_URL?.trim() || "",
+  apiBaseURL: "",
 });
 
 export const createDefaultConfig = (): AppConfig => ({
@@ -29,25 +29,42 @@ const normalizeConfig = (cfg?: Partial<AppConfig>): AppConfig => ({
   ai: normalizeAi(cfg?.ai),
 });
 
+let aiConfigCache = createDefaultAiConfig();
+
+const persistConfig = async (config: AppConfig): Promise<AppConfig> => {
+  const next = sanitizeConfig(config);
+  aiConfigCache = next.ai;
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  return next;
+};
+
 export const loadConfig = async (): Promise<AppConfig> => {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  if (!raw) return createDefaultConfig();
+  if (!raw) {
+    return persistConfig(createDefaultConfig());
+  }
 
   try {
     const parsed = JSON.parse(raw) as Partial<AppConfig>;
-    return normalizeConfig(parsed);
+    const next = sanitizeConfig(parsed);
+    aiConfigCache = next.ai;
+
+    if (raw !== JSON.stringify(next)) {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    }
+
+    return next;
   } catch {
-    return createDefaultConfig();
+    return persistConfig(createDefaultConfig());
   }
 };
 
 export const saveConfig = async (config: AppConfig) => {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  await persistConfig(config);
 };
 
 export const resetConfig = async (): Promise<AppConfig> => {
-  await AsyncStorage.removeItem(STORAGE_KEY);
-  return createDefaultConfig();
+  return persistConfig(createDefaultConfig());
 };
 
 export const getAiField = async <K extends keyof AiConfig>(
@@ -89,3 +106,6 @@ export const resetAiConfig = async (): Promise<AiConfig> => {
 export const sanitizeAiConfig = (ai: AiConfig): AiConfig => normalizeAi(ai);
 
 export const sanitizeConfig = (cfg: AppConfig) => normalizeConfig(cfg);
+
+export const getCachedAiConfig = (): AiConfig =>
+  aiConfigCache;

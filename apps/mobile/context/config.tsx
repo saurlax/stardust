@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 import {
-    type AiConfig,
-    createDefaultAiConfig,
-    loadAiConfig,
-    resetAiConfig,
-    sanitizeAiConfig,
-    saveAiConfig,
+  type AiConfig,
+  getCachedAiConfig,
+  loadAiConfig,
+  resetAiConfig,
+  sanitizeAiConfig,
+  saveAiConfig,
 } from "@/lib/config";
 
 type ConfigContextValue = {
@@ -19,7 +19,7 @@ type ConfigContextValue = {
 const ConfigContext = createContext<ConfigContextValue | null>(null);
 
 export function ConfigProvider({ children }: { children: React.ReactNode }) {
-  const [config, setConfig] = useState<AiConfig>(createDefaultAiConfig());
+  const [config, setConfig] = useState<AiConfig>(getCachedAiConfig());
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
