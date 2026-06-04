@@ -17,5 +17,6 @@ export type ChatMessage = {
   request?: {
     prompt: string;
     imageUri?: string;
+    imageMimeType?: string;
   };
 };

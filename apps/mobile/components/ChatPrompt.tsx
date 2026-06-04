@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { Image, useColorScheme, View } from "react-native";
+import { Image, type NativeSyntheticEvent, TextInputKeyPressEventData, useColorScheme, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -56,6 +56,19 @@ export function ChatPrompt({
     syncTextInputHeight(lineCount * TEXT_INPUT_LINE_HEIGHT + 20);
   }, [text]);
 
+  const handleTextKeyPress = (
+    event: NativeSyntheticEvent<TextInputKeyPressEventData>,
+  ) => {
+    if (
+      event.nativeEvent.key === "Enter" &&
+      "ctrlKey" in event.nativeEvent &&
+      event.nativeEvent.ctrlKey
+    ) {
+      event.preventDefault?.();
+      onSendText();
+    }
+  };
+
   return (
     <View className="gap-2 border-t border-border px-2.5 pb-2 pt-2">
       {selectedImageUri ? (
@@ -107,6 +120,7 @@ export function ChatPrompt({
             multiline
             numberOfLines={1}
             scrollEnabled={textInputHeight >= TEXT_INPUT_MAX_HEIGHT}
+            onKeyPress={handleTextKeyPress}
             onContentSizeChange={(event) => {
               syncTextInputHeight(event.nativeEvent.contentSize.height);
             }}

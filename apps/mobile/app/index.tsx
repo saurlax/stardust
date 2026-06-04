@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import { Ionicons } from "@expo/vector-icons";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import * as ImagePicker from "expo-image-picker";
 import { router, Stack } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
@@ -19,11 +19,67 @@ import { ChatPrompt } from "@/components/ChatPrompt";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useConfig } from "@/context/config";
-import { getApiBaseUrl } from "@/lib/api";
+import { createApiFetch } from "@/lib/api";
 import type { ChatMessage } from "@/lib/chat/types";
 import { t } from "@/lib/i18n";
 
 const DEFAULT_IMAGE_PROMPT = t("chat.defaultImagePrompt");
+const GREETING_ID = "m1";
+
+type RequestContext = {
+  assistantId: string;
+  request: NonNullable<ChatMessage["request"]>;
+};
+
+const isTextPart = (part: unknown): part is { type: "text"; text: string } =>
+  typeof part === "object" &&
+  part !== null &&
+  "type" in part &&
+  part.type === "text" &&
+  "text" in part &&
+  typeof part.text === "string";
+
+const getMessageText = (parts?: unknown[]) =>
+  parts?.find(isTextPart)?.text ?? "";
+
+const createTransportMessages = (messages: ChatMessage[]): UIMessage[] =>
+  messages
+    .filter((message) => {
+      if (message.id === GREETING_ID) return false;
+      if (message.status === "error" || message.status === "pending") {
+        return false;
+      }
+
+      if (message.role === "assistant") {
+        return message.status === "done" || message.status === "streaming";
+      }
+
+      return true;
+    })
+    .map((message) => {
+      const parts: (
+        | { type: "text"; text: string }
+        | { type: "file"; url: string; mediaType: string }
+      )[] = [];
+
+      if (message.role === "user" && message.imageUri && message.imageMimeType) {
+        parts.push({
+          type: "file",
+          url: message.imageUri,
+          mediaType: message.imageMimeType,
+        });
+      }
+
+      if (message.content) {
+        parts.push({ type: "text", text: message.content });
+      }
+
+      return {
+        id: message.id,
+        role: message.role,
+        parts,
+      } satisfies UIMessage;
+    });
 
 export default function Index() {
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
@@ -35,100 +91,135 @@ export default function Index() {
   const [text, setText] = useState("");
   const [selectedImageUri, setSelectedImageUri] = useState<string>();
   const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>();
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: GREETING_ID,
+      role: "assistant",
+      content: t("chat.assistantGreeting"),
+      status: "done",
+    },
+  ]);
   const chatIdRef = useRef<string | null>(null);
   const handledShareRef = useRef<string | undefined>(undefined);
-  const [lastError, setLastError] = useState<string | null>(null);
+  const messagesRef = useRef(messages);
+  const activeRequestRef = useRef<RequestContext | null>(null);
+  const apiBaseUrlRef = useRef(config.apiBaseURL);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    apiBaseUrlRef.current = config.apiBaseURL;
+  }, [config.apiBaseURL]);
+
+  const replaceMessage = useCallback(
+    (messageId: string, updater: (message: ChatMessage) => ChatMessage) => {
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === messageId ? updater(message) : message,
+        ),
+      );
+    },
+    [],
+  );
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: `${getApiBaseUrl(config.apiBaseURL)}/api/v1/chat`,
-        fetch: expoFetch as unknown as typeof globalThis.fetch,
-        prepareSendMessagesRequest: ({ messages }) => {
-          const lastMsg = messages[messages.length - 1];
-          const textPart = lastMsg?.parts?.find(
-            (p): p is { type: "text"; text: string } => p.type === "text",
-          );
+        api: "/api/v1/chat",
+        fetch: createApiFetch(
+          () => apiBaseUrlRef.current,
+          expoFetch as unknown as typeof globalThis.fetch,
+        ),
+        prepareSendMessagesRequest: ({ messages: transportMessages }) => {
+          const lastMessage = transportMessages[transportMessages.length - 1];
           return {
             body: {
               chatId: chatIdRef.current ?? undefined,
-              content: textPart?.text ?? "",
+              content: getMessageText(lastMessage?.parts),
               stream: true,
             },
           };
         },
       }),
-    [config.apiBaseURL],
+    [],
   );
 
   const {
     messages: uiMessages,
     sendMessage,
+    setMessages: setTransportMessages,
     status,
   } = useChat({
     transport,
     onData: (dataPart) => {
-      // 接收后端回传的 chatId（首次发消息时后端自动创建会话）
       if (dataPart.type === "data-chatId" && !chatIdRef.current) {
         chatIdRef.current = dataPart.data as string;
       }
     },
     onError: (error) => {
-      setLastError(error.message);
+      const activeRequest = activeRequestRef.current;
+      if (!activeRequest) return;
+
+      replaceMessage(activeRequest.assistantId, (message) => ({
+        ...message,
+        status: "error",
+        error: error.message,
+      }));
+
+      activeRequestRef.current = null;
+    },
+    onFinish: ({ message }) => {
+      const activeRequest = activeRequestRef.current;
+      if (!activeRequest) return;
+
+      const content = getMessageText(message.parts);
+      replaceMessage(activeRequest.assistantId, (current) => ({
+        ...current,
+        id: message.id,
+        content,
+        status: "done",
+        error: undefined,
+      }));
+
+      activeRequestRef.current = null;
     },
   });
 
   const sending = status === "streaming" || status === "submitted";
 
-  // 将 UIMessage 转为 ChatMessage 用于渲染
-  const messages: ChatMessage[] = [
-    {
-      id: "m1",
-      role: "assistant",
-      content: t("chat.assistantGreeting"),
-      status: "done",
-    },
-    ...uiMessages.map((msg, idx) => {
-      const isLast = idx === uiMessages.length - 1;
-      const isAssistant = msg.role === "assistant";
-      let msgStatus: ChatMessage["status"] = "done";
-      let msgError: string | undefined;
-      if (isLast && isAssistant) {
-        if (status === "streaming") msgStatus = "streaming";
-        else if (status === "submitted") msgStatus = "pending";
-        else if (status === "error" && lastError) {
-          msgStatus = "error";
-          msgError = lastError;
-        }
-      }
-      const textPart = msg.parts?.find(
-        (p): p is { type: "text"; text: string } => p.type === "text",
-      );
-      return {
-        id: msg.id,
-        role: msg.role as ChatMessage["role"],
-        content: textPart?.text ?? "",
-        status: msgStatus,
-        error: msgError,
-      } satisfies ChatMessage;
-    }),
-    ...(status === "submitted" ||
-    (status === "error" &&
-      (uiMessages.length === 0 ||
-        uiMessages[uiMessages.length - 1]?.role !== "assistant"))
-      ? [
-          {
-            id: "pending-assistant",
-            role: "assistant" as const,
-            content: "",
-            status: (status === "error"
-              ? "error"
-              : "pending") as ChatMessage["status"],
-            error: status === "error" ? (lastError ?? undefined) : undefined,
-          },
-        ]
-      : []),
-  ];
+  useEffect(() => {
+    const activeRequest = activeRequestRef.current;
+    if (!activeRequest) return;
+
+    const assistantMessage = [...uiMessages]
+      .reverse()
+      .find((message) => message.role === "assistant");
+
+    if (!assistantMessage) return;
+
+    const content = getMessageText(assistantMessage.parts);
+    const nextStatus =
+      status === "streaming"
+        ? "streaming"
+        : status === "submitted"
+          ? "pending"
+          : "done";
+
+    replaceMessage(activeRequest.assistantId, (current) => ({
+      ...current,
+      id: assistantMessage.id,
+      content,
+      status: current.status === "error" ? current.status : nextStatus,
+      error: current.status === "error" ? current.error : undefined,
+    }));
+
+    activeRequestRef.current = {
+      ...activeRequest,
+      assistantId: assistantMessage.id,
+    };
+  }, [replaceMessage, status, uiMessages]);
 
   const sendPrompt = useCallback(
     (prompt: string, imageUri?: string, imageMimeType?: string) => {
@@ -136,23 +227,57 @@ export default function Index() {
       const effectivePrompt = trimmed || (imageUri ? DEFAULT_IMAGE_PROMPT : "");
       if (!effectivePrompt || sending || !ready) return;
 
-      setLastError(null);
+      const request: NonNullable<ChatMessage["request"]> = {
+        prompt: effectivePrompt,
+        imageUri,
+        imageMimeType,
+      };
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: effectivePrompt,
+        status: "done",
+        imageUri,
+        imageMimeType,
+      };
+
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: "assistant",
+        content: "",
+        status: "pending",
+        request,
+      };
+
+      activeRequestRef.current = {
+        assistantId: assistantMessage.id,
+        request,
+      };
+
+      setMessages((current) => [...current, userMessage, assistantMessage]);
+      setTransportMessages(
+        createTransportMessages(messagesRef.current).filter(
+          (message) => message.role !== "assistant" || message.parts.length > 0,
+        ),
+      );
+
       setText("");
       setSelectedImageUri(undefined);
       setSelectedImageMimeType(undefined);
 
-      type FilePart = { type: "file"; url: string; mediaType: string };
-      type TextPart = { type: "text"; text: string };
-      const parts: (TextPart | FilePart)[] = [];
+      const parts: (
+        | { type: "text"; text: string }
+        | { type: "file"; url: string; mediaType: string }
+      )[] = [];
 
       if (imageUri && imageMimeType) {
         parts.push({ type: "file", url: imageUri, mediaType: imageMimeType });
       }
       parts.push({ type: "text", text: effectivePrompt });
 
-      sendMessage({ role: "user", parts });
+      void sendMessage({ role: "user", parts });
     },
-    [ready, sendMessage, sending],
+    [ready, sendMessage, sending, setTransportMessages],
   );
 
   const sendText = () =>
@@ -161,7 +286,50 @@ export default function Index() {
 
   const retryMessage = (message: ChatMessage) => {
     if (!message.request?.prompt) return;
-    sendPrompt(message.request.prompt, message.request.imageUri);
+
+    const targetIndex = messagesRef.current.findIndex((item) => item.id === message.id);
+    if (targetIndex === -1) return;
+
+    const request = message.request;
+    const nextMessages = messagesRef.current.map((item, index) =>
+      index === targetIndex
+        ? {
+            ...item,
+            content: "",
+            status: "pending" as const,
+            error: undefined,
+          }
+        : item,
+    );
+
+    activeRequestRef.current = {
+      assistantId: message.id,
+      request,
+    };
+
+    setMessages(nextMessages);
+    setTransportMessages(createTransportMessages(nextMessages.slice(0, targetIndex)));
+
+    void sendMessage({
+      role: "user",
+      messageId:
+        nextMessages
+          .slice(0, targetIndex)
+          .reverse()
+          .find((item) => item.role === "user")?.id ?? undefined,
+      parts: [
+        ...(request.imageUri && request.imageMimeType
+          ? [
+              {
+                type: "file" as const,
+                url: request.imageUri,
+                mediaType: request.imageMimeType,
+              },
+            ]
+          : []),
+        { type: "text" as const, text: request.prompt },
+      ],
+    });
   };
 
   const openCamera = async () => {
