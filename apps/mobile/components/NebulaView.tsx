@@ -275,38 +275,6 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
 
   const gesture = Gesture.Simultaneous(panGesture, pinchGesture);
 
-  if (Platform.OS === "web") {
-    return (
-      <View style={[styles.fill, { backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF" }, style]} onLayout={onLayout}>
-        {showLabels ? (
-          <View style={[StyleSheet.absoluteFillObject, styles.labelsOverlay]}>
-            {layoutNodes
-              .filter((node) => !!node.title)
-              .map((node) => {
-                const p = projected.get(node.id);
-                if (!p) return null;
-                return (
-                  <View
-                    key={node.id}
-                    style={[
-                      styles.labelChip,
-                      isDark ? styles.labelChipDark : styles.labelChipLight,
-                      {
-                        opacity: p.alpha,
-                        transform: [{ translateX: p.x - 22 }, { translateY: p.y - 16 }],
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.labelText, isDark ? styles.labelTextDark : styles.labelTextLight]}>{node.title}</Text>
-                  </View>
-                );
-              })}
-          </View>
-        ) : null}
-      </View>
-    );
-  }
-
   const content = (
     <View style={[styles.fill, { backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF" }, style]} onLayout={onLayout}>
       <Canvas style={StyleSheet.absoluteFillObject}>
