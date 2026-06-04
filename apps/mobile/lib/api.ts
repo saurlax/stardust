@@ -1,24 +1,49 @@
-import { Platform } from "react-native";
-
 const trimSlash = (value: string) => value.replace(/\/+$/, "");
 
-const getDefaultApiBaseUrl = () => {
-  if (Platform.OS === "android") return "http://10.0.2.2:8080";
-  if (Platform.OS === "ios") return "http://127.0.0.1:8080";
-  return "http://localhost:8080";
+export const getApiBaseUrl = (override?: string) =>
+  trimSlash(override?.trim() || "");
+
+export const resolveApiBaseUrl = (override?: string) => {
+  const resolvedBaseUrl = getApiBaseUrl(override);
+  if (!resolvedBaseUrl) {
+    throw new Error("API base URL is not configured");
+  }
+
+  return resolvedBaseUrl;
 };
 
-export const getApiBaseUrl = (override?: string) =>
-  trimSlash(
-    override?.trim() ||
-      process.env.EXPO_PUBLIC_API_BASE_URL?.trim() ||
-      getDefaultApiBaseUrl(),
-  );
+const resolveRequestUrl = (baseUrl: string, input: RequestInfo | URL) => {
+  const rawUrl =
+    typeof input === "string"
+      ? input
+      : typeof input === "object" &&
+          input !== null &&
+          "url" in input &&
+          typeof input.url === "string"
+        ? input.url
+        : String(input);
+
+  if (/^https?:\/\//.test(rawUrl)) {
+    return rawUrl;
+  }
+
+  return `${baseUrl}${rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`}`;
+};
+
+export const createApiFetch =
+  (
+    getBaseUrl: string | undefined | (() => string | undefined),
+    fetchImpl: typeof fetch = fetch,
+  ): typeof fetch =>
+  async (input, init) => {
+    const baseUrl =
+      typeof getBaseUrl === "function" ? getBaseUrl() : getBaseUrl;
+    const resolvedBaseUrl = resolveApiBaseUrl(baseUrl);
+    return fetchImpl(resolveRequestUrl(resolvedBaseUrl, input), init);
+  };
 
 export const ping = async (baseUrl?: string) => {
-  const response = await fetch(
-    `${trimSlash(baseUrl || getApiBaseUrl())}/api/v1/ping`,
-  );
+  const response = await fetch(`${resolveApiBaseUrl(baseUrl)}/api/v1/ping`);
 
   if (!response.ok) {
     throw new Error(`API request failed with status ${response.status}`);

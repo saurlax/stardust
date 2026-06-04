@@ -32,10 +32,14 @@ func New(cfg config.Config) *fiber.App {
 
 	v1 := app.Group("/api/v1")
 
+	v1.Get("/ping", func(c fiber.Ctx) error {
+		return c.JSON(fiber.Map{"message": "pong"})
+	})
+
 	// Chat（统一端点）
-	// GET    /v1/chat?chatId=xxx  → 获取会话历史
-	// POST   /v1/chat             → 新建会话 或 发送消息（body 带 content）
-	// DELETE /v1/chat?chatId=xxx  → 删除会话
+	// GET    /api/v1/chat?chatId=xxx  → 获取会话历史
+	// POST   /api/v1/chat             → 新建会话 或 发送消息（body 带 content）
+	// DELETE /api/v1/chat?chatId=xxx  → 删除会话
 	v1.Get("/chat", chatHandler.Get)
 	v1.Post("/chat", chatHandler.Post)
 	v1.Delete("/chat", chatHandler.Delete)

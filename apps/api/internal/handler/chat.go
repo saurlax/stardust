@@ -38,7 +38,7 @@ func NewChatHandler(msgHandler *LLMHandler) *ChatHandler {
 	return &ChatHandler{msgHandler: msgHandler}
 }
 
-// GET /v1/chat?chatId=xxx 返回指定会话，不传则返回全部列表
+// GET /api/v1/chat?chatId=xxx 返回指定会话，不传则返回全部列表
 func (h *ChatHandler) Get(c fiber.Ctx) error {
 	chatID := c.Query("chatId")
 
@@ -66,7 +66,7 @@ func (h *ChatHandler) Get(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"chats": list})
 }
 
-// POST /v1/chat
+// POST /api/v1/chat
 // - 无 content：新建会话，返回 {chatId}
 // - 有 content：发送消息，chatId 为空时自动新建
 func (h *ChatHandler) Post(c fiber.Ctx) error {
@@ -134,7 +134,7 @@ func (h *ChatHandler) Post(c fiber.Ctx) error {
 	return h.msgHandler.sendResponse(c, chatID, msgSnapshot, stream, req.ChatID == "")
 }
 
-// DELETE /v1/chat?chatId=xxx
+// DELETE /api/v1/chat?chatId=xxx
 func (h *ChatHandler) Delete(c fiber.Ctx) error {
 	chatID := c.Query("chatId")
 	if chatID == "" {
