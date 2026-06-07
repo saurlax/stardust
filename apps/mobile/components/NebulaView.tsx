@@ -1,5 +1,5 @@
 import { Canvas, Circle, Line, vec } from "@shopify/react-native-skia";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Platform, StyleSheet, Text, useColorScheme, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from "react-native";
 
@@ -172,19 +172,50 @@ type NebulaViewProps = {
 export function NebulaView({ style, tree, showLabels = true, interactive = false }: NebulaViewProps) {
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const isDark = colorScheme === "dark";
+  const isWeb = Platform.OS === "web";
+  const isAndroid = Platform.OS === "android";
+  const shouldAnimate = !isAndroid;
   const nebulaTree = useMemo(() => tree ?? defaultTree, [tree]);
   const layoutNodes = useMemo(() => buildLayoutNodes(nebulaTree), [nebulaTree]);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [time, setTime] = useState(0);
   const [viewport, setViewport] = useState({ scale: 1, tx: 0, ty: 0 });
+  const [isInteracting, setIsInteracting] = useState(false);
   const viewportRef = useRef(viewport);
   const lastTickRef = useRef(0);
+  const pendingViewportRef = useRef(viewport);
+  const viewportFrameRef = useRef<number | null>(null);
+  const webDragStateRef = useRef({
+    dragging: false,
+    pointerId: -1,
+    startX: 0,
+    startY: 0,
+    startTx: 0,
+    startTy: 0,
+  });
 
   useEffect(() => {
     viewportRef.current = viewport;
   }, [viewport]);
 
   useEffect(() => {
+    pendingViewportRef.current = viewport;
+  }, [viewport]);
+
+  useEffect(() => {
+    return () => {
+      if (viewportFrameRef.current !== null) {
+        cancelAnimationFrame(viewportFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!shouldAnimate) {
+      setTime(0);
+      return;
+    }
+
     let raf = 0;
     const loop = (t: number) => {
       if (t - lastTickRef.current >= 33) {
@@ -195,7 +226,7 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [shouldAnimate]);
 
   const onLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
@@ -204,8 +235,7 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
 
   const animated = useMemo(() => {
     const nodes = layoutNodes.map((node) => ({ node, p: animateNodePoint(node, time) }));
-    const byId = new Map(nodes.map((item) => [item.node.id, item.p] as const));
-    return { nodes, byId };
+    return { nodes };
   }, [layoutNodes, time]);
 
   const projected = useMemo(() => {
@@ -247,36 +277,122 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
   const pointGlow = isDark ? "rgba(250,250,250,0.22)" : "rgba(10,10,10,0.14)";
   const panStart = useRef({ tx: 0, ty: 0 });
   const pinchStart = useRef(1);
+  const flushViewport = useCallback((nextViewport: typeof viewport) => {
+    pendingViewportRef.current = nextViewport;
+    viewportRef.current = nextViewport;
+
+    if (viewportFrameRef.current !== null) return;
+
+    viewportFrameRef.current = requestAnimationFrame(() => {
+      viewportFrameRef.current = null;
+      setViewport(pendingViewportRef.current);
+    });
+  }, []);
+  const visibleLabels = showLabels && (!interactive || !isInteracting);
 
   const panGesture = Gesture.Pan()
-    .enabled(interactive && Platform.OS !== "web")
+    .runOnJS(true)
+    .enabled(interactive && !isWeb)
     .onBegin(() => {
       panStart.current = { tx: viewportRef.current.tx, ty: viewportRef.current.ty };
+      setIsInteracting(true);
     })
     .onUpdate((event) => {
-      setViewport((prev) => ({
-        ...prev,
+      flushViewport({
+        ...viewportRef.current,
         tx: panStart.current.tx + event.translationX,
         ty: panStart.current.ty + event.translationY,
-      }));
+      });
+    })
+    .onFinalize(() => {
+      setIsInteracting(false);
     });
 
   const pinchGesture = Gesture.Pinch()
-    .enabled(interactive && Platform.OS !== "web")
+    .runOnJS(true)
+    .enabled(interactive && !isWeb)
     .onBegin(() => {
       pinchStart.current = viewportRef.current.scale;
+      setIsInteracting(true);
     })
     .onUpdate((event) => {
-      setViewport((prev) => ({
-        ...prev,
+      flushViewport({
+        ...viewportRef.current,
         scale: clamp(pinchStart.current * event.scale, 0.65, 2.6),
-      }));
+      });
+    })
+    .onFinalize(() => {
+      setIsInteracting(false);
     });
 
   const gesture = Gesture.Simultaneous(panGesture, pinchGesture);
 
+  const webEventHandlers = useMemo(() => {
+    if (!interactive || !isWeb) return {};
+
+    return {
+      onPointerDown: (event: any) => {
+        const pointerId = event.nativeEvent.pointerId ?? 0;
+        webDragStateRef.current = {
+          dragging: true,
+          pointerId,
+          startX: event.nativeEvent.pageX,
+          startY: event.nativeEvent.pageY,
+          startTx: viewportRef.current.tx,
+          startTy: viewportRef.current.ty,
+        };
+        setIsInteracting(true);
+        event.currentTarget?.setPointerCapture?.(pointerId);
+      },
+      onPointerMove: (event: any) => {
+        const state = webDragStateRef.current;
+        if (!state.dragging) return;
+        if ((event.nativeEvent.pointerId ?? 0) !== state.pointerId) return;
+
+        flushViewport({
+          ...viewportRef.current,
+          tx: state.startTx + (event.nativeEvent.pageX - state.startX),
+          ty: state.startTy + (event.nativeEvent.pageY - state.startY),
+        });
+      },
+      onPointerUp: (event: any) => {
+        const pointerId = event.nativeEvent.pointerId ?? 0;
+        if (webDragStateRef.current.pointerId === pointerId) {
+          webDragStateRef.current.dragging = false;
+          setIsInteracting(false);
+          event.currentTarget?.releasePointerCapture?.(pointerId);
+        }
+      },
+      onPointerCancel: (event: any) => {
+        const pointerId = event.nativeEvent.pointerId ?? 0;
+        if (webDragStateRef.current.pointerId === pointerId) {
+          webDragStateRef.current.dragging = false;
+          setIsInteracting(false);
+          event.currentTarget?.releasePointerCapture?.(pointerId);
+        }
+      },
+      onWheel: (event: any) => {
+        const nextScale = clamp(viewportRef.current.scale * (event.nativeEvent.deltaY > 0 ? 0.92 : 1.08), 0.65, 2.6);
+
+        flushViewport({
+          ...viewportRef.current,
+          scale: nextScale,
+        });
+      },
+    };
+  }, [flushViewport, interactive, isWeb]);
+
   const content = (
-    <View style={[styles.fill, { backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF" }, style]} onLayout={onLayout}>
+    <View
+      style={[
+        styles.fill,
+        { backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF" },
+        interactive && isWeb ? styles.webInteractive : null,
+        style,
+      ]}
+      onLayout={onLayout}
+      {...webEventHandlers}
+    >
       <Canvas style={StyleSheet.absoluteFillObject}>
         {lines.map((edge) => {
           const from = projected.get(edge.from);
@@ -305,7 +421,7 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
         })}
       </Canvas>
 
-      {showLabels ? (
+      {visibleLabels ? (
         <View style={[StyleSheet.absoluteFillObject, styles.labelsOverlay]}>
           {layoutNodes
             .filter((node) => !!node.title)
@@ -334,6 +450,7 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
   );
 
   if (!interactive) return content;
+  if (isWeb) return content;
 
   return <GestureDetector gesture={gesture}>{content}</GestureDetector>;
 }
@@ -343,6 +460,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
   },
+  webInteractive:
+    Platform.OS === "web"
+      ? ({ cursor: "pointer", touchAction: "none", userSelect: "none" } satisfies ViewStyle)
+      : {},
   labelsOverlay: {
     pointerEvents: "none",
   },
