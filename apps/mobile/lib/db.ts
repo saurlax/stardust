@@ -3,7 +3,7 @@ import type { NebulaTree } from "@/components/NebulaView";
 import type { ChatMessage, MessageMemoryCandidate } from "@/lib/chat/types";
 
 export const DATABASE_NAME = "stardust.db";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 type ChatSessionRow = {
   session_id: string;
@@ -60,6 +60,14 @@ export type JournalEntry = {
 export type JournalDay = {
   date: Date;
   entries: JournalEntry[];
+};
+
+export type CaptureRecord = {
+  id: string;
+  sessionId: string;
+  messageId: string;
+  content: string;
+  createdAt: string;
 };
 
 const typeOrder = ["preference", "memory", "task", "opinion"];
@@ -128,6 +136,132 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
     `);
 
     currentVersion = 1;
+  }
+
+  if (currentVersion === 1) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS captures (
+        capture_id TEXT PRIMARY KEY NOT NULL,
+        session_id TEXT NOT NULL,
+        message_id TEXT NOT NULL UNIQUE,
+        content TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE,
+        FOREIGN KEY (message_id) REFERENCES chat_messages(message_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS memories (
+        memory_id TEXT PRIMARY KEY NOT NULL,
+        session_id TEXT NOT NULL,
+        message_id TEXT NOT NULL,
+        candidate_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        content TEXT NOT NULL,
+        source_capture_id TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE,
+        FOREIGN KEY (message_id) REFERENCES chat_messages(message_id) ON DELETE CASCADE,
+        FOREIGN KEY (source_capture_id) REFERENCES captures(capture_id) ON DELETE SET NULL
+      );
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_memories_candidate_id
+      ON memories(candidate_id);
+
+      CREATE INDEX IF NOT EXISTS idx_captures_created_at
+      ON captures(created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_memories_created_at
+      ON memories(created_at DESC);
+    `);
+
+    const userMessages = await db.getAllAsync<{
+      session_id: string;
+      message_id: string;
+      content: string;
+      created_at: string;
+    }>(`
+      SELECT session_id, message_id, content, created_at
+      FROM chat_messages
+      WHERE role = 'user' AND content <> ''
+    `);
+
+    for (const row of userMessages) {
+      await db.runAsync(
+        `
+          INSERT OR IGNORE INTO captures (
+            capture_id,
+            session_id,
+            message_id,
+            content,
+            created_at,
+            updated_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?)
+        `,
+        `capture-${row.message_id}`,
+        row.session_id,
+        row.message_id,
+        row.content,
+        row.created_at,
+        row.created_at,
+      );
+    }
+
+    const acceptedCandidates = await db.getAllAsync<{
+      session_id: string;
+      message_id: string;
+      candidate_id: string;
+      type: string;
+      content: string;
+      created_at: string;
+    }>(`
+      SELECT session_id, message_id, candidate_id, type, content, created_at
+      FROM memory_candidates
+      WHERE status = 'accepted'
+    `);
+
+    for (const row of acceptedCandidates) {
+      const capture = await db.getFirstAsync<{ capture_id: string }>(
+        `
+          SELECT capture_id
+          FROM captures
+          WHERE session_id = ?
+          ORDER BY created_at DESC
+          LIMIT 1
+        `,
+        row.session_id,
+      );
+
+      await db.runAsync(
+        `
+          INSERT OR IGNORE INTO memories (
+            memory_id,
+            session_id,
+            message_id,
+            candidate_id,
+            type,
+            content,
+            source_capture_id,
+            created_at,
+            updated_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        `memory-${row.candidate_id}`,
+        row.session_id,
+        row.message_id,
+        row.candidate_id,
+        row.type,
+        row.content,
+        capture?.capture_id ?? null,
+        row.created_at,
+        row.created_at,
+      );
+    }
+
+    currentVersion = 2;
   }
 
   await db.execAsync(`PRAGMA user_version = ${currentVersion}`);
@@ -319,9 +453,103 @@ export async function saveChatSessionSnapshot(
   }
 }
 
+export async function syncDerivedEntitiesForSession(
+  db: SQLiteDatabase,
+  sessionId: string,
+  messages: ChatMessage[],
+) {
+  await db.execAsync("BEGIN");
+
+  try {
+    for (const message of messages) {
+      if (message.role === "user" && message.content.trim()) {
+        const captureId = `capture-${message.id}`;
+        await db.runAsync(
+          `
+            INSERT INTO captures (
+              capture_id,
+              session_id,
+              message_id,
+              content,
+              created_at,
+              updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(message_id) DO UPDATE SET
+              content = excluded.content,
+              updated_at = excluded.updated_at
+          `,
+          captureId,
+          sessionId,
+          message.id,
+          message.content,
+          message.createdAt ?? new Date().toISOString(),
+          message.createdAt ?? new Date().toISOString(),
+        );
+      }
+
+      for (const candidate of message.candidates ?? []) {
+        if (candidate.status !== "accepted") {
+          await db.runAsync(
+            "DELETE FROM memories WHERE candidate_id = ?",
+            candidate.id,
+          );
+          continue;
+        }
+
+        const sourceCapture = await db.getFirstAsync<{ capture_id: string }>(
+          `
+            SELECT capture_id
+            FROM captures
+            WHERE session_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+          `,
+          sessionId,
+        );
+
+        await db.runAsync(
+          `
+            INSERT INTO memories (
+              memory_id,
+              session_id,
+              message_id,
+              candidate_id,
+              type,
+              content,
+              source_capture_id,
+              created_at,
+              updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(candidate_id) DO UPDATE SET
+              type = excluded.type,
+              content = excluded.content,
+              source_capture_id = excluded.source_capture_id,
+              updated_at = excluded.updated_at
+          `,
+          `memory-${candidate.id}`,
+          sessionId,
+          message.id,
+          candidate.id,
+          candidate.type,
+          candidate.content,
+          sourceCapture?.capture_id ?? null,
+          candidate.createdAt ?? message.createdAt ?? new Date().toISOString(),
+          candidate.createdAt ?? message.createdAt ?? new Date().toISOString(),
+        );
+      }
+    }
+
+    await db.execAsync("COMMIT");
+  } catch (error) {
+    await db.execAsync("ROLLBACK");
+    throw error;
+  }
+}
+
 export async function listStoredMemories(
   db: SQLiteDatabase,
-  status: MessageMemoryCandidate["status"] = "accepted",
 ): Promise<StoredMemory[]> {
   const rows = await db.getAllAsync<{
     session_id: string;
@@ -329,16 +557,13 @@ export async function listStoredMemories(
     candidate_id: string;
     type: string;
     content: string;
-    status: MessageMemoryCandidate["status"];
     created_at: string;
   }>(
     `
-      SELECT session_id, message_id, candidate_id, type, content, status, created_at
-      FROM memory_candidates
-      WHERE status = ?
+      SELECT session_id, message_id, candidate_id, type, content, created_at
+      FROM memories
       ORDER BY created_at DESC
     `,
-    status,
   );
 
   return rows.map((row) => ({
@@ -347,7 +572,7 @@ export async function listStoredMemories(
     messageId: row.message_id,
     type: row.type,
     content: row.content,
-    status: row.status,
+    status: "accepted",
     createdAt: row.created_at,
   }));
 }
@@ -359,10 +584,10 @@ export async function findRelevantMemories(
 ): Promise<StoredMemory[]> {
   const trimmed = query.trim().toLowerCase();
   if (!trimmed) {
-    return listStoredMemories(db, "accepted").then((memories) => memories.slice(0, limit));
+    return listStoredMemories(db).then((memories) => memories.slice(0, limit));
   }
 
-  const accepted = await listStoredMemories(db, "accepted");
+  const accepted = await listStoredMemories(db);
   const tokens = [...new Set(trimmed.split(/\s+/).filter(Boolean))];
 
   return accepted
@@ -387,7 +612,7 @@ export async function getPersonalSnapshot(
   const [acceptedRow, pendingRow, userMessagesRow, recentMemoryRow] =
     await Promise.all([
       db.getFirstAsync<{ count: number }>(
-        "SELECT COUNT(*) AS count FROM memory_candidates WHERE status = 'accepted'",
+        "SELECT COUNT(*) AS count FROM memories",
       ),
       db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM memory_candidates WHERE status = 'pending'",
@@ -401,13 +626,11 @@ export async function getPersonalSnapshot(
         candidate_id: string;
         type: string;
         content: string;
-        status: MessageMemoryCandidate["status"];
         created_at: string;
       }>(
         `
-          SELECT session_id, message_id, candidate_id, type, content, status, created_at
-          FROM memory_candidates
-          WHERE status = 'accepted'
+          SELECT session_id, message_id, candidate_id, type, content, created_at
+          FROM memories
           ORDER BY created_at DESC
           LIMIT 1
         `,
@@ -425,7 +648,7 @@ export async function getPersonalSnapshot(
           messageId: recentMemoryRow.message_id,
           type: recentMemoryRow.type,
           content: recentMemoryRow.content,
-          status: recentMemoryRow.status,
+          status: "accepted",
           createdAt: recentMemoryRow.created_at,
         }
       : undefined,
@@ -433,25 +656,24 @@ export async function getPersonalSnapshot(
 }
 
 export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]> {
-  const [messageRows, memoryRows] = await Promise.all([
+  const [captureRows, memoryRows] = await Promise.all([
     db.getAllAsync<{
-      message_id: string;
+      capture_id: string;
       content: string;
       created_at: string;
     }>(
       `
-        SELECT message_id, content, created_at
-        FROM chat_messages
-        WHERE role = 'user' AND content <> ''
+        SELECT capture_id, content, created_at
+        FROM captures
         ORDER BY created_at DESC
       `,
     ),
-    listStoredMemories(db, "accepted"),
+    listStoredMemories(db),
   ]);
 
   const entries: JournalEntry[] = [
-    ...messageRows.map((row) => ({
-      id: row.message_id,
+    ...captureRows.map((row) => ({
+      id: row.capture_id,
       timestamp: row.created_at,
       note: row.content,
       source: "capture" as const,

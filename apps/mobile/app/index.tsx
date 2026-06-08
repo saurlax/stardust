@@ -24,6 +24,7 @@ import {
   findRelevantMemories,
   loadLatestChatSession,
   saveChatSessionSnapshot,
+  syncDerivedEntitiesForSession,
 } from "@/lib/db";
 import { t } from "@/lib/i18n";
 
@@ -118,11 +119,17 @@ export default function Index() {
   useEffect(() => {
     if (!sessionReady || hydratingRef.current) return;
 
-    void saveChatSessionSnapshot(db, {
-      sessionId: sessionIdRef.current,
-      remoteChatId: chatIdRef.current,
-      messages,
-    });
+    const persist = async () => {
+      await saveChatSessionSnapshot(db, {
+        sessionId: sessionIdRef.current,
+        remoteChatId: chatIdRef.current,
+        messages,
+      });
+
+      await syncDerivedEntitiesForSession(db, sessionIdRef.current, messages);
+    };
+
+    void persist();
   }, [db, messages, sessionReady]);
 
   const replaceMessage = useCallback(
