@@ -15,6 +15,7 @@ type SendChatRequestOptions = {
   config: AiConfig;
   messages: ChatMessage[];
   prompt: string;
+  memoryContext?: string;
   imageUri?: string;
   imageMimeType?: string;
   onChatId?: (chatId: string) => void;
@@ -48,6 +49,11 @@ If you identify a durable preference, memory, task, or opinion, append a hidden 
 CANDIDATES-->
 
 Do not mention the block in the visible reply. Omit it completely when nothing should be captured.`;
+
+const buildSystemPrompt = (memoryContext?: string) =>
+  memoryContext?.trim()
+    ? `${SYSTEM_PROMPT}\n\nRelevant long-term memories about the user:\n${memoryContext.trim()}`
+    : SYSTEM_PROMPT;
 
 const CANDIDATES_BLOCK_PATTERN =
   /<!--CANDIDATES\s*([\s\S]*?)\s*CANDIDATES-->/;
@@ -108,8 +114,11 @@ export const normalizeAssistantOutput = (
 
 const toOpenAIMessages = async (
   messages: ChatMessage[],
+  memoryContext?: string,
 ): Promise<OpenAIMessage[]> => {
-  const result: OpenAIMessage[] = [{ role: "system", content: SYSTEM_PROMPT }];
+  const result: OpenAIMessage[] = [
+    { role: "system", content: buildSystemPrompt(memoryContext) },
+  ];
 
   for (const message of messages) {
     if (message.status === "error" || message.status === "pending") continue;
@@ -251,6 +260,7 @@ const sendLocalChatRequest = async ({
   config,
   messages,
   prompt,
+  memoryContext,
   imageUri,
   imageMimeType,
   onTextDelta,
@@ -265,7 +275,7 @@ const sendLocalChatRequest = async ({
       imageUri,
       imageMimeType,
     },
-  ]);
+  ], memoryContext);
 
   const response = await expoFetch(
     `${resolveApiBaseUrl(config.local.baseURL)}/chat/completions`,

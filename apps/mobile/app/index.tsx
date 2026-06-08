@@ -21,6 +21,7 @@ import { normalizeAssistantOutput, sendChatRequest } from "@/lib/chat/runtime";
 import { getConfigValidationError } from "@/lib/config";
 import {
   createSessionId,
+  findRelevantMemories,
   loadLatestChatSession,
   saveChatSessionSnapshot,
 } from "@/lib/db";
@@ -48,6 +49,16 @@ const toMessageCandidates = (
     ...candidate,
     status: "pending",
   }));
+
+const buildMemoryContext = (
+  memories: { type: string; content: string; createdAt: string }[],
+) =>
+  memories
+    .map(
+      (memory, index) =>
+        `${index + 1}. [${memory.type}] ${memory.content} (${memory.createdAt.slice(0, 10)})`,
+    )
+    .join("\n");
 
 export default function Index() {
   const db = useSQLiteContext();
@@ -164,11 +175,17 @@ export default function Index() {
       let streamedContent = "";
 
       try {
+        const memoryContext =
+          configRef.current.runtimeMode === "local"
+            ? buildMemoryContext(await findRelevantMemories(db, request.prompt))
+            : undefined;
+
         const result = await sendChatRequest({
           chatId: chatIdRef.current,
           config: configRef.current,
           messages: sourceMessages,
           prompt: request.prompt,
+          memoryContext,
           imageUri: request.imageUri,
           imageMimeType: request.imageMimeType,
           onChatId: (chatId) => {
@@ -207,7 +224,7 @@ export default function Index() {
         setSending(false);
       }
     },
-    [replaceMessage, updateAssistantText],
+    [db, replaceMessage, updateAssistantText],
   );
 
   const sendPrompt = useCallback(

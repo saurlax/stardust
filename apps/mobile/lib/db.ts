@@ -352,6 +352,35 @@ export async function listStoredMemories(
   }));
 }
 
+export async function findRelevantMemories(
+  db: SQLiteDatabase,
+  query: string,
+  limit = 5,
+): Promise<StoredMemory[]> {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) {
+    return listStoredMemories(db, "accepted").then((memories) => memories.slice(0, limit));
+  }
+
+  const accepted = await listStoredMemories(db, "accepted");
+  const tokens = [...new Set(trimmed.split(/\s+/).filter(Boolean))];
+
+  return accepted
+    .map((memory) => {
+      const haystack = `${memory.type} ${memory.content}`.toLowerCase();
+      const score = tokens.reduce(
+        (total, token) => total + (haystack.includes(token) ? 1 : 0),
+        0,
+      );
+
+      return { memory, score };
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || Date.parse(b.memory.createdAt) - Date.parse(a.memory.createdAt))
+    .slice(0, limit)
+    .map((item) => item.memory);
+}
+
 export async function getPersonalSnapshot(
   db: SQLiteDatabase,
 ): Promise<PersonalSnapshot> {
