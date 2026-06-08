@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -24,11 +25,14 @@ type MemoryCandidate struct {
 
 // LLMHandler 负责调用 LLM
 type LLMHandler struct {
-	cfg config.Config
+	cfg           config.Config
+	streamLLMFunc func(w *bufio.Writer, messages []Message, buf *bytes.Buffer, msgID string) error
 }
 
 func NewLLMHandler(cfg config.Config) *LLMHandler {
-	return &LLMHandler{cfg: cfg}
+	handler := &LLMHandler{cfg: cfg}
+	handler.streamLLMFunc = handler.streamLLM
+	return handler
 }
 
 // sendResponse 流式或非流式返回 LLM 回复，isNewChat 时额外发送 data-chatId 事件
@@ -38,14 +42,14 @@ func (h *LLMHandler) sendResponse(c fiber.Ctx, chatID string, msgSnapshot []Mess
 	if !stream {
 		var buf bytes.Buffer
 		nopWriter := bufio.NewWriter(io.Discard)
-		if err := h.streamLLM(nopWriter, msgSnapshot, &buf, assistantMsgID); err != nil {
+		if err := h.streamLLMFunc(nopWriter, msgSnapshot, &buf, assistantMsgID); err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
-		content := buf.String()
+		message, candidates := normalizeAssistantOutput(buf.String())
 		assistantMsg := Message{
 			ID:        assistantMsgID,
 			Role:      "assistant",
-			Content:   content,
+			Content:   message,
 			CreatedAt: time.Now(),
 		}
 		chatStoreMu.Lock()
@@ -54,7 +58,12 @@ func (h *LLMHandler) sendResponse(c fiber.Ctx, chatID string, msgSnapshot []Mess
 			ch.UpdatedAt = time.Now()
 		}
 		chatStoreMu.Unlock()
-		return c.JSON(fiber.Map{"chatId": chatID, "content": content})
+		return c.JSON(fiber.Map{
+			"chatId":     chatID,
+			"message":    message,
+			"content":    message,
+			"candidates": candidates,
+		})
 	}
 
 	c.Set("Content-Type", "text/event-stream")
@@ -72,7 +81,7 @@ func (h *LLMHandler) sendResponse(c fiber.Ctx, chatID string, msgSnapshot []Mess
 		}
 		w.Flush()
 
-		err := h.streamLLM(w, msgSnapshot, &fullContent, assistantMsgID)
+		err := h.streamLLMFunc(w, msgSnapshot, &fullContent, assistantMsgID)
 		if err != nil {
 			writeUIEvent(w, map[string]any{"type": "error", "errorText": err.Error()})
 			fmt.Fprintf(w, "data: [DONE]\n\n")
@@ -80,10 +89,11 @@ func (h *LLMHandler) sendResponse(c fiber.Ctx, chatID string, msgSnapshot []Mess
 			return
 		}
 
+		message, _ := normalizeAssistantOutput(fullContent.String())
 		assistantMsg := Message{
 			ID:        assistantMsgID,
 			Role:      "assistant",
-			Content:   fullContent.String(),
+			Content:   message,
 			CreatedAt: time.Now(),
 		}
 		chatStoreMu.Lock()
@@ -223,6 +233,29 @@ CANDIDATES-->
 	}
 
 	return nil
+}
+
+func normalizeAssistantOutput(text string) (string, []MemoryCandidate) {
+	candidates := extractCandidates(text)
+	if len(candidates) == 0 {
+		return text, nil
+	}
+
+	const startTag = "<!--CANDIDATES\n"
+	const endTag = "\nCANDIDATES-->"
+
+	start := bytes.Index([]byte(text), []byte(startTag))
+	if start == -1 {
+		return text, candidates
+	}
+
+	end := bytes.Index([]byte(text[start:]), []byte(endTag))
+	if end == -1 {
+		return text, candidates
+	}
+
+	message := text[:start] + text[start+end+len(endTag):]
+	return strings.TrimSpace(message), candidates
 }
 
 // extractCandidates 从回复中提取 CANDIDATES 块
