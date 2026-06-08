@@ -1,17 +1,50 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, Stack } from "expo-router";
+import { router, Stack, useFocusEffect } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
+import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
+import { buildMemoryTree, getPersonalSnapshot, listStoredMemories, type PersonalSnapshot } from "@/lib/db";
 import { t } from "@/lib/i18n";
-import { memoryTreeMock } from "@/lib/memoryTreeMock";
+
+const emptySnapshot: PersonalSnapshot = {
+  acceptedMemories: 0,
+  pendingCandidates: 0,
+  userMessages: 0,
+};
 
 export default function PersonalScreen() {
+  const db = useSQLiteContext();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const avatarIconColor = colorScheme === "dark" ? "#0A0A0A" : "#FAFAFA";
+  const [snapshot, setSnapshot] = useState<PersonalSnapshot>(emptySnapshot);
+  const [memoryTree, setMemoryTree] = useState(buildMemoryTree([]));
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      Promise.all([getPersonalSnapshot(db), listStoredMemories(db)])
+        .then(([nextSnapshot, memories]) => {
+          if (!active) return;
+          setSnapshot(nextSnapshot);
+          setMemoryTree(buildMemoryTree(memories));
+        })
+        .catch(() => {
+          if (!active) return;
+          setSnapshot(emptySnapshot);
+          setMemoryTree(buildMemoryTree([]));
+        });
+
+      return () => {
+        active = false;
+      };
+    }, [db]),
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
@@ -34,6 +67,28 @@ export default function PersonalScreen() {
           </View>
         </View>
 
+        <View className="flex-row gap-3">
+          <Card className="flex-1 gap-2 px-4 py-4">
+            <CardDescription>{t("personal.acceptedMemories")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.acceptedMemories}</Text>
+          </Card>
+          <Card className="flex-1 gap-2 px-4 py-4">
+            <CardDescription>{t("personal.pendingHints")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.pendingCandidates}</Text>
+          </Card>
+          <Card className="flex-1 gap-2 px-4 py-4">
+            <CardDescription>{t("personal.capturedMoments")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.userMessages}</Text>
+          </Card>
+        </View>
+
+        <Card className="gap-2 px-4 py-4">
+          <CardDescription>{t("personal.latestMemory")}</CardDescription>
+          <Text className="text-sm leading-5">
+            {snapshot.recentMemory?.content ?? t("personal.noLatestMemory")}
+          </Text>
+        </Card>
+
         <View className="gap-3">
           <Pressable
             accessibilityRole="button"
@@ -43,7 +98,7 @@ export default function PersonalScreen() {
             <Card className="h-56 overflow-hidden p-0">
               <NebulaView
                 style={StyleSheet.absoluteFillObject}
-                tree={memoryTreeMock}
+                tree={memoryTree}
                 showLabels={false}
               />
               <CardHeader className="absolute left-0 top-0 p-4">
