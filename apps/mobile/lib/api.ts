@@ -1,3 +1,7 @@
+import { fetch as expoFetch } from "expo/fetch";
+
+import type { AiConfig, CloudAiConfig, LocalAiConfig } from "@/lib/config";
+
 const trimSlash = (value: string) => value.replace(/\/+$/, "");
 
 export const getApiBaseUrl = (override?: string) =>
@@ -50,4 +54,30 @@ export const ping = async (baseUrl?: string) => {
   }
 
   return (await response.json()) as { message: string };
+};
+
+export const resolveCloudApiBaseUrl = (config: Pick<AiConfig, "cloud">) =>
+  getApiBaseUrl(config.cloud.apiBaseURL);
+
+export const resolveLocalBaseUrl = (config: Pick<AiConfig, "local">) =>
+  getApiBaseUrl(config.local.baseURL);
+
+export const testCloudConnection = async (config: CloudAiConfig) => {
+  return ping(config.apiBaseURL);
+};
+
+export const testLocalConnection = async (config: LocalAiConfig) => {
+  const baseUrl = resolveApiBaseUrl(config.baseURL);
+  const response = await expoFetch(`${baseUrl}/models`, {
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API request failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as { data?: Array<{ id?: string }> };
 };
