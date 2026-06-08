@@ -16,5 +16,8 @@ Thumbs.db
 .env.*.local
 *.pem
 
+# web build artifacts
+/web/
+
 # package manager lock files
 package-lock.json
