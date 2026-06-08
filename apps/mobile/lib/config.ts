@@ -93,6 +93,14 @@ const normalizeConfig = (
   ai: normalizeAi(cfg?.ai),
 });
 
+export const deriveAiConfig = (
+  value?: Partial<AiConfig> | LegacyAiConfig,
+): AiConfig => normalizeAi(value);
+
+export const deriveAppConfig = (
+  cfg?: Partial<AppConfig> | LegacyAppConfig,
+): AppConfig => normalizeConfig(cfg);
+
 let aiConfigCache = createDefaultAiConfig();
 
 const persistConfig = async (config: AppConfig): Promise<AppConfig> => {
