@@ -97,6 +97,12 @@ const translations = {
     memory: {
       title: "Memory",
       empty: "No accepted memories yet.",
+      manageTitle: "Saved memories",
+      edit: "Edit",
+      delete: "Delete",
+      save: "Save",
+      cancel: "Cancel",
+      editorPlaceholder: "Refine this memory...",
     },
     journal: {
       title: "My Journal",
@@ -206,6 +212,12 @@ const translations = {
     memory: {
       title: "记忆",
       empty: "还没有已确认的记忆。",
+      manageTitle: "已保存记忆",
+      edit: "编辑",
+      delete: "删除",
+      save: "保存",
+      cancel: "取消",
+      editorPlaceholder: "润色这条记忆...",
     },
     journal: {
       title: "我的日记",

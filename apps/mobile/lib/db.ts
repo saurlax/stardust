@@ -41,6 +41,8 @@ export type StoredMemory = {
   content: string;
   status: MessageMemoryCandidate["status"];
   createdAt: string;
+  updatedAt?: string;
+  sourceCaptureId?: string | null;
 };
 
 export type PersonalSnapshot = {
@@ -80,6 +82,11 @@ export type RelevantKnowledge = {
 };
 
 const typeOrder = ["preference", "memory", "task", "opinion"];
+const tokenize = (value: string) =>
+  value
+    .toLowerCase()
+    .split(/[^a-z0-9\u4e00-\u9fff]+/i)
+    .filter((token) => token.length >= 2);
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
   const versionRow = await db.getFirstAsync<{ user_version: number }>(
@@ -655,29 +662,154 @@ export async function listStoredMemories(
   db: SQLiteDatabase,
 ): Promise<StoredMemory[]> {
   const rows = await db.getAllAsync<{
+    memory_id: string;
     session_id: string;
     message_id: string;
     candidate_id: string;
     type: string;
     content: string;
     created_at: string;
+    updated_at: string;
+    source_capture_id: string | null;
   }>(
     `
-      SELECT session_id, message_id, candidate_id, type, content, created_at
+      SELECT
+        memory_id,
+        session_id,
+        message_id,
+        candidate_id,
+        type,
+        content,
+        created_at,
+        updated_at,
+        source_capture_id
       FROM memories
       ORDER BY created_at DESC
     `,
   );
 
   return rows.map((row) => ({
-    id: row.candidate_id,
+    id: row.memory_id,
     sessionId: row.session_id,
     messageId: row.message_id,
     type: row.type,
     content: row.content,
     status: "accepted",
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    sourceCaptureId: row.source_capture_id,
   }));
+}
+
+export async function updateStoredMemoryContent(
+  db: SQLiteDatabase,
+  memoryId: string,
+  content: string,
+) {
+  const trimmed = content.trim();
+  if (!trimmed) return;
+
+  const memory = await db.getFirstAsync<{
+    candidate_id: string;
+  }>(
+    `
+      SELECT candidate_id
+      FROM memories
+      WHERE memory_id = ?
+    `,
+    memoryId,
+  );
+
+  if (!memory) return;
+
+  const now = new Date().toISOString();
+  await db.execAsync("BEGIN");
+
+  try {
+    await db.runAsync(
+      `
+        UPDATE memories
+        SET content = ?, updated_at = ?
+        WHERE memory_id = ?
+      `,
+      trimmed,
+      now,
+      memoryId,
+    );
+
+    await db.runAsync(
+      `
+        DELETE FROM memories_fts
+        WHERE memory_id = ?
+      `,
+      memoryId,
+    );
+
+    await db.runAsync(
+      `
+        INSERT INTO memories_fts (memory_id, type, content)
+        SELECT memory_id, type, content
+        FROM memories
+        WHERE memory_id = ?
+      `,
+      memoryId,
+    );
+
+    await db.runAsync(
+      `
+        UPDATE memory_candidates
+        SET content = ?, updated_at = ?
+        WHERE candidate_id = ?
+      `,
+      trimmed,
+      now,
+      memory.candidate_id,
+    );
+
+    await db.execAsync("COMMIT");
+  } catch (error) {
+    await db.execAsync("ROLLBACK");
+    throw error;
+  }
+}
+
+export async function dismissStoredMemory(
+  db: SQLiteDatabase,
+  memoryId: string,
+) {
+  const memory = await db.getFirstAsync<{
+    candidate_id: string;
+  }>(
+    `
+      SELECT candidate_id
+      FROM memories
+      WHERE memory_id = ?
+    `,
+    memoryId,
+  );
+
+  if (!memory) return;
+
+  const now = new Date().toISOString();
+  await db.execAsync("BEGIN");
+
+  try {
+    await db.runAsync("DELETE FROM memories_fts WHERE memory_id = ?", memoryId);
+    await db.runAsync("DELETE FROM memories WHERE memory_id = ?", memoryId);
+    await db.runAsync(
+      `
+        UPDATE memory_candidates
+        SET status = 'dismissed', updated_at = ?
+        WHERE candidate_id = ?
+      `,
+      now,
+      memory.candidate_id,
+    );
+    await db.execAsync("COMMIT");
+  } catch (error) {
+    await db.execAsync("ROLLBACK");
+    throw error;
+  }
 }
 
 export async function findRelevantMemories(
@@ -906,9 +1038,10 @@ export const buildMemoryTree = (memories: StoredMemory[]): NebulaTree => {
 
   const nodes: NebulaTree["nodes"] = [{ id: "root", title: "you" }];
   const typeNodes = new Set<string>();
+  const visibleMemories = memories.slice(0, 18);
 
   for (const type of typeOrder) {
-    if (!memories.some((memory) => memory.type === type)) continue;
+    if (!visibleMemories.some((memory) => memory.type === type)) continue;
     typeNodes.add(type);
     nodes.push({
       id: `type-${type}`,
@@ -917,12 +1050,25 @@ export const buildMemoryTree = (memories: StoredMemory[]): NebulaTree => {
     });
   }
 
-  memories.slice(0, 18).forEach((memory) => {
+  visibleMemories.forEach((memory, index) => {
     const parentId = typeNodes.has(memory.type) ? `type-${memory.type}` : "root";
+    let relatedMemoryId: string | undefined;
+
+    for (let prevIndex = index - 1; prevIndex >= 0; prevIndex -= 1) {
+      const previous = visibleMemories[prevIndex];
+      const overlap = tokenize(memory.content).filter((token) =>
+        tokenize(previous.content).includes(token),
+      );
+      if (overlap.length > 0 || previous.sourceCaptureId === memory.sourceCaptureId) {
+        relatedMemoryId = `memory-${previous.id}`;
+        break;
+      }
+    }
+
     nodes.push({
       id: `memory-${memory.id}`,
       title: memory.content.length > 18 ? `${memory.content.slice(0, 18)}...` : memory.content,
-      linksTo: [parentId],
+      linksTo: relatedMemoryId ? [parentId, relatedMemoryId] : [parentId],
     });
   });
 
