@@ -6,6 +6,15 @@ export type MessageStatus =
   | "error"
   | "retrying";
 
+export type MemoryCandidateStatus = "pending" | "accepted" | "dismissed";
+
+export type MessageMemoryCandidate = {
+  id: string;
+  type: string;
+  content: string;
+  status: MemoryCandidateStatus;
+};
+
 export type ChatMessage = {
   id: string;
   role: MessageRole;
@@ -19,4 +28,5 @@ export type ChatMessage = {
     imageUri?: string;
     imageMimeType?: string;
   };
+  candidates?: MessageMemoryCandidate[];
 };

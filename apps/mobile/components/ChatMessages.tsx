@@ -11,7 +11,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
-import type { ChatMessage } from "@/lib/chat/types";
+import type {
+  ChatMessage,
+  MemoryCandidateStatus,
+  MessageMemoryCandidate,
+} from "@/lib/chat/types";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -19,12 +23,77 @@ type ChatMessagesProps = {
   messages: ChatMessage[];
   sending: boolean;
   onRetryMessage: (message: ChatMessage) => void;
+  onUpdateCandidateStatus: (
+    messageId: string,
+    candidateId: string,
+    status: MemoryCandidateStatus,
+  ) => void;
 };
+
+const getCandidateTypeLabel = (type: string) => {
+  switch (type) {
+    case "preference":
+      return t("chat.candidateTypePreference");
+    case "memory":
+      return t("chat.candidateTypeMemory");
+    case "task":
+      return t("chat.candidateTypeTask");
+    case "opinion":
+      return t("chat.candidateTypeOpinion");
+    default:
+      return t("chat.candidateTypeUnknown");
+  }
+};
+
+function CandidateActions({
+  messageId,
+  candidate,
+  onUpdateCandidateStatus,
+}: {
+  messageId: string;
+  candidate: MessageMemoryCandidate;
+  onUpdateCandidateStatus: ChatMessagesProps["onUpdateCandidateStatus"];
+}) {
+  if (candidate.status === "accepted") {
+    return (
+      <Text className="text-xs font-semibold text-green-600">
+        {t("chat.candidateAccepted")}
+      </Text>
+    );
+  }
+
+  if (candidate.status === "dismissed") {
+    return (
+      <Text className="text-xs font-semibold text-muted-foreground">
+        {t("chat.candidateDismissed")}
+      </Text>
+    );
+  }
+
+  return (
+    <View className="flex-row gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onPress={() => onUpdateCandidateStatus(messageId, candidate.id, "dismissed")}
+      >
+        <Text>{t("chat.candidateDismiss")}</Text>
+      </Button>
+      <Button
+        size="sm"
+        onPress={() => onUpdateCandidateStatus(messageId, candidate.id, "accepted")}
+      >
+        <Text>{t("chat.candidateAccept")}</Text>
+      </Button>
+    </View>
+  );
+}
 
 export function ChatMessages({
   messages,
   sending,
   onRetryMessage,
+  onUpdateCandidateStatus,
 }: ChatMessagesProps) {
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
@@ -95,6 +164,29 @@ export function ChatMessages({
                         source={{ uri: item.imageUri }}
                         className="mt-2 h-[200px] w-[200px] rounded-md bg-muted"
                       />
+                    ) : null}
+                    {item.role === "assistant" && item.candidates?.length ? (
+                      <View className="mt-3 gap-2 rounded-lg border border-border bg-muted/60 p-3">
+                        <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {t("chat.candidateTitle")}
+                        </Text>
+                        {item.candidates.map((candidate) => (
+                          <View
+                            key={candidate.id}
+                            className="gap-2 rounded-md border border-border/70 bg-background/80 p-2.5"
+                          >
+                            <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              {getCandidateTypeLabel(candidate.type)}
+                            </Text>
+                            <Text className="text-sm leading-5">{candidate.content}</Text>
+                            <CandidateActions
+                              messageId={item.id}
+                              candidate={candidate}
+                              onUpdateCandidateStatus={onUpdateCandidateStatus}
+                            />
+                          </View>
+                        ))}
+                      </View>
                     ) : null}
                   </>
                 )}

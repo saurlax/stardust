@@ -11,7 +11,11 @@ import { ChatPrompt } from "@/components/ChatPrompt";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useConfig } from "@/context/config";
-import type { ChatMessage } from "@/lib/chat/types";
+import type {
+  ChatMessage,
+  MemoryCandidateStatus,
+  MessageMemoryCandidate,
+} from "@/lib/chat/types";
 import { normalizeAssistantOutput, sendChatRequest } from "@/lib/chat/runtime";
 import { getConfigValidationError } from "@/lib/config";
 import { t } from "@/lib/i18n";
@@ -30,6 +34,14 @@ const createGreetingMessage = (): ChatMessage => ({
   content: t("chat.assistantGreeting"),
   status: "done",
 });
+
+const toMessageCandidates = (
+  candidates: { id: string; type: string; content: string }[],
+): MessageMemoryCandidate[] =>
+  candidates.map((candidate) => ({
+    ...candidate,
+    status: "pending",
+  }));
 
 export default function Index() {
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
@@ -133,6 +145,7 @@ export default function Index() {
           content: normalized.content,
           status: "done",
           error: undefined,
+          candidates: toMessageCandidates(normalized.candidates),
         }));
       } catch (error) {
         const message =
@@ -247,6 +260,19 @@ export default function Index() {
       request,
       sourceMessages,
     });
+  };
+
+  const updateCandidateStatus = (
+    messageId: string,
+    candidateId: string,
+    status: MemoryCandidateStatus,
+  ) => {
+    replaceMessage(messageId, (message) => ({
+      ...message,
+      candidates: message.candidates?.map((candidate) =>
+        candidate.id === candidateId ? { ...candidate, status } : candidate,
+      ),
+    }));
   };
 
   const openCamera = async () => {
@@ -364,6 +390,7 @@ export default function Index() {
           messages={messages}
           sending={sending}
           onRetryMessage={retryMessage}
+          onUpdateCandidateStatus={updateCandidateStatus}
         />
 
         <ChatPrompt
