@@ -70,6 +70,7 @@ export type CaptureRecord = {
   messageId: string;
   content: string;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type RelevantKnowledge = {
@@ -1027,6 +1028,103 @@ export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]>
   return [...grouped.values()].sort(
     (a, b) => b.date.getTime() - a.date.getTime(),
   );
+}
+
+export async function listCaptures(
+  db: SQLiteDatabase,
+): Promise<CaptureRecord[]> {
+  const rows = await db.getAllAsync<{
+    capture_id: string;
+    session_id: string;
+    message_id: string;
+    content: string;
+    created_at: string;
+    updated_at: string;
+  }>(`
+    SELECT capture_id, session_id, message_id, content, created_at, updated_at
+    FROM captures
+    ORDER BY created_at DESC
+  `);
+
+  return rows.map((row) => ({
+    id: row.capture_id,
+    sessionId: row.session_id,
+    messageId: row.message_id,
+    content: row.content,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export async function updateCaptureContent(
+  db: SQLiteDatabase,
+  captureId: string,
+  content: string,
+) {
+  const trimmed = content.trim();
+  if (!trimmed) return;
+
+  const capture = await db.getFirstAsync<{
+    message_id: string;
+  }>(
+    `
+      SELECT message_id
+      FROM captures
+      WHERE capture_id = ?
+    `,
+    captureId,
+  );
+
+  if (!capture) return;
+
+  const now = new Date().toISOString();
+  await db.execAsync("BEGIN");
+
+  try {
+    await db.runAsync(
+      `
+        UPDATE captures
+        SET content = ?, updated_at = ?
+        WHERE capture_id = ?
+      `,
+      trimmed,
+      now,
+      captureId,
+    );
+
+    await db.runAsync(
+      `
+        UPDATE chat_messages
+        SET content = ?, updated_at = ?
+        WHERE message_id = ?
+      `,
+      trimmed,
+      now,
+      capture.message_id,
+    );
+
+    await db.runAsync(
+      `
+        DELETE FROM captures_fts
+        WHERE capture_id = ?
+      `,
+      captureId,
+    );
+
+    await db.runAsync(
+      `
+        INSERT INTO captures_fts (capture_id, content)
+        VALUES (?, ?)
+      `,
+      captureId,
+      trimmed,
+    );
+
+    await db.execAsync("COMMIT");
+  } catch (error) {
+    await db.execAsync("ROLLBACK");
+    throw error;
+  }
 }
 
 export const buildMemoryTree = (memories: StoredMemory[]): NebulaTree => {

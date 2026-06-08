@@ -1,37 +1,161 @@
 import { Stack, useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card, CardContent, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
+import { Textarea } from "@/components/ui/textarea";
 import { formatMonthDay, formatTime, t } from "@/lib/i18n";
-import { listJournalDays, type JournalDay } from "@/lib/db";
+import {
+  findRelevantKnowledge,
+  listCaptures,
+  listJournalDays,
+  type CaptureRecord,
+  type JournalDay,
+  updateCaptureContent,
+} from "@/lib/db";
+
+function CaptureManager({
+  captures,
+  onRefresh,
+}: {
+  captures: CaptureRecord[];
+  onRefresh: () => void;
+}) {
+  const db = useSQLiteContext();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+
+  return (
+    <View className="gap-3">
+      <View className="px-0.5">
+        <Text className="text-lg font-semibold">{t("journal.capturesTitle")}</Text>
+      </View>
+
+      {captures.map((capture) => {
+        const isEditing = editingId === capture.id;
+        return (
+          <Card key={capture.id} className="gap-3 py-4">
+            <CardHeader className="gap-1">
+              <CardDescription>
+                {formatMonthDay(new Date(capture.createdAt))} · {formatTime(new Date(capture.createdAt))}
+              </CardDescription>
+              {isEditing ? (
+                <Textarea
+                  value={draft}
+                  onChangeText={setDraft}
+                  className="min-h-20 rounded-md bg-background"
+                  numberOfLines={3}
+                />
+              ) : (
+                <CardTitle className="text-sm leading-5">{capture.content}</CardTitle>
+              )}
+            </CardHeader>
+            <CardContent className="flex-row gap-2">
+              {isEditing ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onPress={() => {
+                      setEditingId(null);
+                      setDraft("");
+                    }}
+                  >
+                    <Text>{t("journal.cancel")}</Text>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onPress={() => {
+                      void updateCaptureContent(db, capture.id, draft).then(() => {
+                        setEditingId(null);
+                        setDraft("");
+                        onRefresh();
+                      });
+                    }}
+                  >
+                    <Text>{t("journal.save")}</Text>
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onPress={() => {
+                    setEditingId(capture.id);
+                    setDraft(capture.content);
+                  }}
+                >
+                  <Text>{t("journal.edit")}</Text>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </View>
+  );
+}
 
 export default function JournalScreen() {
   const db = useSQLiteContext();
   const [days, setDays] = useState<JournalDay[]>([]);
+  const [captures, setCaptures] = useState<CaptureRecord[]>([]);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<
+    {
+      id: string;
+      source: "memory" | "capture";
+      type?: string;
+      content: string;
+      createdAt: string;
+      rank: number;
+    }[]
+  >([]);
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
+  const refresh = useCallback(() => {
+    let active = true;
 
-      listJournalDays(db)
-        .then((nextDays) => {
-          if (!active) return;
-          setDays(nextDays);
-        })
-        .catch(() => {
-          if (!active) return;
-          setDays([]);
-        });
+    Promise.all([listJournalDays(db), listCaptures(db)])
+      .then(([nextDays, nextCaptures]) => {
+        if (!active) return;
+        setDays(nextDays);
+        setCaptures(nextCaptures);
+      })
+      .catch(() => {
+        if (!active) return;
+        setDays([]);
+        setCaptures([]);
+      });
 
-      return () => {
-        active = false;
-      };
-    }, [db]),
+    return () => {
+      active = false;
+    };
+  }, [db]);
+
+  useFocusEffect(refresh);
+
+  const runSearch = useCallback(
+    (value: string) => {
+      const trimmed = value.trim();
+      setQuery(value);
+
+      if (!trimmed) {
+        setResults([]);
+        return;
+      }
+
+      void findRelevantKnowledge(db, trimmed).then(setResults).catch(() => setResults([]));
+    },
+    [db],
   );
+
+  const hasSearch = query.trim().length > 0;
+  const visibleResults = useMemo(() => results.slice(0, 8), [results]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
@@ -49,6 +173,40 @@ export default function JournalScreen() {
           <Text className="text-xl font-semibold">{t("journal.headerTitle")}</Text>
           <Text className="mt-1 text-sm text-muted-foreground">{t("journal.subtitle")}</Text>
         </View>
+
+        <Card className="gap-3 py-4">
+          <CardHeader className="gap-1">
+            <CardTitle>{t("journal.searchTitle")}</CardTitle>
+            <CardDescription>{t("journal.searchPlaceholder")}</CardDescription>
+          </CardHeader>
+          <CardContent className="gap-3">
+            <Input
+              value={query}
+              onChangeText={runSearch}
+              placeholder={t("journal.searchPlaceholder")}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            {hasSearch && !visibleResults.length ? (
+              <Text variant="muted">{t("journal.searchEmpty")}</Text>
+            ) : null}
+
+            {visibleResults.map((result) => (
+              <Card key={result.id} className="gap-2 py-4">
+                <CardContent className="gap-1">
+                  <CardDescription>
+                    {result.source === "memory" ? t("journal.memoryEntryPrefix") : t("journal.capturesTitle")}
+                    {result.type ? ` · ${result.type}` : ""}
+                  </CardDescription>
+                  <Text className="text-sm leading-5">{result.content}</Text>
+                </CardContent>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
+
+        <CaptureManager captures={captures} onRefresh={refresh} />
 
         {!days.length ? (
           <Card className="min-h-24 items-center justify-center px-4">
