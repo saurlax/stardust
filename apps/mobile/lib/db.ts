@@ -3,7 +3,7 @@ import type { NebulaTree } from "@/components/NebulaView";
 import type { ChatMessage, MessageMemoryCandidate } from "@/lib/chat/types";
 
 export const DATABASE_NAME = "stardust.db";
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 type ChatSessionRow = {
   session_id: string;
@@ -70,6 +70,15 @@ export type CaptureRecord = {
   createdAt: string;
 };
 
+export type RelevantKnowledge = {
+  id: string;
+  source: "memory" | "capture";
+  type?: string;
+  content: string;
+  createdAt: string;
+  rank: number;
+};
+
 const typeOrder = ["preference", "memory", "task", "opinion"];
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
@@ -84,6 +93,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
 
   if (currentVersion === 0) {
     await db.execAsync(`
+      PRAGMA foreign_keys = ON;
       PRAGMA journal_mode = 'wal';
 
       CREATE TABLE IF NOT EXISTS chat_sessions (
@@ -264,6 +274,66 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
     currentVersion = 2;
   }
 
+  if (currentVersion === 2) {
+    await db.execAsync(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS captures_fts USING fts5(
+        capture_id UNINDEXED,
+        content
+      );
+
+      CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
+        memory_id UNINDEXED,
+        type,
+        content
+      );
+    `);
+
+    const captures = await db.getAllAsync<{
+      capture_id: string;
+      content: string;
+    }>(`
+      SELECT capture_id, content
+      FROM captures
+    `);
+
+    await db.runAsync("DELETE FROM captures_fts");
+    for (const capture of captures) {
+      await db.runAsync(
+        `
+          INSERT INTO captures_fts (capture_id, content)
+          VALUES (?, ?)
+        `,
+        capture.capture_id,
+        capture.content,
+      );
+    }
+
+    const memories = await db.getAllAsync<{
+      memory_id: string;
+      type: string;
+      content: string;
+    }>(`
+      SELECT memory_id, type, content
+      FROM memories
+    `);
+
+    await db.runAsync("DELETE FROM memories_fts");
+    for (const memory of memories) {
+      await db.runAsync(
+        `
+          INSERT INTO memories_fts (memory_id, type, content)
+          VALUES (?, ?, ?)
+        `,
+        memory.memory_id,
+        memory.type,
+        memory.content,
+      );
+    }
+
+    currentVersion = 3;
+  }
+
+  await db.execAsync("PRAGMA foreign_keys = ON");
   await db.execAsync(`PRAGMA user_version = ${currentVersion}`);
 }
 
@@ -461,9 +531,48 @@ export async function syncDerivedEntitiesForSession(
   await db.execAsync("BEGIN");
 
   try {
+    const [captureIds, memoryIds] = await Promise.all([
+      db.getAllAsync<{ capture_id: string }>(
+        `
+          SELECT capture_id
+          FROM captures
+          WHERE session_id = ?
+        `,
+        sessionId,
+      ),
+      db.getAllAsync<{ memory_id: string }>(
+        `
+          SELECT memory_id
+          FROM memories
+          WHERE session_id = ?
+        `,
+        sessionId,
+      ),
+    ]);
+
+    for (const capture of captureIds) {
+      await db.runAsync(
+        "DELETE FROM captures_fts WHERE capture_id = ?",
+        capture.capture_id,
+      );
+    }
+
+    for (const memory of memoryIds) {
+      await db.runAsync(
+        "DELETE FROM memories_fts WHERE memory_id = ?",
+        memory.memory_id,
+      );
+    }
+
+    await db.runAsync("DELETE FROM captures WHERE session_id = ?", sessionId);
+    await db.runAsync("DELETE FROM memories WHERE session_id = ?", sessionId);
+
+    let latestCaptureId: string | null = null;
+
     for (const message of messages) {
       if (message.role === "user" && message.content.trim()) {
         const captureId = `capture-${message.id}`;
+        latestCaptureId = captureId;
         await db.runAsync(
           `
             INSERT INTO captures (
@@ -475,9 +584,6 @@ export async function syncDerivedEntitiesForSession(
               updated_at
             )
             VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(message_id) DO UPDATE SET
-              content = excluded.content,
-              updated_at = excluded.updated_at
           `,
           captureId,
           sessionId,
@@ -486,27 +592,20 @@ export async function syncDerivedEntitiesForSession(
           message.createdAt ?? new Date().toISOString(),
           message.createdAt ?? new Date().toISOString(),
         );
+        await db.runAsync(
+          `
+            INSERT INTO captures_fts (capture_id, content)
+            VALUES (?, ?)
+          `,
+          captureId,
+          message.content,
+        );
       }
 
       for (const candidate of message.candidates ?? []) {
         if (candidate.status !== "accepted") {
-          await db.runAsync(
-            "DELETE FROM memories WHERE candidate_id = ?",
-            candidate.id,
-          );
           continue;
         }
-
-        const sourceCapture = await db.getFirstAsync<{ capture_id: string }>(
-          `
-            SELECT capture_id
-            FROM captures
-            WHERE session_id = ?
-            ORDER BY created_at DESC
-            LIMIT 1
-          `,
-          sessionId,
-        );
 
         await db.runAsync(
           `
@@ -522,11 +621,6 @@ export async function syncDerivedEntitiesForSession(
               updated_at
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(candidate_id) DO UPDATE SET
-              type = excluded.type,
-              content = excluded.content,
-              source_capture_id = excluded.source_capture_id,
-              updated_at = excluded.updated_at
           `,
           `memory-${candidate.id}`,
           sessionId,
@@ -534,9 +628,18 @@ export async function syncDerivedEntitiesForSession(
           candidate.id,
           candidate.type,
           candidate.content,
-          sourceCapture?.capture_id ?? null,
+          latestCaptureId,
           candidate.createdAt ?? message.createdAt ?? new Date().toISOString(),
           candidate.createdAt ?? message.createdAt ?? new Date().toISOString(),
+        );
+        await db.runAsync(
+          `
+            INSERT INTO memories_fts (memory_id, type, content)
+            VALUES (?, ?, ?)
+          `,
+          `memory-${candidate.id}`,
+          candidate.type,
+          candidate.content,
         );
       }
     }
@@ -604,6 +707,92 @@ export async function findRelevantMemories(
     .sort((a, b) => b.score - a.score || Date.parse(b.memory.createdAt) - Date.parse(a.memory.createdAt))
     .slice(0, limit)
     .map((item) => item.memory);
+}
+
+const toFtsQuery = (query: string) =>
+  query
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => `"${token.replace(/"/g, '""')}"*`)
+    .join(" OR ");
+
+export async function findRelevantKnowledge(
+  db: SQLiteDatabase,
+  query: string,
+  limit = 6,
+): Promise<RelevantKnowledge[]> {
+  const ftsQuery = toFtsQuery(query);
+  if (!ftsQuery) return [];
+
+  const [memoryMatches, captureMatches] = await Promise.all([
+    db.getAllAsync<{
+      id: string;
+      type: string;
+      content: string;
+      created_at: string;
+      rank: number;
+    }>(
+      `
+        SELECT
+          memories.memory_id AS id,
+          memories.type AS type,
+          memories.content AS content,
+          memories.created_at AS created_at,
+          bm25(memories_fts) AS rank
+        FROM memories_fts
+        JOIN memories ON memories.memory_id = memories_fts.memory_id
+        WHERE memories_fts MATCH ?
+        ORDER BY rank
+        LIMIT ?
+      `,
+      ftsQuery,
+      limit,
+    ),
+    db.getAllAsync<{
+      id: string;
+      content: string;
+      created_at: string;
+      rank: number;
+    }>(
+      `
+        SELECT
+          captures.capture_id AS id,
+          captures.content AS content,
+          captures.created_at AS created_at,
+          bm25(captures_fts) AS rank
+        FROM captures_fts
+        JOIN captures ON captures.capture_id = captures_fts.capture_id
+        WHERE captures_fts MATCH ?
+        ORDER BY rank
+        LIMIT ?
+      `,
+      ftsQuery,
+      limit,
+    ),
+  ]);
+
+  const combined: RelevantKnowledge[] = [
+    ...memoryMatches.map((item) => ({
+      id: item.id,
+      source: "memory" as const,
+      type: item.type,
+      content: item.content,
+      createdAt: item.created_at,
+      rank: item.rank,
+    })),
+    ...captureMatches.map((item) => ({
+      id: item.id,
+      source: "capture" as const,
+      content: item.content,
+      createdAt: item.created_at,
+      rank: item.rank,
+    })),
+  ];
+
+  return combined
+    .sort((a, b) => a.rank - b.rank || Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .slice(0, limit);
 }
 
 export async function getPersonalSnapshot(
