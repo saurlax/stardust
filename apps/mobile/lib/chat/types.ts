@@ -14,6 +14,7 @@ export type MessageMemoryCandidate = {
   content: string;
   status: MemoryCandidateStatus;
   createdAt?: string;
+  editedContent?: string;
 };
 
 export type ChatMessage = {

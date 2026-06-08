@@ -21,7 +21,7 @@ import { normalizeAssistantOutput, sendChatRequest } from "@/lib/chat/runtime";
 import { getConfigValidationError } from "@/lib/config";
 import {
   createSessionId,
-  findRelevantMemories,
+  findRelevantKnowledge,
   loadLatestChatSession,
   saveChatSessionSnapshot,
   syncDerivedEntitiesForSession,
@@ -49,15 +49,20 @@ const toMessageCandidates = (
   candidates.map((candidate) => ({
     ...candidate,
     status: "pending",
+    editedContent: candidate.content,
   }));
 
 const buildMemoryContext = (
-  memories: { type: string; content: string; createdAt: string }[],
+  memories: { source: "memory" | "capture"; type?: string; content: string; createdAt: string }[],
 ) =>
   memories
     .map(
       (memory, index) =>
-        `${index + 1}. [${memory.type}] ${memory.content} (${memory.createdAt.slice(0, 10)})`,
+        `${index + 1}. [${
+          memory.source === "memory"
+            ? memory.type ?? "memory"
+            : "capture"
+        }] ${memory.content} (${memory.createdAt.slice(0, 10)})`,
     )
     .join("\n");
 
@@ -184,7 +189,7 @@ export default function Index() {
       try {
         const memoryContext =
           configRef.current.runtimeMode === "local"
-            ? buildMemoryContext(await findRelevantMemories(db, request.prompt))
+            ? buildMemoryContext(await findRelevantKnowledge(db, request.prompt))
             : undefined;
 
         const result = await sendChatRequest({
@@ -338,11 +343,19 @@ export default function Index() {
     messageId: string,
     candidateId: string,
     status: MemoryCandidateStatus,
+    nextContent?: string,
   ) => {
     replaceMessage(messageId, (message) => ({
       ...message,
       candidates: message.candidates?.map((candidate) =>
-        candidate.id === candidateId ? { ...candidate, status } : candidate,
+        candidate.id === candidateId
+          ? {
+              ...candidate,
+              status,
+              content: nextContent ?? candidate.content,
+              editedContent: nextContent ?? candidate.editedContent ?? candidate.content,
+            }
+          : candidate,
       ),
     }));
   };

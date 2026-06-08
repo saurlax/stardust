@@ -7,10 +7,12 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
+import { Textarea } from "@/components/ui/textarea";
 import type {
   ChatMessage,
   MemoryCandidateStatus,
@@ -27,6 +29,7 @@ type ChatMessagesProps = {
     messageId: string,
     candidateId: string,
     status: MemoryCandidateStatus,
+    nextContent?: string,
   ) => void;
 };
 
@@ -54,6 +57,9 @@ function CandidateActions({
   candidate: MessageMemoryCandidate;
   onUpdateCandidateStatus: ChatMessagesProps["onUpdateCandidateStatus"];
 }) {
+  const [draft, setDraft] = useState(candidate.editedContent ?? candidate.content);
+  const [editing, setEditing] = useState(false);
+
   if (candidate.status === "accepted") {
     return (
       <Text className="text-xs font-semibold text-green-600">
@@ -70,6 +76,45 @@ function CandidateActions({
     );
   }
 
+  if (editing) {
+    return (
+      <View className="gap-2">
+        <Textarea
+          value={draft}
+          onChangeText={setDraft}
+          className="min-h-20 rounded-md bg-background"
+          numberOfLines={3}
+        />
+        <View className="flex-row gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onPress={() => {
+              setDraft(candidate.editedContent ?? candidate.content);
+              setEditing(false);
+            }}
+          >
+            <Text>{t("chat.candidateCancel")}</Text>
+          </Button>
+          <Button
+            size="sm"
+            onPress={() => {
+              onUpdateCandidateStatus(
+                messageId,
+                candidate.id,
+                "accepted",
+                draft.trim() || candidate.content,
+              );
+              setEditing(false);
+            }}
+          >
+            <Text>{t("chat.candidateSaveEdit")}</Text>
+          </Button>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View className="flex-row gap-2">
       <Button
@@ -80,8 +125,22 @@ function CandidateActions({
         <Text>{t("chat.candidateDismiss")}</Text>
       </Button>
       <Button
+        variant="outline"
         size="sm"
-        onPress={() => onUpdateCandidateStatus(messageId, candidate.id, "accepted")}
+        onPress={() => setEditing(true)}
+      >
+        <Text>{t("chat.candidateEdit")}</Text>
+      </Button>
+      <Button
+        size="sm"
+        onPress={() =>
+          onUpdateCandidateStatus(
+            messageId,
+            candidate.id,
+            "accepted",
+            candidate.editedContent ?? candidate.content,
+          )
+        }
       >
         <Text>{t("chat.candidateAccept")}</Text>
       </Button>
