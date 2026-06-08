@@ -1,14 +1,8 @@
 import { fetch as expoFetch } from "expo/fetch";
 
+import type { ChatMessage, MessageToolCard, ToolCardType } from "@/lib/chat/types";
 import type { AiConfig } from "@/lib/config";
-import type { ChatMessage } from "@/lib/chat/types";
 import { resolveApiBaseUrl } from "@/lib/api";
-
-export type MemoryCandidate = {
-  id: string;
-  type: string;
-  content: string;
-};
 
 type SendChatRequestOptions = {
   chatId?: string | null;
@@ -25,7 +19,7 @@ type SendChatRequestOptions = {
 type SendChatRequestResult = {
   chatId?: string;
   content: string;
-  candidates: MemoryCandidate[];
+  toolCards: MessageToolCard[];
 };
 
 type OpenAIMessage =
@@ -38,25 +32,79 @@ type OpenAIMessage =
             | { type: "text"; text: string }
             | { type: "image_url"; image_url: { url: string } }
           >;
+    }
+  | {
+      role: "tool";
+      tool_call_id: string;
+      content: string;
     };
 
-const SYSTEM_PROMPT = `You are Stardust, the user's personal AI companion.
-Your job is to reply naturally while quietly noticing details worth remembering long term.
-If you identify a durable preference, memory, task, or opinion, append a hidden JSON block at the end of your reply using exactly this format:
+type ToolCardDefinition = {
+  id: string;
+  type: ToolCardType;
+  title: string;
+  payload: {
+    content: string;
+    memoryType?: string;
+  };
+};
 
-<!--CANDIDATES
-[{"id":"<id>","type":"preference|memory|task|opinion","content":"<short summary>"}]
-CANDIDATES-->
+const SYSTEM_PROMPT = `You are Stardust, the user's local-first AI companion.
+Reply naturally, but use tools when you detect information that should be saved.
 
-Do not mention the block in the visible reply. Omit it completely when nothing should be captured.`;
+Available tools:
+1. save_memory
+   Use when the user reveals a durable preference, memory, opinion, or task worth keeping long term.
+2. append_journal
+   Use when the user shares a meaningful recent activity, moment, or observation that should be kept as a lightweight journal log.
+
+Rules:
+- Keep your visible reply natural and concise.
+- If something should be saved, emit the appropriate tool call.
+- Tool payload content must be short, specific, and user-facing.
+- Do not ask the user to repeat the same information just to save it.`;
 
 const buildSystemPrompt = (memoryContext?: string) =>
   memoryContext?.trim()
-    ? `${SYSTEM_PROMPT}\n\nRelevant long-term memories about the user:\n${memoryContext.trim()}`
+    ? `${SYSTEM_PROMPT}\n\nRelevant saved context:\n${memoryContext.trim()}`
     : SYSTEM_PROMPT;
 
-const CANDIDATES_BLOCK_PATTERN =
-  /<!--CANDIDATES\s*([\s\S]*?)\s*CANDIDATES-->/;
+const toolDefinitions = [
+  {
+    type: "function",
+    function: {
+      name: "save_memory",
+      description: "Propose saving durable long-term user memory.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          content: { type: "string" },
+          memoryType: {
+            type: "string",
+            enum: ["preference", "memory", "task", "opinion"],
+          },
+        },
+        required: ["title", "content", "memoryType"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "append_journal",
+      description: "Propose adding a lightweight journal entry about what the user did or noticed.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          content: { type: "string" },
+        },
+        required: ["title", "content"],
+      },
+    },
+  },
+] as const;
 
 const toBase64 = (bytes: Uint8Array) => {
   const chars =
@@ -88,30 +136,6 @@ const fileUriToDataUrl = async (uri: string, mimeType: string) => {
   return `data:${mimeType};base64,${toBase64(bytes)}`;
 };
 
-const extractCandidatesFromText = (text: string): MemoryCandidate[] => {
-  const match = text.match(CANDIDATES_BLOCK_PATTERN);
-  if (!match?.[1]) return [];
-
-  try {
-    const parsed = JSON.parse(match[1]) as MemoryCandidate[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-export const normalizeAssistantOutput = (
-  text: string,
-  candidates?: MemoryCandidate[],
-) => {
-  const parsedCandidates = candidates?.length ? candidates : extractCandidatesFromText(text);
-  const content = text.replace(CANDIDATES_BLOCK_PATTERN, "").trim();
-  return {
-    content,
-    candidates: parsedCandidates,
-  };
-};
-
 const toOpenAIMessages = async (
   messages: ChatMessage[],
   memoryContext?: string,
@@ -122,18 +146,31 @@ const toOpenAIMessages = async (
 
   for (const message of messages) {
     if (message.status === "error" || message.status === "pending") continue;
-    if (!message.content && !message.imageUri) continue;
 
     if (message.role === "assistant") {
-      result.push({ role: "assistant", content: message.content });
+      if (message.content) {
+        result.push({ role: "assistant", content: message.content });
+      }
+
+      for (const card of message.toolCards ?? []) {
+        if (card.status !== "accepted") continue;
+
+        result.push({
+          role: "tool",
+          tool_call_id: card.id,
+          content: JSON.stringify({
+            status: card.status,
+            type: card.type,
+            payload: card.payload,
+          }),
+        });
+      }
+
       continue;
     }
 
     if (message.imageUri && message.imageMimeType) {
-      const imageUrl = await fileUriToDataUrl(
-        message.imageUri,
-        message.imageMimeType,
-      );
+      const imageUrl = await fileUriToDataUrl(message.imageUri, message.imageMimeType);
       result.push({
         role: "user",
         content: [
@@ -144,11 +181,25 @@ const toOpenAIMessages = async (
       continue;
     }
 
-    result.push({ role: "user", content: message.content });
+    if (message.content) {
+      result.push({ role: "user", content: message.content });
+    }
   }
 
   return result;
 };
+
+const normalizeToolCards = (cards: ToolCardDefinition[]): MessageToolCard[] =>
+  cards.map((card) => ({
+    id: card.id,
+    type: card.type,
+    title: card.title,
+    payload: {
+      content: card.payload.content,
+      memoryType: card.payload.memoryType,
+    },
+    status: "pending",
+  }));
 
 const parseSSEStream = async (
   response: Response,
@@ -182,7 +233,7 @@ const parseSSEStream = async (
         try {
           onEvent(JSON.parse(dataLine) as Record<string, unknown>);
         } catch {
-          // Ignore malformed chunks and keep the stream alive.
+          // Ignore malformed chunks.
         }
       }
     }
@@ -217,7 +268,6 @@ const sendCloudChatRequest = async ({
 
   let nextChatId = chatId ?? undefined;
   let content = "";
-  let candidates: MemoryCandidate[] = [];
   let streamError: string | null = null;
 
   await parseSSEStream(response, (event) => {
@@ -234,11 +284,6 @@ const sendCloudChatRequest = async ({
       return;
     }
 
-    if (eventType === "data-memoryCandidate" && Array.isArray(event.data)) {
-      candidates = event.data as MemoryCandidate[];
-      return;
-    }
-
     if (eventType === "error" && typeof event.errorText === "string") {
       streamError = event.errorText;
     }
@@ -248,11 +293,10 @@ const sendCloudChatRequest = async ({
     throw new Error(streamError);
   }
 
-  const normalized = normalizeAssistantOutput(content, candidates);
   return {
     chatId: nextChatId,
-    content: normalized.content,
-    candidates: normalized.candidates,
+    content: content.trim(),
+    toolCards: [],
   };
 };
 
@@ -265,17 +309,20 @@ const sendLocalChatRequest = async ({
   imageMimeType,
   onTextDelta,
 }: SendChatRequestOptions): Promise<SendChatRequestResult> => {
-  const openAiMessages = await toOpenAIMessages([
-    ...messages,
-    {
-      id: `pending-${Date.now()}`,
-      role: "user",
-      content: prompt,
-      status: "done",
-      imageUri,
-      imageMimeType,
-    },
-  ], memoryContext);
+  const openAiMessages = await toOpenAIMessages(
+    [
+      ...messages,
+      {
+        id: `pending-${Date.now()}`,
+        role: "user",
+        content: prompt,
+        status: "done",
+        imageUri,
+        imageMimeType,
+      },
+    ],
+    memoryContext,
+  );
 
   const response = await expoFetch(
     `${resolveApiBaseUrl(config.local.baseURL)}/chat/completions`,
@@ -288,6 +335,8 @@ const sendLocalChatRequest = async ({
       body: JSON.stringify({
         model: config.local.model,
         stream: true,
+        tool_choice: "auto",
+        tools: toolDefinitions,
         messages: openAiMessages,
       }),
     },
@@ -305,6 +354,14 @@ const sendLocalChatRequest = async ({
   const decoder = new TextDecoder();
   let buffer = "";
   let content = "";
+  const toolCalls = new Map<
+    number,
+    {
+      id: string;
+      name: ToolCardType;
+      arguments: string;
+    }
+  >();
 
   while (true) {
     const { done, value } = await reader.read();
@@ -320,33 +377,86 @@ const sendLocalChatRequest = async ({
       const rawValue = line.slice(6).trim();
       if (!rawValue || rawValue === "[DONE]") continue;
 
-      try {
-        const chunk = JSON.parse(rawValue) as {
-          choices?: Array<{ delta?: { content?: string } }>;
-          error?: { message?: string };
+      const chunk = JSON.parse(rawValue) as {
+        choices?: Array<{
+          delta?: {
+            content?: string;
+            tool_calls?: Array<{
+              index?: number;
+              id?: string;
+              function?: {
+                name?: ToolCardType;
+                arguments?: string;
+              };
+            }>;
+          };
+        }>;
+        error?: { message?: string };
+      };
+
+      if (chunk.error?.message) {
+        throw new Error(chunk.error.message);
+      }
+
+      const delta = chunk.choices?.[0]?.delta;
+      if (!delta) continue;
+
+      if (delta.content) {
+        content += delta.content;
+        onTextDelta(delta.content);
+      }
+
+      for (const toolCall of delta.tool_calls ?? []) {
+        const index = toolCall.index ?? 0;
+        const existing = toolCalls.get(index) ?? {
+          id: toolCall.id ?? `tool-${Date.now()}-${index}`,
+          name: toolCall.function?.name ?? "save_memory",
+          arguments: "",
         };
 
-        if (chunk.error?.message) {
-          throw new Error(chunk.error.message);
+        if (toolCall.id) existing.id = toolCall.id;
+        if (toolCall.function?.name) existing.name = toolCall.function.name;
+        if (toolCall.function?.arguments) {
+          existing.arguments += toolCall.function.arguments;
         }
 
-        const delta = chunk.choices?.[0]?.delta?.content;
-        if (!delta) continue;
-
-        content += delta;
-        onTextDelta(delta);
-      } catch (error) {
-        if (error instanceof Error) {
-          throw error;
-        }
+        toolCalls.set(index, existing);
       }
     }
   }
 
-  const normalized = normalizeAssistantOutput(content);
+  const toolCards = normalizeToolCards(
+    [...toolCalls.values()].flatMap((toolCall) => {
+      try {
+        const args = JSON.parse(toolCall.arguments) as {
+          title?: string;
+          content?: string;
+          memoryType?: string;
+        };
+
+        const cardContent = args.content?.trim();
+        if (!cardContent) return [];
+
+        return [
+          {
+            id: toolCall.id,
+            type: toolCall.name,
+            title: args.title?.trim() || cardContent,
+            payload: {
+              content: cardContent,
+              memoryType: args.memoryType?.trim(),
+            },
+          },
+        ];
+      } catch {
+        return [];
+      }
+    }),
+  );
+
   return {
-    content: normalized.content,
-    candidates: normalized.candidates,
+    content: content.trim(),
+    toolCards,
   };
 };
 

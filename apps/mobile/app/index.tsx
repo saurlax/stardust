@@ -12,12 +12,8 @@ import { ChatPrompt } from "@/components/ChatPrompt";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useConfig } from "@/context/config";
-import type {
-  ChatMessage,
-  MemoryCandidateStatus,
-  MessageMemoryCandidate,
-} from "@/lib/chat/types";
-import { normalizeAssistantOutput, sendChatRequest } from "@/lib/chat/runtime";
+import type { ChatMessage, MemoryCandidateStatus } from "@/lib/chat/types";
+import { sendChatRequest } from "@/lib/chat/runtime";
 import { getConfigValidationError } from "@/lib/config";
 import {
   createSessionId,
@@ -43,25 +39,14 @@ const createGreetingMessage = (): ChatMessage => ({
   status: "done",
 });
 
-const toMessageCandidates = (
-  candidates: { id: string; type: string; content: string }[],
-): MessageMemoryCandidate[] =>
-  candidates.map((candidate) => ({
-    ...candidate,
-    status: "pending",
-    editedContent: candidate.content,
-  }));
-
 const buildMemoryContext = (
-  memories: { source: "memory" | "capture"; type?: string; content: string; createdAt: string }[],
+  memories: { source: "memory" | "journal"; type?: string; content: string; createdAt: string }[],
 ) =>
   memories
     .map(
       (memory, index) =>
         `${index + 1}. [${
-          memory.source === "memory"
-            ? memory.type ?? "memory"
-            : "capture"
+          memory.source === "memory" ? memory.type ?? "memory" : "journal"
         }] ${memory.content} (${memory.createdAt.slice(0, 10)})`,
     )
     .join("\n");
@@ -105,9 +90,7 @@ export default function Index() {
         if (session) {
           sessionIdRef.current = session.sessionId;
           chatIdRef.current = session.remoteChatId ?? null;
-          setMessages(
-            session.messages.length ? session.messages : [createGreetingMessage()],
-          );
+          setMessages(session.messages.length ? session.messages : [createGreetingMessage()]);
         }
       })
       .finally(() => {
@@ -140,9 +123,7 @@ export default function Index() {
   const replaceMessage = useCallback(
     (messageId: string, updater: (message: ChatMessage) => ChatMessage) => {
       setMessages((current) =>
-        current.map((message) =>
-          message.id === messageId ? updater(message) : message,
-        ),
+        current.map((message) => (message.id === messageId ? updater(message) : message)),
       );
     },
     [],
@@ -205,8 +186,7 @@ export default function Index() {
           },
           onTextDelta: (delta) => {
             streamedContent += delta;
-            const normalized = normalizeAssistantOutput(streamedContent);
-            updateAssistantText(assistantId, normalized.content, "streaming");
+            updateAssistantText(assistantId, streamedContent, "streaming");
           },
         });
 
@@ -214,13 +194,12 @@ export default function Index() {
           chatIdRef.current = result.chatId;
         }
 
-        const normalized = normalizeAssistantOutput(result.content, result.candidates);
         replaceMessage(assistantId, (message) => ({
           ...message,
-          content: normalized.content,
+          content: result.content,
           status: "done",
           error: undefined,
-          candidates: toMessageCandidates(normalized.candidates),
+          toolCards: result.toolCards,
         }));
       } catch (error) {
         const message =
@@ -318,6 +297,7 @@ export default function Index() {
             content: "",
             status: "retrying" as const,
             error: undefined,
+            toolCards: undefined,
           }
         : item,
     );
@@ -339,23 +319,25 @@ export default function Index() {
     });
   };
 
-  const updateCandidateStatus = (
+  const updateToolCardStatus = (
     messageId: string,
-    candidateId: string,
+    cardId: string,
     status: MemoryCandidateStatus,
     nextContent?: string,
   ) => {
     replaceMessage(messageId, (message) => ({
       ...message,
-      candidates: message.candidates?.map((candidate) =>
-        candidate.id === candidateId
+      toolCards: message.toolCards?.map((card) =>
+        card.id === cardId
           ? {
-              ...candidate,
+              ...card,
               status,
-              content: nextContent ?? candidate.content,
-              editedContent: nextContent ?? candidate.editedContent ?? candidate.content,
+              payload: {
+                ...card.payload,
+                content: nextContent ?? card.payload.content,
+              },
             }
-          : candidate,
+          : card,
       ),
     }));
   };
@@ -408,9 +390,7 @@ export default function Index() {
     if (handledShareRef.current === signature) return;
     handledShareRef.current = signature;
 
-    const sharedImage = shareIntent.files?.find((file) =>
-      file.mimeType.startsWith("image/"),
-    );
+    const sharedImage = shareIntent.files?.find((file) => file.mimeType.startsWith("image/"));
     if (sharedImage?.path) {
       setSelectedImageUri(sharedImage.path);
       setSelectedImageMimeType(sharedImage.mimeType || "image/jpeg");
@@ -429,9 +409,7 @@ export default function Index() {
           headerTitleAlign: "center",
           headerTitle: () => (
             <View className="items-center justify-center">
-              <Text className="text-center text-[22px] font-bold">
-                {t("chat.title")}
-              </Text>
+              <Text className="text-center text-[22px] font-bold">{t("chat.title")}</Text>
               <Text className="mt-0.5 text-center text-xs text-muted-foreground">
                 {ready ? t("chat.providerReady") : t("chat.providerLoading")}
               </Text>
@@ -475,7 +453,7 @@ export default function Index() {
           messages={messages}
           sending={sending}
           onRetryMessage={retryMessage}
-          onUpdateCandidateStatus={updateCandidateStatus}
+          onUpdateCandidateStatus={updateToolCardStatus}
         />
 
         <ChatPrompt

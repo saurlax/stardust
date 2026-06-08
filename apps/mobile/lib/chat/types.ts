@@ -8,13 +8,20 @@ export type MessageStatus =
 
 export type MemoryCandidateStatus = "pending" | "accepted" | "dismissed";
 
-export type MessageMemoryCandidate = {
-  id: string;
-  type: string;
+export type ToolCardType = "save_memory" | "append_journal";
+
+export type ToolCardPayload = {
   content: string;
+  memoryType?: string;
+};
+
+export type MessageToolCard = {
+  id: string;
+  type: ToolCardType;
   status: MemoryCandidateStatus;
+  title: string;
+  payload: ToolCardPayload;
   createdAt?: string;
-  editedContent?: string;
 };
 
 export type ChatMessage = {
@@ -31,5 +38,5 @@ export type ChatMessage = {
     imageUri?: string;
     imageMimeType?: string;
   };
-  candidates?: MessageMemoryCandidate[];
+  toolCards?: MessageToolCard[];
 };

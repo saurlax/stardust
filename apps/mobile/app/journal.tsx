@@ -12,18 +12,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatMonthDay, formatTime, t } from "@/lib/i18n";
 import {
   findRelevantKnowledge,
-  listCaptures,
   listJournalDays,
-  type CaptureRecord,
+  listJournalRecords,
   type JournalDay,
-  updateCaptureContent,
+  type JournalRecord,
+  updateJournalContent,
 } from "@/lib/db";
 
-function CaptureManager({
-  captures,
+function JournalManager({
+  journals,
   onRefresh,
 }: {
-  captures: CaptureRecord[];
+  journals: JournalRecord[];
   onRefresh: () => void;
 }) {
   const db = useSQLiteContext();
@@ -36,13 +36,13 @@ function CaptureManager({
         <Text className="text-lg font-semibold">{t("journal.capturesTitle")}</Text>
       </View>
 
-      {captures.map((capture) => {
-        const isEditing = editingId === capture.id;
+      {journals.map((journal) => {
+        const isEditing = editingId === journal.id;
         return (
-          <Card key={capture.id} className="gap-3 py-4">
+          <Card key={journal.id} className="gap-3 py-4">
             <CardHeader className="gap-1">
               <CardDescription>
-                {formatMonthDay(new Date(capture.createdAt))} · {formatTime(new Date(capture.createdAt))}
+                {formatMonthDay(new Date(journal.createdAt))} · {formatTime(new Date(journal.createdAt))}
               </CardDescription>
               {isEditing ? (
                 <Textarea
@@ -52,7 +52,7 @@ function CaptureManager({
                   numberOfLines={3}
                 />
               ) : (
-                <CardTitle className="text-sm leading-5">{capture.content}</CardTitle>
+                <CardTitle className="text-sm leading-5">{journal.content}</CardTitle>
               )}
             </CardHeader>
             <CardContent className="flex-row gap-2">
@@ -71,7 +71,7 @@ function CaptureManager({
                   <Button
                     size="sm"
                     onPress={() => {
-                      void updateCaptureContent(db, capture.id, draft).then(() => {
+                      void updateJournalContent(db, journal.id, draft).then(() => {
                         setEditingId(null);
                         setDraft("");
                         onRefresh();
@@ -86,8 +86,8 @@ function CaptureManager({
                   variant="outline"
                   size="sm"
                   onPress={() => {
-                    setEditingId(capture.id);
-                    setDraft(capture.content);
+                    setEditingId(journal.id);
+                    setDraft(journal.content);
                   }}
                 >
                   <Text>{t("journal.edit")}</Text>
@@ -104,12 +104,12 @@ function CaptureManager({
 export default function JournalScreen() {
   const db = useSQLiteContext();
   const [days, setDays] = useState<JournalDay[]>([]);
-  const [captures, setCaptures] = useState<CaptureRecord[]>([]);
+  const [journals, setJournals] = useState<JournalRecord[]>([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<
     {
       id: string;
-      source: "memory" | "capture";
+      source: "memory" | "journal";
       type?: string;
       content: string;
       createdAt: string;
@@ -120,16 +120,16 @@ export default function JournalScreen() {
   const refresh = useCallback(() => {
     let active = true;
 
-    Promise.all([listJournalDays(db), listCaptures(db)])
-      .then(([nextDays, nextCaptures]) => {
+    Promise.all([listJournalDays(db), listJournalRecords(db)])
+      .then(([nextDays, nextJournals]) => {
         if (!active) return;
         setDays(nextDays);
-        setCaptures(nextCaptures);
+        setJournals(nextJournals);
       })
       .catch(() => {
         if (!active) return;
         setDays([]);
-        setCaptures([]);
+        setJournals([]);
       });
 
     return () => {
@@ -196,7 +196,9 @@ export default function JournalScreen() {
               <Card key={result.id} className="gap-2 py-4">
                 <CardContent className="gap-1">
                   <CardDescription>
-                    {result.source === "memory" ? t("journal.memoryEntryPrefix") : t("journal.capturesTitle")}
+                    {result.source === "memory"
+                      ? t("journal.memoryEntryPrefix")
+                      : t("journal.journalsTitle")}
                     {result.type ? ` · ${result.type}` : ""}
                   </CardDescription>
                   <Text className="text-sm leading-5">{result.content}</Text>
@@ -206,7 +208,7 @@ export default function JournalScreen() {
           </CardContent>
         </Card>
 
-        <CaptureManager captures={captures} onRefresh={refresh} />
+        <JournalManager journals={journals} onRefresh={refresh} />
 
         {!days.length ? (
           <Card className="min-h-24 items-center justify-center px-4">
@@ -219,9 +221,7 @@ export default function JournalScreen() {
 
           return (
             <View key={day.date.toISOString()} className="relative">
-              <Text className="mb-2 ml-0.5 text-xs font-semibold">
-                {formatMonthDay(day.date)}
-              </Text>
+              <Text className="mb-2 ml-0.5 text-xs font-semibold">{formatMonthDay(day.date)}</Text>
 
               <View
                 className="absolute left-1.5 top-6 border-l border-dashed border-border"

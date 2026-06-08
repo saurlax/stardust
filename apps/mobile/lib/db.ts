@@ -1,9 +1,10 @@
 import type { SQLiteDatabase } from "expo-sqlite";
+
 import type { NebulaTree } from "@/components/NebulaView";
-import type { ChatMessage, MessageMemoryCandidate } from "@/lib/chat/types";
+import type { ChatMessage, MessageToolCard } from "@/lib/chat/types";
 
 export const DATABASE_NAME = "stardust.db";
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 
 type ChatSessionRow = {
   session_id: string;
@@ -21,15 +22,7 @@ type ChatMessageRow = {
   request_prompt: string | null;
   request_image_uri: string | null;
   request_image_mime_type: string | null;
-  created_at: string;
-};
-
-type CandidateRow = {
-  message_id: string;
-  candidate_id: string;
-  type: string;
-  content: string;
-  status: MessageMemoryCandidate["status"];
+  tool_cards_json: string | null;
   created_at: string;
 };
 
@@ -39,24 +32,33 @@ export type StoredMemory = {
   messageId: string;
   type: string;
   content: string;
-  status: MessageMemoryCandidate["status"];
   createdAt: string;
   updatedAt?: string;
-  sourceCaptureId?: string | null;
+  candidateId?: string;
 };
 
 export type PersonalSnapshot = {
   acceptedMemories: number;
-  pendingCandidates: number;
-  userMessages: number;
+  pendingCards: number;
+  journalEntries: number;
   recentMemory?: StoredMemory;
+};
+
+export type JournalRecord = {
+  id: string;
+  sessionId: string;
+  messageId: string;
+  content: string;
+  kind: string;
+  createdAt: string;
+  updatedAt?: string;
 };
 
 export type JournalEntry = {
   id: string;
   timestamp: string;
   note: string;
-  source: "capture" | "memory";
+  source: "journal" | "memory";
 };
 
 export type JournalDay = {
@@ -64,18 +66,9 @@ export type JournalDay = {
   entries: JournalEntry[];
 };
 
-export type CaptureRecord = {
-  id: string;
-  sessionId: string;
-  messageId: string;
-  content: string;
-  createdAt: string;
-  updatedAt?: string;
-};
-
 export type RelevantKnowledge = {
   id: string;
-  source: "memory" | "capture";
+  source: "memory" | "journal";
   type?: string;
   content: string;
   createdAt: string;
@@ -83,239 +76,255 @@ export type RelevantKnowledge = {
 };
 
 const typeOrder = ["preference", "memory", "task", "opinion"];
+
 const tokenize = (value: string) =>
   value
     .toLowerCase()
     .split(/[^a-z0-9\u4e00-\u9fff]+/i)
     .filter((token) => token.length >= 2);
 
+const parseToolCards = (value?: string | null): MessageToolCard[] | undefined => {
+  if (!value) return undefined;
+
+  try {
+    const parsed = JSON.parse(value) as MessageToolCard[];
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const serializeToolCards = (value?: MessageToolCard[]) =>
+  value?.length ? JSON.stringify(value) : null;
+
+const toolCardTitle = (type: string, content: string) => {
+  switch (type) {
+    case "save_memory":
+      return "Save memory";
+    case "append_journal":
+      return "Add journal entry";
+    default:
+      return content.length > 24 ? `${content.slice(0, 24)}...` : content;
+  }
+};
+
+const toToolCardsFromLegacyCandidates = (
+  rows: Array<{
+    candidate_id: string;
+    type: string;
+    content: string;
+    status: "pending" | "accepted" | "dismissed";
+    created_at: string;
+  }>,
+): MessageToolCard[] =>
+  rows.map((row) => ({
+    id: row.candidate_id,
+    type: "save_memory",
+    status: row.status,
+    title: toolCardTitle("save_memory", row.content),
+    payload: {
+      content: row.content,
+      memoryType: row.type,
+    },
+    createdAt: row.created_at,
+  }));
+
+async function ensureToolCardsColumn(db: SQLiteDatabase) {
+  const columns = await db.getAllAsync<{ name: string }>("PRAGMA table_info(chat_messages)");
+  if (!columns.some((column) => column.name === "tool_cards_json")) {
+    await db.execAsync(`
+      ALTER TABLE chat_messages
+      ADD COLUMN tool_cards_json TEXT
+    `);
+  }
+}
+
+async function createCurrentTables(db: SQLiteDatabase) {
+  await db.execAsync(`
+    PRAGMA foreign_keys = ON;
+    PRAGMA journal_mode = 'wal';
+
+    CREATE TABLE IF NOT EXISTS chat_sessions (
+      session_id TEXT PRIMARY KEY NOT NULL,
+      remote_chat_id TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      session_id TEXT NOT NULL,
+      message_id TEXT PRIMARY KEY NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      status TEXT NOT NULL,
+      image_uri TEXT,
+      image_mime_type TEXT,
+      error_text TEXT,
+      request_prompt TEXT,
+      request_image_uri TEXT,
+      request_image_mime_type TEXT,
+      tool_cards_json TEXT,
+      sequence_index INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS journals (
+      journal_id TEXT PRIMARY KEY NOT NULL,
+      session_id TEXT NOT NULL,
+      message_id TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE,
+      FOREIGN KEY (message_id) REFERENCES chat_messages(message_id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS memories (
+      memory_id TEXT PRIMARY KEY NOT NULL,
+      session_id TEXT NOT NULL,
+      message_id TEXT NOT NULL,
+      candidate_id TEXT,
+      type TEXT NOT NULL,
+      content TEXT NOT NULL,
+      source_capture_id TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE,
+      FOREIGN KEY (message_id) REFERENCES chat_messages(message_id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chat_sessions_updated_at
+    ON chat_sessions(updated_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_session_sequence
+    ON chat_messages(session_id, sequence_index);
+
+    CREATE INDEX IF NOT EXISTS idx_journals_created_at
+    ON journals(created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_memories_created_at
+    ON memories(created_at DESC);
+
+    CREATE VIRTUAL TABLE IF NOT EXISTS journals_fts USING fts5(
+      journal_id UNINDEXED,
+      content
+    );
+
+    CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
+      memory_id UNINDEXED,
+      type,
+      content
+    );
+  `);
+}
+
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
-  const versionRow = await db.getFirstAsync<{ user_version: number }>(
-    "PRAGMA user_version",
-  );
+  const versionRow = await db.getFirstAsync<{ user_version: number }>("PRAGMA user_version");
   let currentVersion = versionRow?.user_version ?? 0;
+
+  if (currentVersion === 0) {
+    await createCurrentTables(db);
+    await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
+    return;
+  }
 
   if (currentVersion >= DATABASE_VERSION) {
     return;
   }
 
-  if (currentVersion === 0) {
-    await db.execAsync(`
-      PRAGMA foreign_keys = ON;
-      PRAGMA journal_mode = 'wal';
+  await createCurrentTables(db);
+  await ensureToolCardsColumn(db);
 
-      CREATE TABLE IF NOT EXISTS chat_sessions (
-        session_id TEXT PRIMARY KEY NOT NULL,
-        remote_chat_id TEXT,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS chat_messages (
-        session_id TEXT NOT NULL,
-        message_id TEXT PRIMARY KEY NOT NULL,
-        role TEXT NOT NULL,
-        content TEXT NOT NULL,
-        status TEXT NOT NULL,
-        image_uri TEXT,
-        image_mime_type TEXT,
-        error_text TEXT,
-        request_prompt TEXT,
-        request_image_uri TEXT,
-        request_image_mime_type TEXT,
-        sequence_index INTEGER NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS memory_candidates (
-        session_id TEXT NOT NULL,
-        message_id TEXT NOT NULL,
-        candidate_id TEXT NOT NULL,
-        type TEXT NOT NULL,
-        content TEXT NOT NULL,
-        status TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (message_id, candidate_id),
-        FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE,
-        FOREIGN KEY (message_id) REFERENCES chat_messages(message_id) ON DELETE CASCADE
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_chat_sessions_updated_at
-      ON chat_sessions(updated_at DESC);
-
-      CREATE INDEX IF NOT EXISTS idx_chat_messages_session_sequence
-      ON chat_messages(session_id, sequence_index);
-
-      CREATE INDEX IF NOT EXISTS idx_memory_candidates_status_created_at
-      ON memory_candidates(status, created_at DESC);
-    `);
-
-    currentVersion = 1;
-  }
-
-  if (currentVersion === 1) {
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS captures (
-        capture_id TEXT PRIMARY KEY NOT NULL,
-        session_id TEXT NOT NULL,
-        message_id TEXT NOT NULL UNIQUE,
-        content TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE,
-        FOREIGN KEY (message_id) REFERENCES chat_messages(message_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS memories (
-        memory_id TEXT PRIMARY KEY NOT NULL,
-        session_id TEXT NOT NULL,
-        message_id TEXT NOT NULL,
-        candidate_id TEXT NOT NULL,
-        type TEXT NOT NULL,
-        content TEXT NOT NULL,
-        source_capture_id TEXT,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE,
-        FOREIGN KEY (message_id) REFERENCES chat_messages(message_id) ON DELETE CASCADE,
-        FOREIGN KEY (source_capture_id) REFERENCES captures(capture_id) ON DELETE SET NULL
-      );
-
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_memories_candidate_id
-      ON memories(candidate_id);
-
-      CREATE INDEX IF NOT EXISTS idx_captures_created_at
-      ON captures(created_at DESC);
-
-      CREATE INDEX IF NOT EXISTS idx_memories_created_at
-      ON memories(created_at DESC);
-    `);
-
-    const userMessages = await db.getAllAsync<{
-      session_id: string;
-      message_id: string;
-      content: string;
-      created_at: string;
-    }>(`
-      SELECT session_id, message_id, content, created_at
-      FROM chat_messages
-      WHERE role = 'user' AND content <> ''
-    `);
-
-    for (const row of userMessages) {
-      await db.runAsync(
-        `
-          INSERT OR IGNORE INTO captures (
-            capture_id,
-            session_id,
-            message_id,
-            content,
-            created_at,
-            updated_at
-          )
-          VALUES (?, ?, ?, ?, ?, ?)
-        `,
-        `capture-${row.message_id}`,
-        row.session_id,
-        row.message_id,
-        row.content,
-        row.created_at,
-        row.created_at,
-      );
-    }
-
-    const acceptedCandidates = await db.getAllAsync<{
-      session_id: string;
+  if (currentVersion < 4) {
+    const legacyCandidateRows = await db.getAllAsync<{
       message_id: string;
       candidate_id: string;
       type: string;
       content: string;
+      status: "pending" | "accepted" | "dismissed";
       created_at: string;
     }>(`
-      SELECT session_id, message_id, candidate_id, type, content, created_at
+      SELECT message_id, candidate_id, type, content, status, created_at
       FROM memory_candidates
-      WHERE status = 'accepted'
-    `);
+      ORDER BY created_at ASC
+    `).catch(() => []);
 
-    for (const row of acceptedCandidates) {
-      const capture = await db.getFirstAsync<{ capture_id: string }>(
-        `
-          SELECT capture_id
-          FROM captures
-          WHERE session_id = ?
-          ORDER BY created_at DESC
-          LIMIT 1
-        `,
-        row.session_id,
-      );
+    const byMessage = new Map<string, typeof legacyCandidateRows>();
+    for (const row of legacyCandidateRows) {
+      const list = byMessage.get(row.message_id) ?? [];
+      list.push(row);
+      byMessage.set(row.message_id, list);
+    }
 
+    for (const [messageId, rows] of byMessage.entries()) {
       await db.runAsync(
         `
-          INSERT OR IGNORE INTO memories (
-            memory_id,
+          UPDATE chat_messages
+          SET tool_cards_json = ?
+          WHERE message_id = ? AND (tool_cards_json IS NULL OR tool_cards_json = '')
+        `,
+        JSON.stringify(toToolCardsFromLegacyCandidates(rows)),
+        messageId,
+      );
+    }
+
+    const legacyCaptures = await db.getAllAsync<{
+      capture_id: string;
+      session_id: string;
+      message_id: string;
+      content: string;
+      created_at: string;
+      updated_at: string;
+    }>(`
+      SELECT capture_id, session_id, message_id, content, created_at, updated_at
+      FROM captures
+    `).catch(() => []);
+
+    for (const capture of legacyCaptures) {
+      await db.runAsync(
+        `
+          INSERT OR IGNORE INTO journals (
+            journal_id,
             session_id,
             message_id,
-            candidate_id,
-            type,
+            kind,
             content,
-            source_capture_id,
             created_at,
             updated_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
         `,
-        `memory-${row.candidate_id}`,
-        row.session_id,
-        row.message_id,
-        row.candidate_id,
-        row.type,
-        row.content,
-        capture?.capture_id ?? null,
-        row.created_at,
-        row.created_at,
+        `journal-${capture.capture_id}`,
+        capture.session_id,
+        capture.message_id,
+        "capture",
+        capture.content,
+        capture.created_at,
+        capture.updated_at,
       );
     }
 
-    currentVersion = 2;
-  }
-
-  if (currentVersion === 2) {
-    await db.execAsync(`
-      CREATE VIRTUAL TABLE IF NOT EXISTS captures_fts USING fts5(
-        capture_id UNINDEXED,
-        content
-      );
-
-      CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
-        memory_id UNINDEXED,
-        type,
-        content
-      );
+    await db.runAsync("DELETE FROM journals_fts");
+    const journals = await db.getAllAsync<{ journal_id: string; content: string }>(`
+      SELECT journal_id, content
+      FROM journals
     `);
 
-    const captures = await db.getAllAsync<{
-      capture_id: string;
-      content: string;
-    }>(`
-      SELECT capture_id, content
-      FROM captures
-    `);
-
-    await db.runAsync("DELETE FROM captures_fts");
-    for (const capture of captures) {
+    for (const journal of journals) {
       await db.runAsync(
         `
-          INSERT INTO captures_fts (capture_id, content)
+          INSERT INTO journals_fts (journal_id, content)
           VALUES (?, ?)
         `,
-        capture.capture_id,
-        capture.content,
+        journal.journal_id,
+        journal.content,
       );
     }
 
+    await db.runAsync("DELETE FROM memories_fts");
     const memories = await db.getAllAsync<{
       memory_id: string;
       type: string;
@@ -325,7 +334,6 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       FROM memories
     `);
 
-    await db.runAsync("DELETE FROM memories_fts");
     for (const memory of memories) {
       await db.runAsync(
         `
@@ -338,7 +346,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       );
     }
 
-    currentVersion = 3;
+    currentVersion = 4;
   }
 
   await db.execAsync("PRAGMA foreign_keys = ON");
@@ -360,7 +368,7 @@ export async function loadLatestChatSession(db: SQLiteDatabase) {
     return null;
   }
 
-  const messageRows = await db.getAllAsync<ChatMessageRow>(
+  const rows = await db.getAllAsync<ChatMessageRow>(
     `
       SELECT
         message_id,
@@ -373,6 +381,7 @@ export async function loadLatestChatSession(db: SQLiteDatabase) {
         request_prompt,
         request_image_uri,
         request_image_mime_type,
+        tool_cards_json,
         created_at
       FROM chat_messages
       WHERE session_id = ?
@@ -381,30 +390,7 @@ export async function loadLatestChatSession(db: SQLiteDatabase) {
     session.session_id,
   );
 
-  const candidateRows = await db.getAllAsync<CandidateRow>(
-    `
-      SELECT message_id, candidate_id, type, content, status, created_at
-      FROM memory_candidates
-      WHERE session_id = ?
-      ORDER BY created_at ASC
-    `,
-    session.session_id,
-  );
-
-  const candidatesByMessage = new Map<string, MessageMemoryCandidate[]>();
-  for (const candidate of candidateRows) {
-    const existing = candidatesByMessage.get(candidate.message_id) ?? [];
-    existing.push({
-      id: candidate.candidate_id,
-      type: candidate.type,
-      content: candidate.content,
-      status: candidate.status,
-      createdAt: candidate.created_at,
-    });
-    candidatesByMessage.set(candidate.message_id, existing);
-  }
-
-  const messages: ChatMessage[] = messageRows.map((row) => ({
+  const messages: ChatMessage[] = rows.map((row) => ({
     id: row.message_id,
     role: row.role,
     content: row.content,
@@ -420,7 +406,7 @@ export async function loadLatestChatSession(db: SQLiteDatabase) {
           imageMimeType: row.request_image_mime_type ?? undefined,
         }
       : undefined,
-    candidates: candidatesByMessage.get(row.message_id),
+    toolCards: parseToolCards(row.tool_cards_json),
   }));
 
   return {
@@ -457,7 +443,6 @@ export async function saveChatSessionSnapshot(
       remoteChatId ?? null,
     );
 
-    await db.runAsync("DELETE FROM memory_candidates WHERE session_id = ?", sessionId);
     await db.runAsync("DELETE FROM chat_messages WHERE session_id = ?", sessionId);
 
     for (const [index, message] of messages.entries()) {
@@ -475,11 +460,12 @@ export async function saveChatSessionSnapshot(
             request_prompt,
             request_image_uri,
             request_image_mime_type,
+            tool_cards_json,
             sequence_index,
             created_at,
             updated_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         sessionId,
         message.id,
@@ -492,36 +478,11 @@ export async function saveChatSessionSnapshot(
         message.request?.prompt ?? null,
         message.request?.imageUri ?? null,
         message.request?.imageMimeType ?? null,
+        serializeToolCards(message.toolCards),
         index,
         message.createdAt ?? new Date().toISOString(),
         message.createdAt ?? new Date().toISOString(),
       );
-
-      for (const candidate of message.candidates ?? []) {
-        await db.runAsync(
-          `
-            INSERT INTO memory_candidates (
-              session_id,
-              message_id,
-              candidate_id,
-            type,
-            content,
-            status,
-            created_at,
-            updated_at
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          `,
-          sessionId,
-          message.id,
-          candidate.id,
-          candidate.type,
-          candidate.content,
-          candidate.status,
-          candidate.createdAt ?? message.createdAt ?? new Date().toISOString(),
-          candidate.createdAt ?? message.createdAt ?? new Date().toISOString(),
-        );
-      }
     }
 
     await db.execAsync("COMMIT");
@@ -539,11 +500,11 @@ export async function syncDerivedEntitiesForSession(
   await db.execAsync("BEGIN");
 
   try {
-    const [captureIds, memoryIds] = await Promise.all([
-      db.getAllAsync<{ capture_id: string }>(
+    const [journalIds, memoryIds] = await Promise.all([
+      db.getAllAsync<{ journal_id: string }>(
         `
-          SELECT capture_id
-          FROM captures
+          SELECT journal_id
+          FROM journals
           WHERE session_id = ?
         `,
         sessionId,
@@ -558,97 +519,95 @@ export async function syncDerivedEntitiesForSession(
       ),
     ]);
 
-    for (const capture of captureIds) {
-      await db.runAsync(
-        "DELETE FROM captures_fts WHERE capture_id = ?",
-        capture.capture_id,
-      );
+    for (const journal of journalIds) {
+      await db.runAsync("DELETE FROM journals_fts WHERE journal_id = ?", journal.journal_id);
     }
 
     for (const memory of memoryIds) {
-      await db.runAsync(
-        "DELETE FROM memories_fts WHERE memory_id = ?",
-        memory.memory_id,
-      );
+      await db.runAsync("DELETE FROM memories_fts WHERE memory_id = ?", memory.memory_id);
     }
 
-    await db.runAsync("DELETE FROM captures WHERE session_id = ?", sessionId);
+    await db.runAsync("DELETE FROM journals WHERE session_id = ?", sessionId);
     await db.runAsync("DELETE FROM memories WHERE session_id = ?", sessionId);
 
-    let latestCaptureId: string | null = null;
-
     for (const message of messages) {
-      if (message.role === "user" && message.content.trim()) {
-        const captureId = `capture-${message.id}`;
-        latestCaptureId = captureId;
-        await db.runAsync(
-          `
-            INSERT INTO captures (
-              capture_id,
-              session_id,
-              message_id,
-              content,
-              created_at,
-              updated_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-          `,
-          captureId,
-          sessionId,
-          message.id,
-          message.content,
-          message.createdAt ?? new Date().toISOString(),
-          message.createdAt ?? new Date().toISOString(),
-        );
-        await db.runAsync(
-          `
-            INSERT INTO captures_fts (capture_id, content)
-            VALUES (?, ?)
-          `,
-          captureId,
-          message.content,
-        );
-      }
+      for (const card of message.toolCards ?? []) {
+        if (card.status !== "accepted") continue;
 
-      for (const candidate of message.candidates ?? []) {
-        if (candidate.status !== "accepted") {
+        const createdAt = card.createdAt ?? message.createdAt ?? new Date().toISOString();
+        const content = card.payload.content.trim();
+        if (!content) continue;
+
+        if (card.type === "save_memory") {
+          const memoryType = card.payload.memoryType?.trim() || "memory";
+          await db.runAsync(
+            `
+              INSERT INTO memories (
+                memory_id,
+                session_id,
+                message_id,
+                candidate_id,
+                type,
+                content,
+                source_capture_id,
+                created_at,
+                updated_at
+              )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            `memory-${card.id}`,
+            sessionId,
+            message.id,
+            card.id,
+            memoryType,
+            content,
+            null,
+            createdAt,
+            createdAt,
+          );
+          await db.runAsync(
+            `
+              INSERT INTO memories_fts (memory_id, type, content)
+              VALUES (?, ?, ?)
+            `,
+            `memory-${card.id}`,
+            memoryType,
+            content,
+          );
           continue;
         }
 
-        await db.runAsync(
-          `
-            INSERT INTO memories (
-              memory_id,
-              session_id,
-              message_id,
-              candidate_id,
-              type,
-              content,
-              source_capture_id,
-              created_at,
-              updated_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `,
-          `memory-${candidate.id}`,
-          sessionId,
-          message.id,
-          candidate.id,
-          candidate.type,
-          candidate.content,
-          latestCaptureId,
-          candidate.createdAt ?? message.createdAt ?? new Date().toISOString(),
-          candidate.createdAt ?? message.createdAt ?? new Date().toISOString(),
-        );
-        await db.runAsync(
-          `
-            INSERT INTO memories_fts (memory_id, type, content)
-            VALUES (?, ?, ?)
-          `,
-          `memory-${candidate.id}`,
-          candidate.type,
-          candidate.content,
-        );
+        if (card.type === "append_journal") {
+          await db.runAsync(
+            `
+              INSERT INTO journals (
+                journal_id,
+                session_id,
+                message_id,
+                kind,
+                content,
+                created_at,
+                updated_at
+              )
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+            `,
+            `journal-${card.id}`,
+            sessionId,
+            message.id,
+            "assistant_card",
+            content,
+            createdAt,
+            createdAt,
+          );
+          await db.runAsync(
+            `
+              INSERT INTO journals_fts (journal_id, content)
+              VALUES (?, ?)
+            `,
+            `journal-${card.id}`,
+            content,
+          );
+        }
       }
     }
 
@@ -659,35 +618,21 @@ export async function syncDerivedEntitiesForSession(
   }
 }
 
-export async function listStoredMemories(
-  db: SQLiteDatabase,
-): Promise<StoredMemory[]> {
+export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemory[]> {
   const rows = await db.getAllAsync<{
     memory_id: string;
     session_id: string;
     message_id: string;
-    candidate_id: string;
+    candidate_id: string | null;
     type: string;
     content: string;
     created_at: string;
     updated_at: string;
-    source_capture_id: string | null;
-  }>(
-    `
-      SELECT
-        memory_id,
-        session_id,
-        message_id,
-        candidate_id,
-        type,
-        content,
-        created_at,
-        updated_at,
-        source_capture_id
-      FROM memories
-      ORDER BY created_at DESC
-    `,
-  );
+  }>(`
+    SELECT memory_id, session_id, message_id, candidate_id, type, content, created_at, updated_at
+    FROM memories
+    ORDER BY created_at DESC
+  `);
 
   return rows.map((row) => ({
     id: row.memory_id,
@@ -695,10 +640,9 @@ export async function listStoredMemories(
     messageId: row.message_id,
     type: row.type,
     content: row.content,
-    status: "accepted",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    sourceCaptureId: row.source_capture_id,
+    candidateId: row.candidate_id ?? undefined,
   }));
 }
 
@@ -709,19 +653,6 @@ export async function updateStoredMemoryContent(
 ) {
   const trimmed = content.trim();
   if (!trimmed) return;
-
-  const memory = await db.getFirstAsync<{
-    candidate_id: string;
-  }>(
-    `
-      SELECT candidate_id
-      FROM memories
-      WHERE memory_id = ?
-    `,
-    memoryId,
-  );
-
-  if (!memory) return;
 
   const now = new Date().toISOString();
   await db.execAsync("BEGIN");
@@ -738,14 +669,7 @@ export async function updateStoredMemoryContent(
       memoryId,
     );
 
-    await db.runAsync(
-      `
-        DELETE FROM memories_fts
-        WHERE memory_id = ?
-      `,
-      memoryId,
-    );
-
+    await db.runAsync("DELETE FROM memories_fts WHERE memory_id = ?", memoryId);
     await db.runAsync(
       `
         INSERT INTO memories_fts (memory_id, type, content)
@@ -756,17 +680,6 @@ export async function updateStoredMemoryContent(
       memoryId,
     );
 
-    await db.runAsync(
-      `
-        UPDATE memory_candidates
-        SET content = ?, updated_at = ?
-        WHERE candidate_id = ?
-      `,
-      trimmed,
-      now,
-      memory.candidate_id,
-    );
-
     await db.execAsync("COMMIT");
   } catch (error) {
     await db.execAsync("ROLLBACK");
@@ -774,72 +687,17 @@ export async function updateStoredMemoryContent(
   }
 }
 
-export async function dismissStoredMemory(
-  db: SQLiteDatabase,
-  memoryId: string,
-) {
-  const memory = await db.getFirstAsync<{
-    candidate_id: string;
-  }>(
-    `
-      SELECT candidate_id
-      FROM memories
-      WHERE memory_id = ?
-    `,
-    memoryId,
-  );
-
-  if (!memory) return;
-
-  const now = new Date().toISOString();
+export async function dismissStoredMemory(db: SQLiteDatabase, memoryId: string) {
   await db.execAsync("BEGIN");
 
   try {
     await db.runAsync("DELETE FROM memories_fts WHERE memory_id = ?", memoryId);
     await db.runAsync("DELETE FROM memories WHERE memory_id = ?", memoryId);
-    await db.runAsync(
-      `
-        UPDATE memory_candidates
-        SET status = 'dismissed', updated_at = ?
-        WHERE candidate_id = ?
-      `,
-      now,
-      memory.candidate_id,
-    );
     await db.execAsync("COMMIT");
   } catch (error) {
     await db.execAsync("ROLLBACK");
     throw error;
   }
-}
-
-export async function findRelevantMemories(
-  db: SQLiteDatabase,
-  query: string,
-  limit = 5,
-): Promise<StoredMemory[]> {
-  const trimmed = query.trim().toLowerCase();
-  if (!trimmed) {
-    return listStoredMemories(db).then((memories) => memories.slice(0, limit));
-  }
-
-  const accepted = await listStoredMemories(db);
-  const tokens = [...new Set(trimmed.split(/\s+/).filter(Boolean))];
-
-  return accepted
-    .map((memory) => {
-      const haystack = `${memory.type} ${memory.content}`.toLowerCase();
-      const score = tokens.reduce(
-        (total, token) => total + (haystack.includes(token) ? 1 : 0),
-        0,
-      );
-
-      return { memory, score };
-    })
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score || Date.parse(b.memory.createdAt) - Date.parse(a.memory.createdAt))
-    .slice(0, limit)
-    .map((item) => item.memory);
 }
 
 const toFtsQuery = (query: string) =>
@@ -858,7 +716,7 @@ export async function findRelevantKnowledge(
   const ftsQuery = toFtsQuery(query);
   if (!ftsQuery) return [];
 
-  const [memoryMatches, captureMatches] = await Promise.all([
+  const [memoryMatches, journalMatches] = await Promise.all([
     db.getAllAsync<{
       id: string;
       type: string;
@@ -884,19 +742,21 @@ export async function findRelevantKnowledge(
     ),
     db.getAllAsync<{
       id: string;
+      kind: string;
       content: string;
       created_at: string;
       rank: number;
     }>(
       `
         SELECT
-          captures.capture_id AS id,
-          captures.content AS content,
-          captures.created_at AS created_at,
-          bm25(captures_fts) AS rank
-        FROM captures_fts
-        JOIN captures ON captures.capture_id = captures_fts.capture_id
-        WHERE captures_fts MATCH ?
+          journals.journal_id AS id,
+          journals.kind AS kind,
+          journals.content AS content,
+          journals.created_at AS created_at,
+          bm25(journals_fts) AS rank
+        FROM journals_fts
+        JOIN journals ON journals.journal_id = journals_fts.journal_id
+        WHERE journals_fts MATCH ?
         ORDER BY rank
         LIMIT ?
       `,
@@ -905,7 +765,7 @@ export async function findRelevantKnowledge(
     ),
   ]);
 
-  const combined: RelevantKnowledge[] = [
+  return [
     ...memoryMatches.map((item) => ({
       id: item.id,
       source: "memory" as const,
@@ -914,91 +774,78 @@ export async function findRelevantKnowledge(
       createdAt: item.created_at,
       rank: item.rank,
     })),
-    ...captureMatches.map((item) => ({
+    ...journalMatches.map((item) => ({
       id: item.id,
-      source: "capture" as const,
+      source: "journal" as const,
+      type: item.kind,
       content: item.content,
       createdAt: item.created_at,
       rank: item.rank,
     })),
-  ];
-
-  return combined
+  ]
     .sort((a, b) => a.rank - b.rank || Date.parse(b.createdAt) - Date.parse(a.createdAt))
     .slice(0, limit);
 }
 
-export async function getPersonalSnapshot(
-  db: SQLiteDatabase,
-): Promise<PersonalSnapshot> {
-  const [acceptedRow, pendingRow, userMessagesRow, recentMemoryRow] =
-    await Promise.all([
-      db.getFirstAsync<{ count: number }>(
-        "SELECT COUNT(*) AS count FROM memories",
-      ),
-      db.getFirstAsync<{ count: number }>(
-        "SELECT COUNT(*) AS count FROM memory_candidates WHERE status = 'pending'",
-      ),
-      db.getFirstAsync<{ count: number }>(
-        "SELECT COUNT(*) AS count FROM chat_messages WHERE role = 'user'",
-      ),
-      db.getFirstAsync<{
-        session_id: string;
-        message_id: string;
-        candidate_id: string;
-        type: string;
-        content: string;
-        created_at: string;
-      }>(
-        `
-          SELECT session_id, message_id, candidate_id, type, content, created_at
-          FROM memories
-          ORDER BY created_at DESC
-          LIMIT 1
-        `,
-      ),
-    ]);
+const countPendingCards = (messages: Array<{ tool_cards_json: string | null }>) =>
+  messages.reduce((total, message) => {
+    const cards = parseToolCards(message.tool_cards_json);
+    if (!cards?.length) return total;
+    return total + cards.filter((card) => card.status === "pending").length;
+  }, 0);
+
+export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalSnapshot> {
+  const [acceptedRow, journalRow, pendingRows, recentMemoryRow] = await Promise.all([
+    db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM memories"),
+    db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM journals"),
+    db.getAllAsync<{ tool_cards_json: string | null }>(`
+      SELECT tool_cards_json
+      FROM chat_messages
+      WHERE role = 'assistant'
+    `),
+    db.getFirstAsync<{
+      memory_id: string;
+      session_id: string;
+      message_id: string;
+      candidate_id: string | null;
+      type: string;
+      content: string;
+      created_at: string;
+    }>(`
+      SELECT memory_id, session_id, message_id, candidate_id, type, content, created_at
+      FROM memories
+      ORDER BY created_at DESC
+      LIMIT 1
+    `),
+  ]);
 
   return {
     acceptedMemories: acceptedRow?.count ?? 0,
-    pendingCandidates: pendingRow?.count ?? 0,
-    userMessages: userMessagesRow?.count ?? 0,
+    pendingCards: countPendingCards(pendingRows),
+    journalEntries: journalRow?.count ?? 0,
     recentMemory: recentMemoryRow
       ? {
-          id: recentMemoryRow.candidate_id,
+          id: recentMemoryRow.memory_id,
           sessionId: recentMemoryRow.session_id,
           messageId: recentMemoryRow.message_id,
           type: recentMemoryRow.type,
           content: recentMemoryRow.content,
-          status: "accepted",
           createdAt: recentMemoryRow.created_at,
+          candidateId: recentMemoryRow.candidate_id ?? undefined,
         }
       : undefined,
   };
 }
 
 export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]> {
-  const [captureRows, memoryRows] = await Promise.all([
-    db.getAllAsync<{
-      capture_id: string;
-      content: string;
-      created_at: string;
-    }>(
-      `
-        SELECT capture_id, content, created_at
-        FROM captures
-        ORDER BY created_at DESC
-      `,
-    ),
-    listStoredMemories(db),
-  ]);
+  const [journalRows, memoryRows] = await Promise.all([listJournalRecords(db), listStoredMemories(db)]);
 
   const entries: JournalEntry[] = [
-    ...captureRows.map((row) => ({
-      id: row.capture_id,
-      timestamp: row.created_at,
+    ...journalRows.map((row) => ({
+      id: row.id,
+      timestamp: row.createdAt,
       note: row.content,
-      source: "capture" as const,
+      source: "journal" as const,
     })),
     ...memoryRows.map((memory) => ({
       id: `memory-${memory.id}`,
@@ -1012,70 +859,53 @@ export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]>
 
   for (const entry of entries) {
     const date = new Date(entry.timestamp);
-    const dateKey = date.toISOString().slice(0, 10);
-    const existing = grouped.get(dateKey);
+    const key = date.toISOString().slice(0, 10);
+    const existing = grouped.get(key);
+
     if (existing) {
       existing.entries.push(entry);
       continue;
     }
 
-    grouped.set(dateKey, {
-      date,
-      entries: [entry],
-    });
+    grouped.set(key, { date, entries: [entry] });
   }
 
-  return [...grouped.values()].sort(
-    (a, b) => b.date.getTime() - a.date.getTime(),
-  );
+  return [...grouped.values()].sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
-export async function listCaptures(
-  db: SQLiteDatabase,
-): Promise<CaptureRecord[]> {
+export async function listJournalRecords(db: SQLiteDatabase): Promise<JournalRecord[]> {
   const rows = await db.getAllAsync<{
-    capture_id: string;
+    journal_id: string;
     session_id: string;
     message_id: string;
+    kind: string;
     content: string;
     created_at: string;
     updated_at: string;
   }>(`
-    SELECT capture_id, session_id, message_id, content, created_at, updated_at
-    FROM captures
+    SELECT journal_id, session_id, message_id, kind, content, created_at, updated_at
+    FROM journals
     ORDER BY created_at DESC
   `);
 
   return rows.map((row) => ({
-    id: row.capture_id,
+    id: row.journal_id,
     sessionId: row.session_id,
     messageId: row.message_id,
+    kind: row.kind,
     content: row.content,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
 }
 
-export async function updateCaptureContent(
+export async function updateJournalContent(
   db: SQLiteDatabase,
-  captureId: string,
+  journalId: string,
   content: string,
 ) {
   const trimmed = content.trim();
   if (!trimmed) return;
-
-  const capture = await db.getFirstAsync<{
-    message_id: string;
-  }>(
-    `
-      SELECT message_id
-      FROM captures
-      WHERE capture_id = ?
-    `,
-    captureId,
-  );
-
-  if (!capture) return;
 
   const now = new Date().toISOString();
   await db.execAsync("BEGIN");
@@ -1083,41 +913,24 @@ export async function updateCaptureContent(
   try {
     await db.runAsync(
       `
-        UPDATE captures
+        UPDATE journals
         SET content = ?, updated_at = ?
-        WHERE capture_id = ?
+        WHERE journal_id = ?
       `,
       trimmed,
       now,
-      captureId,
+      journalId,
     );
 
+    await db.runAsync("DELETE FROM journals_fts WHERE journal_id = ?", journalId);
     await db.runAsync(
       `
-        UPDATE chat_messages
-        SET content = ?, updated_at = ?
-        WHERE message_id = ?
+        INSERT INTO journals_fts (journal_id, content)
+        SELECT journal_id, content
+        FROM journals
+        WHERE journal_id = ?
       `,
-      trimmed,
-      now,
-      capture.message_id,
-    );
-
-    await db.runAsync(
-      `
-        DELETE FROM captures_fts
-        WHERE capture_id = ?
-      `,
-      captureId,
-    );
-
-    await db.runAsync(
-      `
-        INSERT INTO captures_fts (capture_id, content)
-        VALUES (?, ?)
-      `,
-      captureId,
-      trimmed,
+      journalId,
     );
 
     await db.execAsync("COMMIT");
@@ -1157,7 +970,7 @@ export const buildMemoryTree = (memories: StoredMemory[]): NebulaTree => {
       const overlap = tokenize(memory.content).filter((token) =>
         tokenize(previous.content).includes(token),
       );
-      if (overlap.length > 0 || previous.sourceCaptureId === memory.sourceCaptureId) {
+      if (overlap.length > 0) {
         relatedMemoryId = `memory-${previous.id}`;
         break;
       }

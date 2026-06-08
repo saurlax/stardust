@@ -1,12 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  useColorScheme,
-  View,
-} from "react-native";
+import { ActivityIndicator, FlatList, Image, useColorScheme, View } from "react-native";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -16,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type {
   ChatMessage,
   MemoryCandidateStatus,
-  MessageMemoryCandidate,
+  MessageToolCard,
 } from "@/lib/chat/types";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -27,51 +21,43 @@ type ChatMessagesProps = {
   onRetryMessage: (message: ChatMessage) => void;
   onUpdateCandidateStatus: (
     messageId: string,
-    candidateId: string,
+    cardId: string,
     status: MemoryCandidateStatus,
     nextContent?: string,
   ) => void;
 };
 
-const getCandidateTypeLabel = (type: string) => {
+const getCardTypeLabel = (type: string) => {
   switch (type) {
-    case "preference":
-      return t("chat.candidateTypePreference");
-    case "memory":
-      return t("chat.candidateTypeMemory");
-    case "task":
-      return t("chat.candidateTypeTask");
-    case "opinion":
-      return t("chat.candidateTypeOpinion");
+    case "save_memory":
+      return t("chat.cardTypeSaveMemory");
+    case "append_journal":
+      return t("chat.cardTypeAppendJournal");
     default:
-      return t("chat.candidateTypeUnknown");
+      return t("chat.cardTypeUnknown");
   }
 };
 
-function CandidateActions({
+function ToolCardActions({
   messageId,
-  candidate,
+  card,
   onUpdateCandidateStatus,
 }: {
   messageId: string;
-  candidate: MessageMemoryCandidate;
+  card: MessageToolCard;
   onUpdateCandidateStatus: ChatMessagesProps["onUpdateCandidateStatus"];
 }) {
-  const [draft, setDraft] = useState(candidate.editedContent ?? candidate.content);
+  const [draft, setDraft] = useState(card.payload.content);
   const [editing, setEditing] = useState(false);
 
-  if (candidate.status === "accepted") {
-    return (
-      <Text className="text-xs font-semibold text-green-600">
-        {t("chat.candidateAccepted")}
-      </Text>
-    );
+  if (card.status === "accepted") {
+    return <Text className="text-xs font-semibold text-green-600">{t("chat.cardAccepted")}</Text>;
   }
 
-  if (candidate.status === "dismissed") {
+  if (card.status === "dismissed") {
     return (
       <Text className="text-xs font-semibold text-muted-foreground">
-        {t("chat.candidateDismissed")}
+        {t("chat.cardDismissed")}
       </Text>
     );
   }
@@ -90,25 +76,25 @@ function CandidateActions({
             variant="outline"
             size="sm"
             onPress={() => {
-              setDraft(candidate.editedContent ?? candidate.content);
+              setDraft(card.payload.content);
               setEditing(false);
             }}
           >
-            <Text>{t("chat.candidateCancel")}</Text>
+            <Text>{t("chat.cardCancel")}</Text>
           </Button>
           <Button
             size="sm"
             onPress={() => {
               onUpdateCandidateStatus(
                 messageId,
-                candidate.id,
+                card.id,
                 "accepted",
-                draft.trim() || candidate.content,
+                draft.trim() || card.payload.content,
               );
               setEditing(false);
             }}
           >
-            <Text>{t("chat.candidateSaveEdit")}</Text>
+            <Text>{t("chat.cardSaveEdit")}</Text>
           </Button>
         </View>
       </View>
@@ -120,29 +106,20 @@ function CandidateActions({
       <Button
         variant="outline"
         size="sm"
-        onPress={() => onUpdateCandidateStatus(messageId, candidate.id, "dismissed")}
+        onPress={() => onUpdateCandidateStatus(messageId, card.id, "dismissed")}
       >
-        <Text>{t("chat.candidateDismiss")}</Text>
+        <Text>{t("chat.cardDismiss")}</Text>
       </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        onPress={() => setEditing(true)}
-      >
-        <Text>{t("chat.candidateEdit")}</Text>
+      <Button variant="outline" size="sm" onPress={() => setEditing(true)}>
+        <Text>{t("chat.cardEdit")}</Text>
       </Button>
       <Button
         size="sm"
         onPress={() =>
-          onUpdateCandidateStatus(
-            messageId,
-            candidate.id,
-            "accepted",
-            candidate.editedContent ?? candidate.content,
-          )
+          onUpdateCandidateStatus(messageId, card.id, "accepted", card.payload.content)
         }
       >
-        <Text>{t("chat.candidateAccept")}</Text>
+        <Text>{t("chat.cardAccept")}</Text>
       </Button>
     </View>
   );
@@ -183,12 +160,7 @@ export function ChatMessages({
         const showMeta = isStreaming || isRetrying || canCopy || canRetry;
 
         return (
-          <View
-            className={cn(
-              "mb-2.5 flex-row",
-              isUser ? "justify-end" : "justify-start",
-            )}
-          >
+          <View className={cn("mb-2.5 flex-row", isUser ? "justify-end" : "justify-start")}>
             <Card
               className={cn(
                 "max-w-[80%] gap-0 py-0",
@@ -214,9 +186,7 @@ export function ChatMessages({
                       </Text>
                     ) : null}
                     {isError && item.error ? (
-                      <Text className="text-sm leading-5 text-destructive">
-                        {item.error}
-                      </Text>
+                      <Text className="text-sm leading-5 text-destructive">{item.error}</Text>
                     ) : null}
                     {item.imageUri ? (
                       <Image
@@ -224,23 +194,24 @@ export function ChatMessages({
                         className="mt-2 h-[200px] w-[200px] rounded-md bg-muted"
                       />
                     ) : null}
-                    {item.role === "assistant" && item.candidates?.length ? (
+                    {item.role === "assistant" && item.toolCards?.length ? (
                       <View className="mt-3 gap-2 rounded-lg border border-border bg-muted/60 p-3">
                         <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          {t("chat.candidateTitle")}
+                          {t("chat.cardTitle")}
                         </Text>
-                        {item.candidates.map((candidate) => (
+                        {item.toolCards.map((card) => (
                           <View
-                            key={candidate.id}
+                            key={card.id}
                             className="gap-2 rounded-md border border-border/70 bg-background/80 p-2.5"
                           >
                             <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                              {getCandidateTypeLabel(candidate.type)}
+                              {getCardTypeLabel(card.type)}
                             </Text>
-                            <Text className="text-sm leading-5">{candidate.content}</Text>
-                            <CandidateActions
+                            <Text className="text-sm font-medium leading-5">{card.title}</Text>
+                            <Text className="text-sm leading-5">{card.payload.content}</Text>
+                            <ToolCardActions
                               messageId={item.id}
-                              candidate={candidate}
+                              card={card}
                               onUpdateCandidateStatus={onUpdateCandidateStatus}
                             />
                           </View>
@@ -249,11 +220,10 @@ export function ChatMessages({
                     ) : null}
                   </>
                 )}
+
                 {showMeta ? (
                   <View className="flex-row items-center gap-0.5">
-                    {isLoading ? (
-                      <ActivityIndicator size="small" color={mutedColor} />
-                    ) : null}
+                    {isLoading ? <ActivityIndicator size="small" color={mutedColor} /> : null}
                     {canCopy ? (
                       <Button
                         variant="ghost"
@@ -263,11 +233,7 @@ export function ChatMessages({
                         hitSlop={10}
                         onPress={() => void copyMessage(item.content)}
                       >
-                        <Ionicons
-                          name="copy-outline"
-                          size={13}
-                          color={iconColor}
-                        />
+                        <Ionicons name="copy-outline" size={13} color={iconColor} />
                       </Button>
                     ) : null}
                     {canRetry ? (
