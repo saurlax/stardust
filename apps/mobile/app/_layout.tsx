@@ -3,10 +3,12 @@ import { PortalHost } from "@rn-primitives/portal";
 import { Stack } from "expo-router";
 import { StyleSheet, useColorScheme, View } from "react-native";
 import { ShareIntentProvider } from "expo-share-intent";
+import { SQLiteProvider } from "expo-sqlite";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { NebulaView } from "@/components/NebulaView";
 import { ConfigProvider } from "@/context/config";
+import { DATABASE_NAME, migrateDbIfNeeded } from "@/lib/db";
 import { NAV_THEME } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import "../global.css";
@@ -19,23 +21,25 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <ShareIntentProvider options={{ resetOnBackground: true }}>
-        <ConfigProvider>
-          <ThemeProvider value={navTheme}>
-            <View className={cn("flex-1 bg-background", colorScheme === "dark" && "dark")}>
-              <NebulaView style={styles.background} />
-              <Stack
-                screenOptions={{
-                  headerShadowVisible: false,
-                  statusBarStyle: colorScheme === "dark" ? "light" : "dark",
-                  headerStyle: { backgroundColor: navTheme.colors.card },
-                  headerTintColor: navTheme.colors.text,
-                  headerTitleStyle: { color: navTheme.colors.text },
-                }}
-              />
-              <PortalHost />
-            </View>
-          </ThemeProvider>
-        </ConfigProvider>
+        <SQLiteProvider databaseName={DATABASE_NAME} onInit={migrateDbIfNeeded}>
+          <ConfigProvider>
+            <ThemeProvider value={navTheme}>
+              <View className={cn("flex-1 bg-background", colorScheme === "dark" && "dark")}>
+                <NebulaView style={styles.background} />
+                <Stack
+                  screenOptions={{
+                    headerShadowVisible: false,
+                    statusBarStyle: colorScheme === "dark" ? "light" : "dark",
+                    headerStyle: { backgroundColor: navTheme.colors.card },
+                    headerTintColor: navTheme.colors.text,
+                    headerTitleStyle: { color: navTheme.colors.text },
+                  }}
+                />
+                <PortalHost />
+              </View>
+            </ThemeProvider>
+          </ConfigProvider>
+        </SQLiteProvider>
       </ShareIntentProvider>
     </GestureHandlerRootView>
   );

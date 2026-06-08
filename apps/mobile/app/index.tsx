@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router, Stack } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
+import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +19,11 @@ import type {
 } from "@/lib/chat/types";
 import { normalizeAssistantOutput, sendChatRequest } from "@/lib/chat/runtime";
 import { getConfigValidationError } from "@/lib/config";
+import {
+  createSessionId,
+  loadLatestChatSession,
+  saveChatSessionSnapshot,
+} from "@/lib/db";
 import { t } from "@/lib/i18n";
 
 const DEFAULT_IMAGE_PROMPT = t("chat.defaultImagePrompt");
@@ -44,6 +50,7 @@ const toMessageCandidates = (
   }));
 
 export default function Index() {
+  const db = useSQLiteContext();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const { config, ready } = useConfig();
@@ -54,11 +61,14 @@ export default function Index() {
   const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>();
   const [messages, setMessages] = useState<ChatMessage[]>([createGreetingMessage()]);
   const [sending, setSending] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
   const chatIdRef = useRef<string | null>(null);
+  const sessionIdRef = useRef<string>(createSessionId());
   const handledShareRef = useRef<string | undefined>(undefined);
   const messagesRef = useRef(messages);
   const activeRequestRef = useRef<RequestContext | null>(null);
   const configRef = useRef(config);
+  const hydratingRef = useRef(true);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -67,6 +77,42 @@ export default function Index() {
   useEffect(() => {
     configRef.current = config;
   }, [config]);
+
+  useEffect(() => {
+    let active = true;
+
+    loadLatestChatSession(db)
+      .then((session) => {
+        if (!active) return;
+
+        if (session) {
+          sessionIdRef.current = session.sessionId;
+          chatIdRef.current = session.remoteChatId ?? null;
+          setMessages(
+            session.messages.length ? session.messages : [createGreetingMessage()],
+          );
+        }
+      })
+      .finally(() => {
+        if (!active) return;
+        hydratingRef.current = false;
+        setSessionReady(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [db]);
+
+  useEffect(() => {
+    if (!sessionReady || hydratingRef.current) return;
+
+    void saveChatSessionSnapshot(db, {
+      sessionId: sessionIdRef.current,
+      remoteChatId: chatIdRef.current,
+      messages,
+    });
+  }, [db, messages, sessionReady]);
 
   const replaceMessage = useCallback(
     (messageId: string, updater: (message: ChatMessage) => ChatMessage) => {
@@ -187,6 +233,7 @@ export default function Index() {
         role: "user",
         content: effectivePrompt,
         status: "done",
+        createdAt: new Date(timestamp).toISOString(),
         imageUri,
         imageMimeType,
       };
@@ -195,6 +242,7 @@ export default function Index() {
         role: "assistant",
         content: "",
         status: "pending",
+        createdAt: new Date(timestamp).toISOString(),
         request,
       };
       const sourceMessages = [...createTransportMessages(), userMessage];
@@ -318,7 +366,7 @@ export default function Index() {
   };
 
   useEffect(() => {
-    if (!hasShareIntent || !shareIntent || sending || !ready) return;
+    if (!sessionReady || !hasShareIntent || !shareIntent || sending || !ready) return;
     const signature = JSON.stringify(shareIntent);
     if (handledShareRef.current === signature) return;
     handledShareRef.current = signature;
@@ -334,7 +382,7 @@ export default function Index() {
       setText(shareIntent.text || shareIntent.webUrl || "");
     }
     resetShareIntent();
-  }, [hasShareIntent, ready, resetShareIntent, sending, shareIntent]);
+  }, [hasShareIntent, ready, resetShareIntent, sending, sessionReady, shareIntent]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>

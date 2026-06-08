@@ -13,6 +13,7 @@ export type MessageMemoryCandidate = {
   type: string;
   content: string;
   status: MemoryCandidateStatus;
+  createdAt?: string;
 };
 
 export type ChatMessage = {
@@ -20,6 +21,7 @@ export type ChatMessage = {
   role: MessageRole;
   content: string;
   status: MessageStatus;
+  createdAt?: string;
   imageUri?: string;
   imageMimeType?: string;
   error?: string;
