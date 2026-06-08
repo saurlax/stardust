@@ -8,7 +8,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { NebulaView } from "@/components/NebulaView";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
-import { buildMemoryTree, getPersonalSnapshot, listStoredMemories, type PersonalSnapshot } from "@/lib/db";
+import {
+  buildMemoryTree,
+  getPersonalSnapshot,
+  listCaptures,
+  listStoredMemories,
+  type CaptureRecord,
+  type PersonalSnapshot,
+  type StoredMemory,
+} from "@/lib/db";
 import { t } from "@/lib/i18n";
 
 const emptySnapshot: PersonalSnapshot = {
@@ -23,21 +31,27 @@ export default function PersonalScreen() {
   const avatarIconColor = colorScheme === "dark" ? "#0A0A0A" : "#FAFAFA";
   const [snapshot, setSnapshot] = useState<PersonalSnapshot>(emptySnapshot);
   const [memoryTree, setMemoryTree] = useState(buildMemoryTree([]));
+  const [recentMemories, setRecentMemories] = useState<StoredMemory[]>([]);
+  const [recentCaptures, setRecentCaptures] = useState<CaptureRecord[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
 
-      Promise.all([getPersonalSnapshot(db), listStoredMemories(db)])
-        .then(([nextSnapshot, memories]) => {
+      Promise.all([getPersonalSnapshot(db), listStoredMemories(db), listCaptures(db)])
+        .then(([nextSnapshot, memories, captures]) => {
           if (!active) return;
           setSnapshot(nextSnapshot);
           setMemoryTree(buildMemoryTree(memories));
+          setRecentMemories(memories.slice(0, 3));
+          setRecentCaptures(captures.slice(0, 3));
         })
         .catch(() => {
           if (!active) return;
           setSnapshot(emptySnapshot);
           setMemoryTree(buildMemoryTree([]));
+          setRecentMemories([]);
+          setRecentCaptures([]);
         });
 
       return () => {
@@ -88,6 +102,51 @@ export default function PersonalScreen() {
             {snapshot.recentMemory?.content ?? t("personal.noLatestMemory")}
           </Text>
         </Card>
+
+        <View className="gap-3">
+          <Card className="gap-3 px-4 py-4">
+            <View className="gap-1">
+              <Text className="text-base font-semibold">{t("personal.recentMemoriesTitle")}</Text>
+              <Text className="text-xs text-muted-foreground">
+                {t("personal.recentMemoriesDescription")}
+              </Text>
+            </View>
+            {recentMemories.length ? (
+              recentMemories.map((memory) => (
+                <View key={memory.id} className="gap-1 rounded-lg bg-muted/50 px-3 py-3">
+                  <Text className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {memory.type}
+                  </Text>
+                  <Text className="text-sm leading-5">{memory.content}</Text>
+                </View>
+              ))
+            ) : (
+              <Text className="text-sm text-muted-foreground">
+                {t("personal.noRecentMemories")}
+              </Text>
+            )}
+          </Card>
+
+          <Card className="gap-3 px-4 py-4">
+            <View className="gap-1">
+              <Text className="text-base font-semibold">{t("personal.recentCapturesTitle")}</Text>
+              <Text className="text-xs text-muted-foreground">
+                {t("personal.recentCapturesDescription")}
+              </Text>
+            </View>
+            {recentCaptures.length ? (
+              recentCaptures.map((capture) => (
+                <View key={capture.id} className="gap-1 rounded-lg bg-muted/50 px-3 py-3">
+                  <Text className="text-sm leading-5">{capture.content}</Text>
+                </View>
+              ))
+            ) : (
+              <Text className="text-sm text-muted-foreground">
+                {t("personal.noRecentCaptures")}
+              </Text>
+            )}
+          </Card>
+        </View>
 
         <View className="gap-3">
           <Pressable
