@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { Toast, type ToastTone } from "@/components/ui/toast";
 import { useConfig } from "@/context/config";
 import type { AiConfig, RuntimeMode } from "@/lib/config";
 import { getCachedAiConfig, getConfigValidationError } from "@/lib/config";
@@ -18,10 +19,9 @@ type SettingsFieldProps = React.ComponentProps<typeof Input> & {
   label: string;
 };
 
-type TestState =
-  | { type: "idle" }
-  | { type: "success"; message: string }
-  | { type: "error"; message: string };
+type ToastState =
+  | { visible: false; message: string; tone: ToastTone }
+  | { visible: true; message: string; tone: ToastTone };
 
 function SettingsField({ label, id, ...props }: SettingsFieldProps) {
   const fieldId = id ?? label;
@@ -66,22 +66,41 @@ export default function SettingsScreen() {
   const [form, setForm] = useState<AiConfig>(getCachedAiConfig());
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [testState, setTestState] = useState<TestState>({ type: "idle" });
+  const [toast, setToast] = useState<ToastState>({
+    visible: false,
+    message: "",
+    tone: "success",
+  });
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (ready) setForm(config);
   }, [config, ready]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   const validationMessage = useMemo(() => {
     const key = getConfigValidationError(form);
     return key ? t(key) : null;
   }, [form]);
 
+  const showToast = (message: string, tone: ToastTone) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+
+    setToast({ visible: true, message, tone });
+
+    toastTimerRef.current = setTimeout(() => {
+      setToast((current) => ({ ...current, visible: false }));
+      toastTimerRef.current = null;
+    }, 2200);
+  };
+
   const updateMode = (runtimeMode: RuntimeMode) => {
     setForm((current) => ({ ...current, runtimeMode }));
-    setMessage(null);
-    setTestState({ type: "idle" });
   };
 
   const updateLocalField = <K extends keyof AiConfig["local"]>(
@@ -92,8 +111,6 @@ export default function SettingsScreen() {
       ...current,
       local: { ...current.local, [key]: value },
     }));
-    setMessage(null);
-    setTestState({ type: "idle" });
   };
 
   const updateCloudField = <K extends keyof AiConfig["cloud"]>(
@@ -104,21 +121,18 @@ export default function SettingsScreen() {
       ...current,
       cloud: { ...current.cloud, [key]: value },
     }));
-    setMessage(null);
-    setTestState({ type: "idle" });
   };
 
   const onSave = async () => {
     if (validationMessage) {
-      setMessage(validationMessage);
+      showToast(validationMessage, "error");
       return;
     }
 
     setSaving(true);
-    setMessage(null);
     try {
       await updateConfig(form);
-      setMessage(t("settings.saved"));
+      showToast(t("settings.saved"), "success");
     } finally {
       setSaving(false);
     }
@@ -126,12 +140,11 @@ export default function SettingsScreen() {
 
   const onTestConnection = async () => {
     if (validationMessage) {
-      setTestState({ type: "error", message: validationMessage });
+      showToast(validationMessage, "error");
       return;
     }
 
     setTesting(true);
-    setTestState({ type: "idle" });
 
     try {
       if (form.runtimeMode === "local") {
@@ -140,9 +153,9 @@ export default function SettingsScreen() {
         await testCloudConnection(form.cloud);
       }
 
-      setTestState({ type: "success", message: t("settings.testPassed") });
+      showToast(t("settings.testPassed"), "success");
     } catch (error) {
-      setTestState({ type: "error", message: getErrorMessage(error) });
+      showToast(getErrorMessage(error), "error");
     } finally {
       setTesting(false);
     }
@@ -150,6 +163,8 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+      <Toast visible={toast.visible} message={toast.message} tone={toast.tone} />
+
       <Stack.Screen
         options={{
           title: t("settings.title"),
@@ -234,22 +249,6 @@ export default function SettingsScreen() {
               )}
             </CardContent>
           </Card>
-
-          {message ? (
-            <Text className="text-sm font-semibold text-green-600">{message}</Text>
-          ) : null}
-
-          {testState.type !== "idle" ? (
-            <Text
-              className={
-                testState.type === "success"
-                  ? "text-sm font-semibold text-green-600"
-                  : "text-sm font-semibold text-destructive"
-              }
-            >
-              {testState.message}
-            </Text>
-          ) : null}
 
           <View className="gap-3">
             <Button
