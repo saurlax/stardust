@@ -1,7 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import { ActivityIndicator, FlatList, Image, useColorScheme, View } from "react-native";
 import { useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  useColorScheme,
+  View,
+} from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,7 +57,11 @@ function ToolCardActions({
   const [editing, setEditing] = useState(false);
 
   if (card.status === "accepted") {
-    return <Text className="text-xs font-semibold text-green-600">{t("chat.cardAccepted")}</Text>;
+    return (
+      <Text className="text-xs font-semibold text-green-600">
+        {t("chat.cardAccepted")}
+      </Text>
+    );
   }
 
   if (card.status === "dismissed") {
@@ -116,7 +126,12 @@ function ToolCardActions({
       <Button
         size="sm"
         onPress={() =>
-          onUpdateCandidateStatus(messageId, card.id, "accepted", card.payload.content)
+          onUpdateCandidateStatus(
+            messageId,
+            card.id,
+            "accepted",
+            card.payload.content,
+          )
         }
       >
         <Text>{t("chat.cardAccept")}</Text>
@@ -160,8 +175,18 @@ export function ChatMessages({
         const showActions = canCopy || canRetry;
 
         return (
-          <View className={cn("mb-2.5 flex-row", isUser ? "justify-end" : "justify-start")}>
-            <View className={cn("max-w-[80%]", isUser ? "items-end" : "items-start")}>
+          <View
+            className={cn(
+              "mb-2.5 flex-row",
+              isUser ? "justify-end" : "justify-start",
+            )}
+          >
+            <View
+              className={cn(
+                "max-w-[80%]",
+                isUser ? "items-end" : "items-start",
+              )}
+            >
               <Card
                 className={cn(
                   "gap-0 py-0",
@@ -187,7 +212,9 @@ export function ChatMessages({
                         </Text>
                       ) : null}
                       {isError && item.error ? (
-                        <Text className="text-sm leading-5 text-destructive">{item.error}</Text>
+                        <Text className="text-sm leading-5 text-destructive">
+                          {item.error}
+                        </Text>
                       ) : null}
                       {item.imageUri ? (
                         <Image
@@ -208,12 +235,18 @@ export function ChatMessages({
                               <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                                 {getCardTypeLabel(card.type)}
                               </Text>
-                              <Text className="text-sm font-medium leading-5">{card.title}</Text>
-                              <Text className="text-sm leading-5">{card.payload.content}</Text>
+                              <Text className="text-sm font-medium leading-5">
+                                {card.title}
+                              </Text>
+                              <Text className="text-sm leading-5">
+                                {card.payload.content}
+                              </Text>
                               <ToolCardActions
                                 messageId={item.id}
                                 card={card}
-                                onUpdateCandidateStatus={onUpdateCandidateStatus}
+                                onUpdateCandidateStatus={
+                                  onUpdateCandidateStatus
+                                }
                               />
                             </View>
                           ))}
@@ -240,7 +273,11 @@ export function ChatMessages({
                       hitSlop={10}
                       onPress={() => void copyMessage(item.content)}
                     >
-                      <Ionicons name="copy-outline" size={13} color={iconColor} />
+                      <Ionicons
+                        name="copy-outline"
+                        size={14}
+                        color={iconColor}
+                      />
                     </Button>
                   ) : null}
                   {canRetry ? (
@@ -252,7 +289,7 @@ export function ChatMessages({
                       hitSlop={10}
                       onPress={() => onRetryMessage(item)}
                     >
-                      <Ionicons name="refresh" size={13} color={iconColor} />
+                      <Ionicons name="refresh" size={14} color={iconColor} />
                     </Button>
                   ) : null}
                 </View>
