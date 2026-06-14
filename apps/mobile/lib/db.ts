@@ -98,6 +98,7 @@ const serializeToolCards = (value?: MessageToolCard[]) =>
   value?.length ? JSON.stringify(value) : null;
 
 let transactionQueue: Promise<void> = Promise.resolve();
+let ftsAvailable: boolean | undefined;
 
 async function runInTransaction<T>(db: SQLiteDatabase, task: () => Promise<T>): Promise<T> {
   const run = async () => {
@@ -162,6 +163,39 @@ async function ensureToolCardsColumn(db: SQLiteDatabase) {
       ADD COLUMN tool_cards_json TEXT
     `);
   }
+}
+
+async function isFtsAvailable(db: SQLiteDatabase) {
+  if (ftsAvailable !== undefined) return ftsAvailable;
+
+  try {
+    await db.execAsync(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS fts_support_check USING fts5(content);
+      DROP TABLE IF EXISTS fts_support_check;
+    `);
+    ftsAvailable = true;
+  } catch {
+    ftsAvailable = false;
+  }
+
+  return ftsAvailable;
+}
+
+async function ensureFtsTables(db: SQLiteDatabase) {
+  if (!(await isFtsAvailable(db))) return;
+
+  await db.execAsync(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS journals_fts USING fts5(
+      journal_id UNINDEXED,
+      content
+    );
+
+    CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
+      memory_id UNINDEXED,
+      type,
+      content
+    );
+  `);
 }
 
 async function createCurrentTables(db: SQLiteDatabase) {
@@ -232,18 +266,9 @@ async function createCurrentTables(db: SQLiteDatabase) {
 
     CREATE INDEX IF NOT EXISTS idx_memories_created_at
     ON memories(created_at DESC);
-
-    CREATE VIRTUAL TABLE IF NOT EXISTS journals_fts USING fts5(
-      journal_id UNINDEXED,
-      content
-    );
-
-    CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
-      memory_id UNINDEXED,
-      type,
-      content
-    );
   `);
+
+  await ensureFtsTables(db);
 }
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
@@ -264,6 +289,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
   await ensureToolCardsColumn(db);
 
   if (currentVersion < 4) {
+    const useFts = await isFtsAvailable(db);
     const legacyCandidateRows = await db.getAllAsync<{
       message_id: string;
       candidate_id: string;
@@ -332,43 +358,45 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       );
     }
 
-    await db.runAsync("DELETE FROM journals_fts");
-    const journals = await db.getAllAsync<{ journal_id: string; content: string }>(`
-      SELECT journal_id, content
-      FROM journals
-    `);
+    if (useFts) {
+      await db.runAsync("DELETE FROM journals_fts");
+      const journals = await db.getAllAsync<{ journal_id: string; content: string }>(`
+        SELECT journal_id, content
+        FROM journals
+      `);
 
-    for (const journal of journals) {
-      await db.runAsync(
-        `
-          INSERT INTO journals_fts (journal_id, content)
-          VALUES (?, ?)
-        `,
-        journal.journal_id,
-        journal.content,
-      );
-    }
+      for (const journal of journals) {
+        await db.runAsync(
+          `
+            INSERT INTO journals_fts (journal_id, content)
+            VALUES (?, ?)
+          `,
+          journal.journal_id,
+          journal.content,
+        );
+      }
 
-    await db.runAsync("DELETE FROM memories_fts");
-    const memories = await db.getAllAsync<{
-      memory_id: string;
-      type: string;
-      content: string;
-    }>(`
-      SELECT memory_id, type, content
-      FROM memories
-    `);
+      await db.runAsync("DELETE FROM memories_fts");
+      const memories = await db.getAllAsync<{
+        memory_id: string;
+        type: string;
+        content: string;
+      }>(`
+        SELECT memory_id, type, content
+        FROM memories
+      `);
 
-    for (const memory of memories) {
-      await db.runAsync(
-        `
-          INSERT INTO memories_fts (memory_id, type, content)
-          VALUES (?, ?, ?)
-        `,
-        memory.memory_id,
-        memory.type,
-        memory.content,
-      );
+      for (const memory of memories) {
+        await db.runAsync(
+          `
+            INSERT INTO memories_fts (memory_id, type, content)
+            VALUES (?, ?, ?)
+          `,
+          memory.memory_id,
+          memory.type,
+          memory.content,
+        );
+      }
     }
 
     currentVersion = 4;
@@ -515,6 +543,8 @@ export async function syncDerivedEntitiesForSession(
   sessionId: string,
   messages: ChatMessage[],
 ) {
+  const useFts = await isFtsAvailable(db);
+
   await runInTransaction(db, async () => {
     const journalIds = await db.getAllAsync<{ journal_id: string }>(
       `
@@ -533,12 +563,14 @@ export async function syncDerivedEntitiesForSession(
       sessionId,
     );
 
-    for (const journal of journalIds) {
-      await db.runAsync("DELETE FROM journals_fts WHERE journal_id = ?", journal.journal_id);
-    }
+    if (useFts) {
+      for (const journal of journalIds) {
+        await db.runAsync("DELETE FROM journals_fts WHERE journal_id = ?", journal.journal_id);
+      }
 
-    for (const memory of memoryIds) {
-      await db.runAsync("DELETE FROM memories_fts WHERE memory_id = ?", memory.memory_id);
+      for (const memory of memoryIds) {
+        await db.runAsync("DELETE FROM memories_fts WHERE memory_id = ?", memory.memory_id);
+      }
     }
 
     await db.runAsync("DELETE FROM journals WHERE session_id = ?", sessionId);
@@ -579,15 +611,17 @@ export async function syncDerivedEntitiesForSession(
             createdAt,
             createdAt,
           );
-          await db.runAsync(
-            `
-              INSERT INTO memories_fts (memory_id, type, content)
-              VALUES (?, ?, ?)
-            `,
-            `memory-${card.id}`,
-            memoryType,
-            content,
-          );
+          if (useFts) {
+            await db.runAsync(
+              `
+                INSERT INTO memories_fts (memory_id, type, content)
+                VALUES (?, ?, ?)
+              `,
+              `memory-${card.id}`,
+              memoryType,
+              content,
+            );
+          }
           continue;
         }
 
@@ -613,14 +647,16 @@ export async function syncDerivedEntitiesForSession(
             createdAt,
             createdAt,
           );
-          await db.runAsync(
-            `
-              INSERT INTO journals_fts (journal_id, content)
-              VALUES (?, ?)
-            `,
-            `journal-${card.id}`,
-            content,
-          );
+          if (useFts) {
+            await db.runAsync(
+              `
+                INSERT INTO journals_fts (journal_id, content)
+                VALUES (?, ?)
+              `,
+              `journal-${card.id}`,
+              content,
+            );
+          }
         }
       }
     }
@@ -664,6 +700,8 @@ export async function updateStoredMemoryContent(
   if (!trimmed) return;
 
   const now = new Date().toISOString();
+  const useFts = await isFtsAvailable(db);
+
   await runInTransaction(db, async () => {
     await db.runAsync(
       `
@@ -676,22 +714,28 @@ export async function updateStoredMemoryContent(
       memoryId,
     );
 
-    await db.runAsync("DELETE FROM memories_fts WHERE memory_id = ?", memoryId);
-    await db.runAsync(
-      `
-        INSERT INTO memories_fts (memory_id, type, content)
-        SELECT memory_id, type, content
-        FROM memories
-        WHERE memory_id = ?
-      `,
-      memoryId,
-    );
+    if (useFts) {
+      await db.runAsync("DELETE FROM memories_fts WHERE memory_id = ?", memoryId);
+      await db.runAsync(
+        `
+          INSERT INTO memories_fts (memory_id, type, content)
+          SELECT memory_id, type, content
+          FROM memories
+          WHERE memory_id = ?
+        `,
+        memoryId,
+      );
+    }
   });
 }
 
 export async function dismissStoredMemory(db: SQLiteDatabase, memoryId: string) {
+  const useFts = await isFtsAvailable(db);
+
   await runInTransaction(db, async () => {
-    await db.runAsync("DELETE FROM memories_fts WHERE memory_id = ?", memoryId);
+    if (useFts) {
+      await db.runAsync("DELETE FROM memories_fts WHERE memory_id = ?", memoryId);
+    }
     await db.runAsync("DELETE FROM memories WHERE memory_id = ?", memoryId);
   });
 }
@@ -704,6 +748,11 @@ const toFtsQuery = (query: string) =>
     .map((token) => `"${token.replace(/"/g, '""')}"*`)
     .join(" OR ");
 
+const rankByTokenMatches = (value: string, tokens: string[]) => {
+  const normalized = value.toLowerCase();
+  return -tokens.filter((token) => normalized.includes(token.toLowerCase())).length;
+};
+
 export async function findRelevantKnowledge(
   db: SQLiteDatabase,
   query: string,
@@ -711,6 +760,72 @@ export async function findRelevantKnowledge(
 ): Promise<RelevantKnowledge[]> {
   const ftsQuery = toFtsQuery(query);
   if (!ftsQuery) return [];
+
+  if (!(await isFtsAvailable(db))) {
+    const tokens = tokenize(query);
+    if (!tokens.length) return [];
+
+    const memoryWhere = tokens.map(() => "(content LIKE ? OR type LIKE ?)").join(" OR ");
+    const journalWhere = tokens.map(() => "content LIKE ?").join(" OR ");
+    const memoryParams = tokens.flatMap((token) => [`%${token}%`, `%${token}%`]);
+    const journalParams = tokens.map((token) => `%${token}%`);
+
+    const [memoryRows, journalRows] = await Promise.all([
+      db.getAllAsync<{
+        id: string;
+        type: string;
+        content: string;
+        created_at: string;
+      }>(
+        `
+          SELECT memory_id AS id, type, content, created_at
+          FROM memories
+          WHERE ${memoryWhere}
+          ORDER BY created_at DESC
+          LIMIT ?
+        `,
+        ...memoryParams,
+        limit * 2,
+      ),
+      db.getAllAsync<{
+        id: string;
+        kind: string;
+        content: string;
+        created_at: string;
+      }>(
+        `
+          SELECT journal_id AS id, kind, content, created_at
+          FROM journals
+          WHERE ${journalWhere}
+          ORDER BY created_at DESC
+          LIMIT ?
+        `,
+        ...journalParams,
+        limit * 2,
+      ),
+    ]);
+
+    return [
+      ...memoryRows.map((item) => ({
+        id: item.id,
+        source: "memory" as const,
+        type: item.type,
+        content: item.content,
+        createdAt: item.created_at,
+        rank: rankByTokenMatches(`${item.type} ${item.content}`, tokens),
+      })),
+      ...journalRows.map((item) => ({
+        id: item.id,
+        source: "journal" as const,
+        type: item.kind,
+        content: item.content,
+        createdAt: item.created_at,
+        rank: rankByTokenMatches(item.content, tokens),
+      })),
+    ]
+      .sort((a, b) => a.rank - b.rank || Date.parse(b.createdAt) - Date.parse(a.createdAt))
+      .slice(0, limit);
+  }
 
   const [memoryMatches, journalMatches] = await Promise.all([
     db.getAllAsync<{
@@ -904,6 +1019,8 @@ export async function updateJournalContent(
   if (!trimmed) return;
 
   const now = new Date().toISOString();
+  const useFts = await isFtsAvailable(db);
+
   await runInTransaction(db, async () => {
     await db.runAsync(
       `
@@ -916,16 +1033,18 @@ export async function updateJournalContent(
       journalId,
     );
 
-    await db.runAsync("DELETE FROM journals_fts WHERE journal_id = ?", journalId);
-    await db.runAsync(
-      `
-        INSERT INTO journals_fts (journal_id, content)
-        SELECT journal_id, content
-        FROM journals
-        WHERE journal_id = ?
-      `,
-      journalId,
-    );
+    if (useFts) {
+      await db.runAsync("DELETE FROM journals_fts WHERE journal_id = ?", journalId);
+      await db.runAsync(
+        `
+          INSERT INTO journals_fts (journal_id, content)
+          SELECT journal_id, content
+          FROM journals
+          WHERE journal_id = ?
+        `,
+        journalId,
+      );
+    }
   });
 }
 
