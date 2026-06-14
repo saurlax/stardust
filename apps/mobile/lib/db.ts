@@ -97,6 +97,31 @@ const parseToolCards = (value?: string | null): MessageToolCard[] | undefined =>
 const serializeToolCards = (value?: MessageToolCard[]) =>
   value?.length ? JSON.stringify(value) : null;
 
+let transactionQueue: Promise<void> = Promise.resolve();
+
+async function runInTransaction<T>(db: SQLiteDatabase, task: () => Promise<T>): Promise<T> {
+  const run = async () => {
+    await db.execAsync("BEGIN");
+
+    try {
+      const result = await task();
+      await db.execAsync("COMMIT");
+      return result;
+    } catch (error) {
+      await db.execAsync("ROLLBACK").catch(() => undefined);
+      throw error;
+    }
+  };
+
+  const next = transactionQueue.then(run, run);
+  transactionQueue = next.then(
+    () => undefined,
+    () => undefined,
+  );
+
+  return next;
+}
+
 const toolCardTitle = (type: string, content: string) => {
   switch (type) {
     case "save_memory":
@@ -428,9 +453,7 @@ export async function saveChatSessionSnapshot(
     messages: ChatMessage[];
   },
 ) {
-  await db.execAsync("BEGIN");
-
-  try {
+  await runInTransaction(db, async () => {
     await db.runAsync(
       `
         INSERT INTO chat_sessions (session_id, remote_chat_id, created_at, updated_at)
@@ -484,12 +507,7 @@ export async function saveChatSessionSnapshot(
         message.createdAt ?? new Date().toISOString(),
       );
     }
-
-    await db.execAsync("COMMIT");
-  } catch (error) {
-    await db.execAsync("ROLLBACK");
-    throw error;
-  }
+  });
 }
 
 export async function syncDerivedEntitiesForSession(
@@ -497,27 +515,23 @@ export async function syncDerivedEntitiesForSession(
   sessionId: string,
   messages: ChatMessage[],
 ) {
-  await db.execAsync("BEGIN");
-
-  try {
-    const [journalIds, memoryIds] = await Promise.all([
-      db.getAllAsync<{ journal_id: string }>(
-        `
-          SELECT journal_id
-          FROM journals
-          WHERE session_id = ?
-        `,
-        sessionId,
-      ),
-      db.getAllAsync<{ memory_id: string }>(
-        `
-          SELECT memory_id
-          FROM memories
-          WHERE session_id = ?
-        `,
-        sessionId,
-      ),
-    ]);
+  await runInTransaction(db, async () => {
+    const journalIds = await db.getAllAsync<{ journal_id: string }>(
+      `
+        SELECT journal_id
+        FROM journals
+        WHERE session_id = ?
+      `,
+      sessionId,
+    );
+    const memoryIds = await db.getAllAsync<{ memory_id: string }>(
+      `
+        SELECT memory_id
+        FROM memories
+        WHERE session_id = ?
+      `,
+      sessionId,
+    );
 
     for (const journal of journalIds) {
       await db.runAsync("DELETE FROM journals_fts WHERE journal_id = ?", journal.journal_id);
@@ -610,12 +624,7 @@ export async function syncDerivedEntitiesForSession(
         }
       }
     }
-
-    await db.execAsync("COMMIT");
-  } catch (error) {
-    await db.execAsync("ROLLBACK");
-    throw error;
-  }
+  });
 }
 
 export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemory[]> {
@@ -655,9 +664,7 @@ export async function updateStoredMemoryContent(
   if (!trimmed) return;
 
   const now = new Date().toISOString();
-  await db.execAsync("BEGIN");
-
-  try {
+  await runInTransaction(db, async () => {
     await db.runAsync(
       `
         UPDATE memories
@@ -679,25 +686,14 @@ export async function updateStoredMemoryContent(
       `,
       memoryId,
     );
-
-    await db.execAsync("COMMIT");
-  } catch (error) {
-    await db.execAsync("ROLLBACK");
-    throw error;
-  }
+  });
 }
 
 export async function dismissStoredMemory(db: SQLiteDatabase, memoryId: string) {
-  await db.execAsync("BEGIN");
-
-  try {
+  await runInTransaction(db, async () => {
     await db.runAsync("DELETE FROM memories_fts WHERE memory_id = ?", memoryId);
     await db.runAsync("DELETE FROM memories WHERE memory_id = ?", memoryId);
-    await db.execAsync("COMMIT");
-  } catch (error) {
-    await db.execAsync("ROLLBACK");
-    throw error;
-  }
+  });
 }
 
 const toFtsQuery = (query: string) =>
@@ -908,9 +904,7 @@ export async function updateJournalContent(
   if (!trimmed) return;
 
   const now = new Date().toISOString();
-  await db.execAsync("BEGIN");
-
-  try {
+  await runInTransaction(db, async () => {
     await db.runAsync(
       `
         UPDATE journals
@@ -932,12 +926,7 @@ export async function updateJournalContent(
       `,
       journalId,
     );
-
-    await db.execAsync("COMMIT");
-  } catch (error) {
-    await db.execAsync("ROLLBACK");
-    throw error;
-  }
+  });
 }
 
 export const buildMemoryTree = (memories: StoredMemory[]): NebulaTree => {

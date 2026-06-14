@@ -117,7 +117,9 @@ export default function Index() {
       await syncDerivedEntitiesForSession(db, sessionIdRef.current, messages);
     };
 
-    void persist();
+    void persist().catch((error) => {
+      console.error(error);
+    });
   }, [db, messages, sessionReady]);
 
   const replaceMessage = useCallback(

@@ -157,101 +157,107 @@ export function ChatMessages({
           !isLoading &&
           (!!item.request?.prompt || !!item.request?.imageUri) &&
           !sending;
-        const showMeta = isStreaming || isRetrying || canCopy || canRetry;
+        const showActions = canCopy || canRetry;
 
         return (
           <View className={cn("mb-2.5 flex-row", isUser ? "justify-end" : "justify-start")}>
-            <Card
-              className={cn(
-                "max-w-[80%] gap-0 py-0",
-                isUser && "bg-primary",
-                isError && "bg-destructive/10",
-              )}
-            >
-              <CardContent className="px-4 py-3">
-                {isPending ? (
-                  <View className="min-h-5 min-w-6 items-center justify-center">
-                    <ActivityIndicator size="small" color={mutedColor} />
-                  </View>
-                ) : (
-                  <>
-                    {item.content ? (
-                      <Text
-                        className={cn(
-                          "text-base leading-5",
-                          isUser && "text-primary-foreground",
-                        )}
-                      >
-                        {item.content}
-                      </Text>
-                    ) : null}
-                    {isError && item.error ? (
-                      <Text className="text-sm leading-5 text-destructive">{item.error}</Text>
-                    ) : null}
-                    {item.imageUri ? (
-                      <Image
-                        source={{ uri: item.imageUri }}
-                        className="mt-2 h-[200px] w-[200px] rounded-md bg-muted"
-                      />
-                    ) : null}
-                    {item.role === "assistant" && item.toolCards?.length ? (
-                      <View className="mt-3 gap-2 rounded-lg border border-border bg-muted/60 p-3">
-                        <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          {t("chat.cardTitle")}
-                        </Text>
-                        {item.toolCards.map((card) => (
-                          <View
-                            key={card.id}
-                            className="gap-2 rounded-md border border-border/70 bg-background/80 p-2.5"
-                          >
-                            <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                              {getCardTypeLabel(card.type)}
-                            </Text>
-                            <Text className="text-sm font-medium leading-5">{card.title}</Text>
-                            <Text className="text-sm leading-5">{card.payload.content}</Text>
-                            <ToolCardActions
-                              messageId={item.id}
-                              card={card}
-                              onUpdateCandidateStatus={onUpdateCandidateStatus}
-                            />
-                          </View>
-                        ))}
-                      </View>
-                    ) : null}
-                  </>
+            <View className={cn("max-w-[80%]", isUser ? "items-end" : "items-start")}>
+              <Card
+                className={cn(
+                  "gap-0 py-0",
+                  isUser && "bg-primary",
+                  isError && "bg-destructive/10",
                 )}
+              >
+                <CardContent className="px-4 py-3">
+                  {isPending ? (
+                    <View className="min-h-5 min-w-6 items-center justify-center">
+                      <ActivityIndicator size="small" color={mutedColor} />
+                    </View>
+                  ) : (
+                    <>
+                      {item.content ? (
+                        <Text
+                          className={cn(
+                            "text-base leading-5",
+                            isUser && "text-primary-foreground",
+                          )}
+                        >
+                          {item.content}
+                        </Text>
+                      ) : null}
+                      {isError && item.error ? (
+                        <Text className="text-sm leading-5 text-destructive">{item.error}</Text>
+                      ) : null}
+                      {item.imageUri ? (
+                        <Image
+                          source={{ uri: item.imageUri }}
+                          className="mt-2 h-[200px] w-[200px] rounded-md bg-muted"
+                        />
+                      ) : null}
+                      {item.role === "assistant" && item.toolCards?.length ? (
+                        <View className="mt-3 gap-2 rounded-lg border border-border bg-muted/60 p-3">
+                          <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {t("chat.cardTitle")}
+                          </Text>
+                          {item.toolCards.map((card) => (
+                            <View
+                              key={card.id}
+                              className="gap-2 rounded-md border border-border/70 bg-background/80 p-2.5"
+                            >
+                              <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                {getCardTypeLabel(card.type)}
+                              </Text>
+                              <Text className="text-sm font-medium leading-5">{card.title}</Text>
+                              <Text className="text-sm leading-5">{card.payload.content}</Text>
+                              <ToolCardActions
+                                messageId={item.id}
+                                card={card}
+                                onUpdateCandidateStatus={onUpdateCandidateStatus}
+                              />
+                            </View>
+                          ))}
+                        </View>
+                      ) : null}
+                      {isStreaming || isRetrying ? (
+                        <View className="mt-2 flex-row items-center">
+                          <ActivityIndicator size="small" color={mutedColor} />
+                        </View>
+                      ) : null}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
 
-                {showMeta ? (
-                  <View className="flex-row items-center gap-0.5">
-                    {isLoading ? <ActivityIndicator size="small" color={mutedColor} /> : null}
-                    {canCopy ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        accessibilityRole="button"
-                        accessibilityLabel={t("chat.copyMessage")}
-                        hitSlop={10}
-                        onPress={() => void copyMessage(item.content)}
-                      >
-                        <Ionicons name="copy-outline" size={13} color={iconColor} />
-                      </Button>
-                    ) : null}
-                    {canRetry ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        accessibilityRole="button"
-                        accessibilityLabel={t("chat.retryMessage")}
-                        hitSlop={10}
-                        onPress={() => onRetryMessage(item)}
-                      >
-                        <Ionicons name="refresh" size={13} color={iconColor} />
-                      </Button>
-                    ) : null}
-                  </View>
-                ) : null}
-              </CardContent>
-            </Card>
+              {showActions ? (
+                <View className="mt-1 flex-row items-center gap-0.5 px-1">
+                  {canCopy ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      accessibilityRole="button"
+                      accessibilityLabel={t("chat.copyMessage")}
+                      hitSlop={10}
+                      onPress={() => void copyMessage(item.content)}
+                    >
+                      <Ionicons name="copy-outline" size={13} color={iconColor} />
+                    </Button>
+                  ) : null}
+                  {canRetry ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      accessibilityRole="button"
+                      accessibilityLabel={t("chat.retryMessage")}
+                      hitSlop={10}
+                      onPress={() => onRetryMessage(item)}
+                    >
+                      <Ionicons name="refresh" size={13} color={iconColor} />
+                    </Button>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
           </View>
         );
       }}
