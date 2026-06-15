@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -165,7 +165,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <Toast visible={toast.visible} message={toast.message} tone={toast.tone} />
 
-      <Stack.Screen
+      <Drawer.Screen
         options={{
           title: t("settings.title"),
           headerShown: true,

@@ -1,12 +1,16 @@
+import { Ionicons } from "@expo/vector-icons";
 import { ThemeProvider } from "@react-navigation/native";
 import { PortalHost } from "@rn-primitives/portal";
-import { Stack } from "expo-router";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { router } from "expo-router";
+import { Drawer } from "expo-router/drawer";
+import { StatusBar } from "expo-status-bar";
+import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
 import { ShareIntentProvider } from "expo-share-intent";
 import { SQLiteProvider } from "expo-sqlite";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { NebulaView } from "@/components/NebulaView";
+import { PersonalDrawerContent } from "@/components/PersonalDrawerContent";
 import { ConfigProvider } from "@/context/config";
 import { DATABASE_NAME, migrateDbIfNeeded } from "@/lib/db";
 import { NAV_THEME } from "@/lib/theme";
@@ -14,9 +18,34 @@ import { cn } from "@/lib/utils";
 import "../global.css";
 import "@/lib/i18n";
 
+function HeaderBackButton({ color }: { color: string }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Back"
+      hitSlop={10}
+      onPress={() => {
+        if (router.canGoBack()) {
+          router.back();
+          return;
+        }
+
+        router.replace("/");
+      }}
+      className="ml-3 h-10 w-10 items-center justify-center rounded-full"
+    >
+      <Ionicons name="chevron-back" size={24} color={color} />
+    </Pressable>
+  );
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const navTheme = NAV_THEME[colorScheme];
+  const detailScreenOptions = {
+    headerLeft: () => <HeaderBackButton color={navTheme.colors.text} />,
+    swipeEnabled: false,
+  };
 
   return (
     <GestureHandlerRootView style={styles.root}>
@@ -26,15 +55,37 @@ export default function RootLayout() {
             <ThemeProvider value={navTheme}>
               <View className={cn("flex-1 bg-background", colorScheme === "dark" && "dark")}>
                 <NebulaView style={styles.background} />
-                <Stack
+                <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+                <Drawer
+                  drawerContent={(props) => <PersonalDrawerContent {...props} />}
                   screenOptions={{
                     headerShadowVisible: false,
-                    statusBarStyle: colorScheme === "dark" ? "light" : "dark",
                     headerStyle: { backgroundColor: navTheme.colors.card },
                     headerTintColor: navTheme.colors.text,
                     headerTitleStyle: { color: navTheme.colors.text },
+                    drawerPosition: "left",
+                    drawerType: "front",
+                    drawerStyle: {
+                      backgroundColor: navTheme.colors.card,
+                      width: 296,
+                    },
+                    overlayColor: colorScheme === "dark" ? "rgba(0,0,0,0.48)" : "rgba(0,0,0,0.28)",
+                    swipeEdgeWidth: 64,
                   }}
-                />
+                >
+                  <Drawer.Screen name="index" />
+                  <Drawer.Screen name="settings" options={detailScreenOptions} />
+                  <Drawer.Screen name="memory" options={detailScreenOptions} />
+                  <Drawer.Screen name="journal" options={detailScreenOptions} />
+                  <Drawer.Screen name="calendar" options={detailScreenOptions} />
+                  <Drawer.Screen
+                    name="personal"
+                    options={{
+                      ...detailScreenOptions,
+                      drawerItemStyle: { display: "none" },
+                    }}
+                  />
+                </Drawer>
                 <PortalHost />
               </View>
             </ThemeProvider>

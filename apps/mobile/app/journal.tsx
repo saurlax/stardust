@@ -1,4 +1,5 @@
-import { Stack, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -159,7 +160,7 @@ export default function JournalScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-      <Stack.Screen
+      <Drawer.Screen
         options={{
           title: t("journal.title"),
         }}

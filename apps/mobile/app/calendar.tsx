@@ -1,5 +1,5 @@
 import * as Calendar from "expo-calendar";
-import { Stack } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -175,7 +175,7 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-      <Stack.Screen
+      <Drawer.Screen
         options={{
           title: t("calendar.title"),
         }}

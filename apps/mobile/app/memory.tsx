@@ -1,4 +1,5 @@
-import { Stack, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
 import { ScrollView, useColorScheme, View } from "react-native";
@@ -154,7 +155,7 @@ export default function MemoryScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
-      <Stack.Screen
+      <Drawer.Screen
         options={{
           headerTransparent: true,
           headerTitle: t("memory.title"),

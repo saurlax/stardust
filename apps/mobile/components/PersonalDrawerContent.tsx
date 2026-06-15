@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
-import { Drawer } from "expo-router/drawer";
+import type { DrawerContentComponentProps } from "@react-navigation/drawer";
+import { router, useFocusEffect, type Href } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
-import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
@@ -26,7 +26,12 @@ const emptySnapshot: PersonalSnapshot = {
   journalEntries: 0,
 };
 
-export default function PersonalScreen() {
+const navigateFromDrawer = (navigation: DrawerContentComponentProps["navigation"], href: Href) => {
+  navigation.closeDrawer();
+  router.push(href);
+};
+
+export function PersonalDrawerContent({ navigation }: DrawerContentComponentProps) {
   const db = useSQLiteContext();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const avatarIconColor = colorScheme === "dark" ? "#0A0A0A" : "#FAFAFA";
@@ -62,14 +67,11 @@ export default function PersonalScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-      <Drawer.Screen
-        options={{
-          title: t("personal.title"),
-        }}
-      />
-
-      <View className="flex-1 gap-4 p-4">
+    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <View className="flex-row items-center gap-2.5 px-0.5 py-0.5">
           <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
             <Ionicons name="person" size={20} color={avatarIconColor} />
@@ -80,20 +82,21 @@ export default function PersonalScreen() {
           </View>
         </View>
 
-        <View className="flex-row gap-3">
-          <Card className="flex-1 gap-2 px-4 py-4">
+        <View className="flex-row gap-2">
+          <Card className="flex-1 gap-2 px-3 py-3">
             <CardDescription>{t("personal.acceptedMemories")}</CardDescription>
             <Text className="text-2xl font-semibold">{snapshot.acceptedMemories}</Text>
           </Card>
-          <Card className="flex-1 gap-2 px-4 py-4">
+          <Card className="flex-1 gap-2 px-3 py-3">
             <CardDescription>{t("personal.pendingCards")}</CardDescription>
             <Text className="text-2xl font-semibold">{snapshot.pendingCards}</Text>
           </Card>
-          <Card className="flex-1 gap-2 px-4 py-4">
-            <CardDescription>{t("personal.journalCount")}</CardDescription>
-            <Text className="text-2xl font-semibold">{snapshot.journalEntries}</Text>
-          </Card>
         </View>
+
+        <Card className="gap-2 px-3 py-3">
+          <CardDescription>{t("personal.journalCount")}</CardDescription>
+          <Text className="text-2xl font-semibold">{snapshot.journalEntries}</Text>
+        </Card>
 
         <Card className="gap-2 px-4 py-4">
           <CardDescription>{t("personal.latestMemory")}</CardDescription>
@@ -102,50 +105,50 @@ export default function PersonalScreen() {
           </Text>
         </Card>
 
-        <View className="gap-3">
-          <Card className="gap-3 px-4 py-4">
-            <View className="gap-1">
-              <Text className="text-base font-semibold">{t("personal.recentMemoriesTitle")}</Text>
-              <Text className="text-xs text-muted-foreground">
-                {t("personal.recentMemoriesDescription")}
-              </Text>
-            </View>
-            {recentMemories.length ? (
-              recentMemories.map((memory) => (
-                <View key={memory.id} className="gap-1 rounded-lg bg-muted/50 px-3 py-3">
-                  <Text className="text-xs uppercase tracking-wide text-muted-foreground">
-                    {memory.type}
-                  </Text>
-                  <Text className="text-sm leading-5">{memory.content}</Text>
-                </View>
-              ))
-            ) : (
-              <Text className="text-sm text-muted-foreground">{t("personal.noRecentMemories")}</Text>
-            )}
-          </Card>
+        <Card className="gap-3 px-4 py-4">
+          <View className="gap-1">
+            <Text className="text-base font-semibold">{t("personal.recentMemoriesTitle")}</Text>
+            <Text className="text-xs text-muted-foreground">
+              {t("personal.recentMemoriesDescription")}
+            </Text>
+          </View>
+          {recentMemories.length ? (
+            recentMemories.map((memory) => (
+              <View key={memory.id} className="gap-1 rounded-lg bg-muted/50 px-3 py-3">
+                <Text className="text-xs uppercase text-muted-foreground">{memory.type}</Text>
+                <Text className="text-sm leading-5">{memory.content}</Text>
+              </View>
+            ))
+          ) : (
+            <Text className="text-sm text-muted-foreground">{t("personal.noRecentMemories")}</Text>
+          )}
+        </Card>
 
-          <Card className="gap-3 px-4 py-4">
-            <View className="gap-1">
-              <Text className="text-base font-semibold">{t("personal.recentCapturesTitle")}</Text>
-              <Text className="text-xs text-muted-foreground">
-                {t("personal.recentCapturesDescription")}
-              </Text>
-            </View>
-            {recentJournals.length ? (
-              recentJournals.map((journal) => (
-                <View key={journal.id} className="gap-1 rounded-lg bg-muted/50 px-3 py-3">
-                  <Text className="text-sm leading-5">{journal.content}</Text>
-                </View>
-              ))
-            ) : (
-              <Text className="text-sm text-muted-foreground">{t("personal.noRecentCaptures")}</Text>
-            )}
-          </Card>
-        </View>
+        <Card className="gap-3 px-4 py-4">
+          <View className="gap-1">
+            <Text className="text-base font-semibold">{t("personal.recentCapturesTitle")}</Text>
+            <Text className="text-xs text-muted-foreground">
+              {t("personal.recentCapturesDescription")}
+            </Text>
+          </View>
+          {recentJournals.length ? (
+            recentJournals.map((journal) => (
+              <View key={journal.id} className="gap-1 rounded-lg bg-muted/50 px-3 py-3">
+                <Text className="text-sm leading-5">{journal.content}</Text>
+              </View>
+            ))
+          ) : (
+            <Text className="text-sm text-muted-foreground">{t("personal.noRecentCaptures")}</Text>
+          )}
+        </Card>
 
         <View className="gap-3">
-          <Pressable accessibilityRole="button" onPress={() => router.push("/memory")} className="rounded-xl">
-            <Card className="h-56 overflow-hidden p-0">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigateFromDrawer(navigation, "/memory")}
+            className="rounded-xl"
+          >
+            <Card className="h-48 overflow-hidden p-0">
               <NebulaView style={StyleSheet.absoluteFillObject} tree={memoryTree} showLabels={false} />
               <CardHeader className="absolute left-0 top-0 p-4">
                 <CardTitle>{t("personal.memoryTitle")}</CardTitle>
@@ -154,7 +157,11 @@ export default function PersonalScreen() {
             </Card>
           </Pressable>
 
-          <Pressable accessibilityRole="button" onPress={() => router.push("/journal")} className="rounded-xl">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigateFromDrawer(navigation, "/journal")}
+            className="rounded-xl"
+          >
             <Card>
               <CardHeader>
                 <CardTitle>{t("personal.journalTitle")}</CardTitle>
@@ -163,7 +170,11 @@ export default function PersonalScreen() {
             </Card>
           </Pressable>
 
-          <Pressable accessibilityRole="button" onPress={() => router.push("/calendar")} className="rounded-xl">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigateFromDrawer(navigation, "/calendar")}
+            className="rounded-xl"
+          >
             <Card>
               <CardHeader>
                 <CardTitle>{t("personal.calendarTitle")}</CardTitle>
@@ -172,7 +183,15 @@ export default function PersonalScreen() {
             </Card>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  content: {
+    gap: 14,
+    padding: 16,
+    paddingBottom: 24,
+  },
+});

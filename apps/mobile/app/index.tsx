@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { router, Stack } from "expo-router";
+import { DrawerActions, useNavigation } from "@react-navigation/native";
+import { router } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -53,6 +55,7 @@ const buildMemoryContext = (
 
 export default function Index() {
   const db = useSQLiteContext();
+  const navigation = useNavigation();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const { config, ready } = useConfig();
@@ -404,52 +407,55 @@ export default function Index() {
   }, [hasShareIntent, ready, resetShareIntent, sending, sessionReady, shareIntent]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-      <Stack.Screen
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      <Drawer.Screen
         options={{
           title: t("chat.title"),
-          headerTitleAlign: "center",
-          headerTitle: () => (
-            <View className="items-center justify-center">
-              <Text className="text-center text-[22px] font-bold">{t("chat.title")}</Text>
-              <Text className="mt-0.5 text-center text-xs text-muted-foreground">
-                {ready ? t("chat.providerReady") : t("chat.providerLoading")}
-              </Text>
-            </View>
-          ),
-          headerLeft: () => (
-            <Button
-              accessibilityRole="button"
-              accessibilityLabel={t("chat.openPersonalPage")}
-              hitSlop={10}
-              onPress={() => router.push("/personal")}
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-            >
-              <Ionicons name="menu" size={22} color={iconColor} />
-            </Button>
-          ),
-          headerRight: () => (
-            <Button
-              accessibilityRole="button"
-              accessibilityLabel={t("chat.openSettings")}
-              hitSlop={10}
-              onPress={() => router.push("/settings")}
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-            >
-              <Ionicons name="settings-outline" size={22} color={iconColor} />
-            </Button>
-          ),
+          headerShown: false,
         }}
       />
+
+      <View className="relative h-[72px] justify-center border-b border-border bg-background/80 px-16">
+        <View className="absolute bottom-0 left-3 top-0 justify-center">
+          <Button
+            accessibilityRole="button"
+            accessibilityLabel={t("chat.openPersonalPage")}
+            hitSlop={10}
+            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+          >
+            <Ionicons name="menu" size={22} color={iconColor} />
+          </Button>
+        </View>
+
+        <View className="items-center justify-center">
+          <Text className="text-center text-[22px] font-bold">{t("chat.title")}</Text>
+          <Text className="mt-0.5 text-center text-xs text-muted-foreground">
+            {ready ? t("chat.providerReady") : t("chat.providerLoading")}
+          </Text>
+        </View>
+
+        <View className="absolute bottom-0 right-3 top-0 justify-center">
+          <Button
+            accessibilityRole="button"
+            accessibilityLabel={t("chat.openSettings")}
+            hitSlop={10}
+            onPress={() => router.push("/settings")}
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+          >
+            <Ionicons name="settings-outline" size={22} color={iconColor} />
+          </Button>
+        </View>
+      </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={90}
+        keyboardVerticalOffset={0}
       >
         <ChatMessages
           messages={messages}
