@@ -4,9 +4,9 @@ import { PortalHost } from "@rn-primitives/portal";
 import { router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { StatusBar } from "expo-status-bar";
-import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
 import { ShareIntentProvider } from "expo-share-intent";
 import { SQLiteProvider } from "expo-sqlite";
+import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { NebulaView } from "@/components/NebulaView";
@@ -44,7 +44,6 @@ export default function RootLayout() {
   const navTheme = NAV_THEME[colorScheme];
   const detailScreenOptions = {
     headerLeft: () => <HeaderBackButton color={navTheme.colors.text} />,
-    swipeEnabled: false,
   };
 
   return (
@@ -73,8 +72,15 @@ export default function RootLayout() {
                     swipeEdgeWidth: 64,
                   }}
                 >
-                  <Drawer.Screen name="index" />
-                  <Drawer.Screen name="settings" options={detailScreenOptions} />
+                  <Drawer.Screen name="index" options={{ headerShown: false }} />
+                  <Drawer.Screen
+                    name="settings"
+                    options={{
+                      ...detailScreenOptions,
+                      drawerItemStyle: { display: "none" },
+                      swipeEnabled: false,
+                    }}
+                  />
                   <Drawer.Screen name="memory" options={detailScreenOptions} />
                   <Drawer.Screen name="journal" options={detailScreenOptions} />
                   <Drawer.Screen name="calendar" options={detailScreenOptions} />
@@ -83,6 +89,7 @@ export default function RootLayout() {
                     options={{
                       ...detailScreenOptions,
                       drawerItemStyle: { display: "none" },
+                      swipeEnabled: false,
                     }}
                   />
                 </Drawer>

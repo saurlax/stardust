@@ -1,16 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
-import { router } from "expo-router";
-import { Drawer } from "expo-router/drawer";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, useColorScheme, View } from "react-native";
+import {
+  Alert,
+  Animated,
+  Easing,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  useColorScheme,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ChatMessages } from "@/components/ChatMessages";
 import { ChatPrompt } from "@/components/ChatPrompt";
+import { SettingsContent } from "@/components/SettingsContent";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useConfig } from "@/context/config";
@@ -56,6 +66,7 @@ const buildMemoryContext = (
 export default function Index() {
   const db = useSQLiteContext();
   const navigation = useNavigation();
+  const { width: screenWidth } = useWindowDimensions();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const { config, ready } = useConfig();
@@ -67,6 +78,7 @@ export default function Index() {
   const [messages, setMessages] = useState<ChatMessage[]>([createGreetingMessage()]);
   const [sending, setSending] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const chatIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef<string>(createSessionId());
   const handledShareRef = useRef<string | undefined>(undefined);
@@ -74,6 +86,7 @@ export default function Index() {
   const activeRequestRef = useRef<RequestContext | null>(null);
   const configRef = useRef(config);
   const hydratingRef = useRef(true);
+  const settingsProgressRef = useRef(new Animated.Value(0));
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -406,15 +419,34 @@ export default function Index() {
     resetShareIntent();
   }, [hasShareIntent, ready, resetShareIntent, sending, sessionReady, shareIntent]);
 
+  const openSettings = () => {
+    setSettingsVisible(true);
+    Animated.timing(settingsProgressRef.current, {
+      toValue: 1,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeSettings = () => {
+    Animated.timing(settingsProgressRef.current, {
+      toValue: 0,
+      duration: 200,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) setSettingsVisible(false);
+    });
+  };
+
+  const settingsTranslateX = settingsProgressRef.current.interpolate({
+    inputRange: [0, 1],
+    outputRange: [screenWidth, 0],
+  });
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
-      <Drawer.Screen
-        options={{
-          title: t("chat.title"),
-          headerShown: false,
-        }}
-      />
-
       <View className="relative h-[72px] justify-center border-b border-border bg-background/80 px-16">
         <View className="absolute bottom-0 left-3 top-0 justify-center">
           <Button
@@ -442,7 +474,7 @@ export default function Index() {
             accessibilityRole="button"
             accessibilityLabel={t("chat.openSettings")}
             hitSlop={10}
-            onPress={() => router.push("/settings")}
+            onPress={openSettings}
             variant="ghost"
             size="icon"
             className="rounded-full"
@@ -481,6 +513,48 @@ export default function Index() {
           onPressAdd={() => void openLibrary()}
         />
       </KeyboardAvoidingView>
+
+      {settingsVisible ? (
+        <View style={StyleSheet.absoluteFill}>
+          <Pressable accessibilityRole="button" style={styles.settingsBackdrop} onPress={closeSettings} />
+          <Animated.View
+            style={[
+              styles.settingsPanel,
+              {
+                transform: [{ translateX: settingsTranslateX }],
+              },
+            ]}
+          >
+            <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
+              <View className="h-[56px] flex-row items-center gap-2 border-b border-border px-3">
+                <Button
+                  accessibilityRole="button"
+                  accessibilityLabel="Close settings"
+                  hitSlop={10}
+                  onPress={closeSettings}
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full"
+                >
+                  <Ionicons name="chevron-back" size={24} color={iconColor} />
+                </Button>
+                <Text className="text-lg font-semibold">{t("settings.title")}</Text>
+              </View>
+              <SettingsContent />
+            </SafeAreaView>
+          </Animated.View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  settingsBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.22)",
+  },
+  settingsPanel: {
+    ...StyleSheet.absoluteFillObject,
+  },
+});
