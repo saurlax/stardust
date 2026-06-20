@@ -539,6 +539,20 @@ function DeviceEventCard({
               <Ionicons name="sparkles-outline" size={14} />
               <Text>{t("inbox.openReview")}</Text>
             </Button>
+          ) : event.candidateStatus === "accepted" && event.candidateId ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onPress={() =>
+                router.push({
+                  pathname: "/memory",
+                  params: { nodeId: `memory-${event.candidateId}` },
+                } as Href)
+              }
+            >
+              <Ionicons name="git-network-outline" size={14} />
+              <Text>{t("inbox.openMemoryGraph")}</Text>
+            </Button>
           ) : null}
         </View>
       </CardContent>
