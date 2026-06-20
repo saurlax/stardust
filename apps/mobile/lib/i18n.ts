@@ -179,6 +179,7 @@ const translations = {
       nodeEmpty: "No details yet.",
       openSource: "Open source",
       visibleMemories: "visible memories",
+      resetView: "Reset view",
       filter: {
         all: "All",
         preference: "Preference",
@@ -415,6 +416,7 @@ const translations = {
       nodeEmpty: "暂无详情。",
       openSource: "打开来源",
       visibleMemories: "条可见记忆",
+      resetView: "重置视图",
       filter: {
         all: "全部",
         preference: "偏好",

@@ -154,6 +154,7 @@ export default function MemoryScreen() {
   const [relations, setRelations] = useState<RelationRecord[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>("root");
+  const [graphResetToken, setGraphResetToken] = useState(0);
 
   const refresh = useCallback(() => {
     let active = true;
@@ -275,6 +276,7 @@ export default function MemoryScreen() {
             interactive
             selectedNodeId={selectedNodeId}
             onSelectNode={setSelectedNodeId}
+            resetToken={graphResetToken}
           />
         </View>
 
@@ -301,6 +303,19 @@ export default function MemoryScreen() {
               ? `${memories.length} ${t("memory.visibleMemories")}`
               : `${visibleMemories.length} ${t("memory.visibleMemories")} · ${t(`memory.filter.${filter}`)}`}
           </Text>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start"
+            onPress={() => {
+              setSelectedNodeId("root");
+              setGraphResetToken((value) => value + 1);
+            }}
+          >
+            <Ionicons name="refresh-outline" size={14} color={iconColor} />
+            <Text>{t("memory.resetView")}</Text>
+          </Button>
 
           <View className="flex-row gap-2">
             <Card className="flex-1 px-3 py-3">

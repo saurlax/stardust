@@ -226,7 +226,10 @@ type NebulaViewProps = {
   interactive?: boolean;
   selectedNodeId?: string | null;
   onSelectNode?: (nodeId: string) => void;
+  resetToken?: number;
 };
+
+const defaultViewport = { scale: 1, tx: 0, ty: 0 };
 
 export function NebulaView({
   style,
@@ -235,6 +238,7 @@ export function NebulaView({
   interactive = false,
   selectedNodeId,
   onSelectNode,
+  resetToken,
 }: NebulaViewProps) {
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const isDark = colorScheme === "dark";
@@ -245,7 +249,7 @@ export function NebulaView({
   const layoutNodes = useMemo(() => buildLayoutNodes(nebulaTree), [nebulaTree]);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [time, setTime] = useState(0);
-  const [viewport, setViewport] = useState({ scale: 1, tx: 0, ty: 0 });
+  const [viewport, setViewport] = useState(defaultViewport);
   const [isInteracting, setIsInteracting] = useState(false);
   const viewportRef = useRef(viewport);
   const lastTickRef = useRef(0);
@@ -267,6 +271,12 @@ export function NebulaView({
   useEffect(() => {
     pendingViewportRef.current = viewport;
   }, [viewport]);
+
+  useEffect(() => {
+    viewportRef.current = defaultViewport;
+    pendingViewportRef.current = defaultViewport;
+    setViewport(defaultViewport);
+  }, [resetToken]);
 
   useEffect(() => {
     return () => {
