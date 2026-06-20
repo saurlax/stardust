@@ -81,6 +81,11 @@ const buildMemoryContext = (
     .join("\n\n");
 };
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message;
+  return t("chat.actionFailed");
+};
+
 export default function Index() {
   const db = useSQLiteContext();
   const navigation = useNavigation();
@@ -96,6 +101,7 @@ export default function Index() {
   const [pendingCandidates, setPendingCandidates] = useState(0);
   const [sending, setSending] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
   const chatIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef<string>(createSessionId());
   const handledShareRef = useRef<string | undefined>(undefined);
@@ -120,10 +126,14 @@ export default function Index() {
         if (!active) return;
 
         if (session) {
+          setChatError(null);
           sessionIdRef.current = session.sessionId;
           chatIdRef.current = session.remoteChatId ?? null;
           setMessages(session.messages.length ? session.messages : [createGreetingMessage()]);
         }
+      })
+      .catch((error) => {
+        if (active) setChatError(getErrorMessage(error));
       })
       .finally(() => {
         if (!active) return;
@@ -149,11 +159,14 @@ export default function Index() {
       loadLatestChatSession(db)
         .then((session) => {
           if (!active || !session) return;
+          setChatError(null);
           sessionIdRef.current = session.sessionId;
           chatIdRef.current = session.remoteChatId ?? null;
           setMessages(session.messages.length ? session.messages : [createGreetingMessage()]);
         })
-        .catch(console.error);
+        .catch((error) => {
+          if (active) setChatError(getErrorMessage(error));
+        });
 
       return () => {
         active = false;
@@ -174,7 +187,7 @@ export default function Index() {
     };
 
     void persist().catch((error) => {
-      console.error(error);
+      setChatError(getErrorMessage(error));
     });
   }, [db, messages, sessionReady]);
 
@@ -239,6 +252,7 @@ export default function Index() {
 
       try {
         const relevantKnowledge = await findRelevantKnowledge(db, request.prompt);
+        setChatError(null);
         const memoryContext = buildMemoryContext(relevantKnowledge);
 
         replaceMessage(assistantId, (message) => ({
@@ -289,6 +303,7 @@ export default function Index() {
           episodeId: request.episodeId,
           cards: result.toolCards,
         });
+        setChatError(null);
         refreshPendingCandidates();
 
         replaceMessage(assistantId, (message) => ({
@@ -298,6 +313,7 @@ export default function Index() {
       } catch (error) {
         const message =
           error instanceof Error && error.message ? error.message : t("chat.requestFailed");
+        setChatError(message);
 
         replaceMessage(assistantId, (current) => ({
           ...current,
@@ -380,6 +396,7 @@ export default function Index() {
             remoteChatId: chatIdRef.current,
             messages: nextMessages,
           });
+          setChatError(null);
           await runRequest({
             assistantId: assistantMessage.id,
             request,
@@ -388,6 +405,7 @@ export default function Index() {
         } catch (error) {
           const message =
             error instanceof Error && error.message ? error.message : t("chat.requestFailed");
+          setChatError(message);
           replaceMessage(assistantMessage.id, (current) => ({
             ...current,
             status: "error",
@@ -452,25 +470,29 @@ export default function Index() {
     status: MemoryCandidateStatus,
     nextContent?: string,
   ) => {
-    replaceMessage(messageId, (message) => ({
-      ...message,
-      toolCards: message.toolCards?.map((card) =>
-        card.id === cardId
-          ? {
-              ...card,
-              status,
-              payload: {
-                ...card.payload,
-                content: nextContent ?? card.payload.content,
-              },
-            }
-          : card,
-      ),
-    }));
-
     void updateCandidateStatus(db, cardId, status, nextContent)
-      .then(refreshPendingCandidates)
-      .catch(console.error);
+      .then(() => {
+        replaceMessage(messageId, (message) => ({
+          ...message,
+          toolCards: message.toolCards?.map((card) =>
+            card.id === cardId
+              ? {
+                  ...card,
+                  status,
+                  payload: {
+                    ...card.payload,
+                    content: nextContent ?? card.payload.content,
+                  },
+                }
+              : card,
+          ),
+        }));
+        setChatError(null);
+        refreshPendingCandidates();
+      })
+      .catch((error) => {
+        setChatError(getErrorMessage(error));
+      });
   };
 
   const openCamera = async () => {
@@ -535,7 +557,7 @@ export default function Index() {
           shareIntent: true,
           mimeType: sharedImage.mimeType,
         },
-      }).catch(console.error);
+      }).catch((error) => setChatError(getErrorMessage(error)));
     }
     if (shareIntent.text || shareIntent.webUrl) {
       const sharedText = shareIntent.text || shareIntent.webUrl || "";
@@ -548,7 +570,7 @@ export default function Index() {
           sessionId: sessionIdRef.current,
           shareIntent: true,
         },
-      }).catch(console.error);
+      }).catch((error) => setChatError(getErrorMessage(error)));
     }
     resetShareIntent();
   }, [db, hasShareIntent, ready, resetShareIntent, sending, sessionReady, shareIntent]);
@@ -615,6 +637,18 @@ export default function Index() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
+        {chatError ? (
+          <View className="mx-4 mt-3 gap-2 rounded-md border border-destructive/50 bg-destructive/5 px-3 py-2">
+            <View className="flex-row items-start gap-2">
+              <Ionicons name="alert-circle-outline" size={16} color="#DC2626" />
+              <Text className="flex-1 text-sm text-destructive">{chatError}</Text>
+              <Button variant="ghost" size="sm" onPress={() => setChatError(null)}>
+                <Ionicons name="close-outline" size={16} color={iconColor} />
+              </Button>
+            </View>
+          </View>
+        ) : null}
+
         <ChatMessages
           messages={messages}
           sending={sending}
