@@ -326,6 +326,7 @@ assertIncludes(knowledge, "nodeId: `relation-${item.id}`", "Relation retrieval m
 assertIncludes(knowledge, "nodeId:", "Entity and relation retrieval results must carry graph navigation ids.");
 assertIncludes(knowledge, "episodes.title AS title", "Episode retrieval must preserve titles for chat context.");
 assertIncludes(knowledge, "reflections.title AS title", "Reflection retrieval must preserve titles for chat context.");
+assertIncludes(knowledge, "title LIKE ? OR content LIKE ?", "Reflection fallback retrieval must search titles and content.");
 
 assertIncludes(ble, "Stardust Sense", "BLE device name must match Stardust Sense.");
 assertIncludes(ble, "sendStardustDeviceCommand", "Mobile BLE commands are missing.");

@@ -195,7 +195,8 @@ export async function findRelevantKnowledge(
         limit,
       ),
       db.getAllAsync<any>(
-        `SELECT reflection_id AS id, 'reflection' AS type, title, content, created_at FROM reflections WHERE status = 'active' AND content LIKE ? LIMIT ?`,
+        `SELECT reflection_id AS id, 'reflection' AS type, title, content, created_at FROM reflections WHERE status = 'active' AND (title LIKE ? OR content LIKE ?) LIMIT ?`,
+        `%${query}%`,
         `%${query}%`,
         limit,
       ),
