@@ -262,6 +262,16 @@ export function SettingsContent() {
     }
   };
 
+  const onSyncDevice = async (device: DeviceRecord) => {
+    try {
+      await sendStardustDeviceCommand(db, device.id, "sync");
+      showToast(t("settings.deviceSyncSent"), "success");
+      setDevices(await listDevices(db));
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    }
+  };
+
   const onSleepDevice = async (device: DeviceRecord) => {
     try {
       await sendStardustDeviceCommand(db, device.id, "sleep");
@@ -385,6 +395,13 @@ export function SettingsContent() {
                         onPress={() => void onCaptureDevice(device)}
                       >
                         <Text>{t("settings.captureDevice")}</Text>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onPress={() => void onSyncDevice(device)}
+                      >
+                        <Text>{t("settings.syncDevice")}</Text>
                       </Button>
                       <Button
                         variant="outline"
