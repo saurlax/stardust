@@ -160,6 +160,18 @@ pnpm --filter ./apps/mobile run android
 
 XIAO ESP32S3 Sense 固件在 `iot/iot.ino`。烧录后设备会以 `Stardust Sense` 名称广播，移动端可在设置页扫描、订阅事件、同步 manifest、发送捕获命令，并在 Memory Inbox 中把设备事件转入待确认记忆。
 
+固件协议可以用本地验证脚本检查。脚本会始终校验移动端与固件的 BLE 名称、UUID、命令和 manifest 字段；如果本机安装了 Arduino CLI，还会尝试编译 XIAO ESP32S3 sketch：
+
+```bash
+pnpm verify:iot
+```
+
+默认 FQBN 是 `esp32:esp32:XIAO_ESP32S3`。如果你的 Arduino board package 使用不同 FQBN，可以覆盖：
+
+```bash
+STARDUST_IOT_FQBN=esp32:esp32:your_board pnpm verify:iot
+```
+
 ## 项目结构
 
 ```
@@ -185,6 +197,7 @@ pnpm dev:api             # 仅启动 API
 pnpm lint                # 代码检查
 pnpm typecheck           # TypeScript 类型检查
 pnpm verify:memory       # 验证本地优先记忆 schema、IoT 事件链路和星图布局
+pnpm verify:iot          # 验证 XIAO BLE 固件协议，并在 Arduino CLI 可用时编译
 pnpm smoke:web           # 导出 Expo Web 静态产物并检查基础 bundle
 ```
 
