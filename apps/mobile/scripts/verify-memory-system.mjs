@@ -257,6 +257,8 @@ assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snaps
 assertIncludes(memoryRecords, "memory_candidates.kind AS candidate_kind", "Stored memories must retain their source candidate kind.");
 assertIncludes(memoryScreen, '"open_loop"', "Memory screen must expose an open-loop filter.");
 assertIncludes(memoryScreen, "candidateKind === \"open_loop\"", "Memory screen must identify confirmed open loops.");
+assertIncludes(memoryScreen, "nodeNotFoundTitle", "Memory screen must explain stale graph navigation targets.");
+assertIncludes(memoryScreen, "setSelectedNodeId(\"root\")", "Memory screen must let users recover from stale graph targets.");
 assertIncludes(inboxScreen, "inbox.openLoopBadge", "Saved inbox memories must label confirmed open loops.");
 assertIncludes(knowledge, "listEntityRelationKnowledge", "Retrieval must include entity graph knowledge.");
 assertIncludes(knowledge, 'source: "entity" as const', "Entity graph retrieval results must be typed.");

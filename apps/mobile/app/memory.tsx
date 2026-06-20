@@ -516,6 +516,27 @@ export default function MemoryScreen() {
                 ) : null}
               </CardContent>
             </Card>
+          ) : selectedNodeId ? (
+            <Card className="gap-3 py-4">
+              <CardHeader className="gap-1">
+                <CardDescription>{t("memory.nodeNotFoundDescription")}</CardDescription>
+                <CardTitle className="text-base">{t("memory.nodeNotFoundTitle")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="self-start"
+                  onPress={() => {
+                    setSelectedNodeId("root");
+                    setGraphResetToken((value) => value + 1);
+                  }}
+                >
+                  <Ionicons name="refresh-outline" size={14} color={iconColor} />
+                  <Text>{t("memory.resetView")}</Text>
+                </Button>
+              </CardContent>
+            </Card>
           ) : null}
 
           {reflections.length ? (
