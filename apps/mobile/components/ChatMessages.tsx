@@ -20,6 +20,7 @@ import type {
   MessageToolCard,
 } from "@/lib/chat/types";
 import { t } from "@/lib/i18n";
+import { getKnowledgeTypeLabel } from "@/lib/memoryLabels";
 import { cn } from "@/lib/utils";
 
 type ChatMessagesProps = {
@@ -59,6 +60,23 @@ const getRelationSummary = (card: MessageToolCard) =>
 const getContextTypeLabel = (type?: string) => {
   if (type === "open_loop") return t("chat.memoryContextOpenLoop");
   return type ?? t("chat.memoryContextUnknown");
+};
+
+const getContextSourceLabel = (
+  item: NonNullable<ChatMessage["memoryContext"]>[number],
+) => {
+  switch (item.source) {
+    case "memory":
+      return t("journal.memoryEntryPrefix");
+    case "episode":
+      return t("journal.episodeEntryPrefix");
+    case "reflection":
+      return t("journal.reflectionEntryPrefix");
+    case "entity":
+      return t("journal.entityEntryPrefix");
+    case "relation":
+      return t("journal.relationEntryPrefix");
+  }
 };
 
 function MemoryContextSummary({ message }: { message: ChatMessage }) {
@@ -118,7 +136,10 @@ function MemoryContextSummary({ message }: { message: ChatMessage }) {
               >
                 <View className="gap-0.5">
                   <Text className="text-[10px] font-semibold uppercase text-muted-foreground">
-                    {item.source} · {getContextTypeLabel(item.type)} · {item.createdAt.slice(0, 10)}
+                    {getContextSourceLabel(item)} ·{" "}
+                    {getKnowledgeTypeLabel(item.source, item.type) ||
+                      getContextTypeLabel(item.type)}{" "}
+                    · {item.createdAt.slice(0, 10)}
                   </Text>
                   <Text className="text-xs leading-4 text-muted-foreground">
                     {item.content.length > 120 ? `${item.content.slice(0, 120)}...` : item.content}
