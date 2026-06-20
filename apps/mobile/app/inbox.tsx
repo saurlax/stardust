@@ -422,6 +422,7 @@ export default function InboxScreen() {
   const [reflections, setReflections] = useState<ReflectionRecord[]>([]);
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
   const [deviceEvents, setDeviceEvents] = useState<DeviceEventRecord[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("all");
 
   const refresh = useCallback(() => {
     let active = true;
@@ -468,6 +469,13 @@ export default function InboxScreen() {
         return t("inbox.emptyPending");
     }
   }, [tab]);
+  const visibleDeviceEvents = useMemo(
+    () =>
+      selectedDeviceId === "all"
+        ? deviceEvents
+        : deviceEvents.filter((event) => event.deviceId === selectedDeviceId),
+    [deviceEvents, selectedDeviceId],
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
@@ -525,7 +533,28 @@ export default function InboxScreen() {
         {tab === "devices" && deviceEvents.length ? (
           <View className="gap-2">
             <Text className="px-0.5 text-lg font-semibold">{t("inbox.deviceEvents")}</Text>
-            {deviceEvents.map((event) => (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-2 pr-4">
+                <Button
+                  variant={selectedDeviceId === "all" ? "default" : "outline"}
+                  size="sm"
+                  onPress={() => setSelectedDeviceId("all")}
+                >
+                  <Text>{t("inbox.allDevices")}</Text>
+                </Button>
+                {devices.map((device) => (
+                  <Button
+                    key={device.id}
+                    variant={selectedDeviceId === device.id ? "default" : "outline"}
+                    size="sm"
+                    onPress={() => setSelectedDeviceId(device.id)}
+                  >
+                    <Text>{device.name}</Text>
+                  </Button>
+                ))}
+              </View>
+            </ScrollView>
+            {visibleDeviceEvents.map((event) => (
               <DeviceEventCard key={event.id} event={event} />
             ))}
           </View>
