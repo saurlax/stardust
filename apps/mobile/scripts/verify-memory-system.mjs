@@ -89,12 +89,14 @@ assertIncludes(chatScreen, 'title: "Open loops"', "Chat context must separate co
 assertIncludes(chatScreen, 'memory.source === "memory" && memory.type === "open_loop"', "Chat context open-loop section must use confirmed open loops.");
 assertIncludes(chatScreen, 'memory.source === "memory" && memory.type !== "open_loop"', "Chat context saved memories must exclude open loops.");
 assertIncludes(chatScreen, "Relationship graph", "Chat context must include retrieved relationship graph knowledge.");
+assertIncludes(chatScreen, "memory.title", "Chat prompt context must preserve retrieved knowledge titles.");
 assertIncludes(chatMessages, "item.nodeId", "Chat memory context must use graph node ids when available.");
 assertIncludes(chatMessages, 'item.source === "relation"', "Chat memory context must handle relation graph results.");
 assertIncludes(chatMessages, "getContextTypeLabel", "Chat memory context must label special memory types.");
 assertIncludes(chatMessages, 'type === "open_loop"', "Chat memory context must label open loops.");
 assertIncludes(chatMessages, "getKnowledgeTypeLabel(item.source, item.type)", "Chat memory context must use user-facing type labels.");
 assertIncludes(chatMessages, "getContextSourceLabel", "Chat memory context must use user-facing source labels.");
+assertIncludes(chatMessages, "item.title", "Chat memory context must display retrieved knowledge titles.");
 assertIncludes(journalScreen, "setErrorMessage(t(\"journal.loadFailed\"))", "Episode timeline load failures must be visible.");
 assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be visible.");
 assertIncludes(journalScreen, "sourceCounts", "Episode timeline source filters must expose counts.");
@@ -238,6 +240,8 @@ assertIncludes(knowledge, 'candidate_kind === "open_loop" ? -0.35 : 0', "Retriev
 assertIncludes(knowledge, "nodeId: `memory-${item.id}`", "Memory retrieval results must carry graph navigation ids.");
 assertIncludes(knowledge, "nodeId: `relation-${item.id}`", "Relation retrieval must navigate to relation graph nodes.");
 assertIncludes(knowledge, "nodeId:", "Entity and relation retrieval results must carry graph navigation ids.");
+assertIncludes(knowledge, "episodes.title AS title", "Episode retrieval must preserve titles for chat context.");
+assertIncludes(knowledge, "reflections.title AS title", "Reflection retrieval must preserve titles for chat context.");
 
 assertIncludes(ble, "Stardust Sense", "BLE device name must match Stardust Sense.");
 assertIncludes(ble, "sendStardustDeviceCommand", "Mobile BLE commands are missing.");

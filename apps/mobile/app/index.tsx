@@ -53,6 +53,7 @@ const buildMemoryContext = (
   memories: {
     source: "memory" | "episode" | "reflection" | "entity" | "relation";
     type?: string;
+    title?: string;
     content: string;
     createdAt: string;
   }[],
@@ -88,8 +89,12 @@ const buildMemoryContext = (
       (section) =>
         `${section.title}:\n${section.items
           .map(
-            (memory, index) =>
-              `${index + 1}. [${memory.type ?? memory.source}] ${memory.content} (${memory.createdAt.slice(0, 10)})`,
+            (memory, index) => {
+              const label = memory.title
+                ? `${memory.type ?? memory.source}: ${memory.title}`
+                : memory.type ?? memory.source;
+              return `${index + 1}. [${label}] ${memory.content} (${memory.createdAt.slice(0, 10)})`;
+            },
           )
           .join("\n")}`,
     )

@@ -42,11 +42,12 @@ async function listRecentEpisodeKnowledge(
   const rows = await db.getAllAsync<{
     id: string;
     type: string;
+    title: string | null;
     content: string;
     created_at: string;
   }>(
     `
-      SELECT episode_id AS id, source AS type, content, created_at
+      SELECT episode_id AS id, source AS type, title, content, created_at
       FROM episodes
       ORDER BY created_at DESC
       LIMIT ?
@@ -58,6 +59,7 @@ async function listRecentEpisodeKnowledge(
     id: item.id,
     source: "episode" as const,
     type: item.type,
+    title: item.title ?? undefined,
     content: item.content,
     createdAt: item.created_at,
     rank: 2 + index * 0.05,
@@ -133,6 +135,7 @@ async function listEntityRelationKnowledge(
       id: item.id,
       source: "entity" as const,
       type: item.type,
+      title: item.content,
       content: item.content,
       createdAt: item.created_at,
       nodeId: `entity-${item.id}`,
@@ -142,6 +145,7 @@ async function listEntityRelationKnowledge(
       id: item.id,
       source: "relation" as const,
       type: item.type,
+      title: item.type,
       content: `${item.source_name ?? "Unknown"} · ${item.type} · ${item.target_name ?? "Unknown"} (weight ${item.weight})`,
       createdAt: item.created_at,
       nodeId: `relation-${item.id}`,
@@ -183,12 +187,12 @@ export async function findRelevantKnowledge(
         limit,
       ),
       db.getAllAsync<any>(
-        `SELECT episode_id AS id, source AS type, content, created_at FROM episodes WHERE ${episodeLike} LIMIT ?`,
+        `SELECT episode_id AS id, source AS type, title, content, created_at FROM episodes WHERE ${episodeLike} LIMIT ?`,
         ...params,
         limit,
       ),
       db.getAllAsync<any>(
-        `SELECT reflection_id AS id, 'reflection' AS type, content, created_at FROM reflections WHERE status = 'active' AND content LIKE ? LIMIT ?`,
+        `SELECT reflection_id AS id, 'reflection' AS type, title, content, created_at FROM reflections WHERE status = 'active' AND content LIKE ? LIMIT ?`,
         `%${query}%`,
         limit,
       ),
@@ -211,6 +215,7 @@ export async function findRelevantKnowledge(
         id: item.id,
         source: "episode" as const,
         type: item.type,
+        title: item.title ?? undefined,
         content: item.content,
         createdAt: item.created_at,
         rank: rankByTokenMatches(`${item.type} ${item.content}`, tokens) + 0.2,
@@ -219,6 +224,7 @@ export async function findRelevantKnowledge(
         id: item.id,
         source: "reflection" as const,
         type: item.type,
+        title: item.title ?? undefined,
         content: item.content,
         createdAt: item.created_at,
         rank: rankByTokenMatches(item.content, tokens) - 0.2,
@@ -250,6 +256,7 @@ export async function findRelevantKnowledge(
     db.getAllAsync<any>(
       `
         SELECT episodes.episode_id AS id, episodes.source AS type,
+          episodes.title AS title,
           episodes.content AS content, episodes.created_at AS created_at,
           bm25(episodes_fts) AS rank
         FROM episodes_fts
@@ -264,6 +271,7 @@ export async function findRelevantKnowledge(
     db.getAllAsync<any>(
       `
         SELECT reflections.reflection_id AS id, 'reflection' AS type,
+          reflections.title AS title,
           reflections.content AS content, reflections.created_at AS created_at,
           bm25(reflections_fts) AS rank
         FROM reflections_fts
@@ -293,6 +301,7 @@ export async function findRelevantKnowledge(
       id: item.id,
       source: "episode" as const,
       type: item.type,
+      title: item.title ?? undefined,
       content: item.content,
       createdAt: item.created_at,
       rank: item.rank + 0.2,
@@ -301,6 +310,7 @@ export async function findRelevantKnowledge(
       id: item.id,
       source: "reflection" as const,
       type: item.type,
+      title: item.title ?? undefined,
       content: item.content,
       createdAt: item.created_at,
       rank: item.rank - 0.2,

@@ -193,6 +193,7 @@ export type RelevantKnowledge = {
   id: string;
   source: "memory" | "episode" | "reflection" | "entity" | "relation";
   type?: string;
+  title?: string;
   content: string;
   createdAt: string;
   nodeId?: string;

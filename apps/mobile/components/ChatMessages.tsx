@@ -141,6 +141,11 @@ function MemoryContextSummary({ message }: { message: ChatMessage }) {
                       getContextTypeLabel(item.type)}{" "}
                     · {item.createdAt.slice(0, 10)}
                   </Text>
+                  {item.title ? (
+                    <Text className="text-xs font-semibold leading-4 text-muted-foreground">
+                      {item.title}
+                    </Text>
+                  ) : null}
                   <Text className="text-xs leading-4 text-muted-foreground">
                     {item.content.length > 120 ? `${item.content.slice(0, 120)}...` : item.content}
                   </Text>
