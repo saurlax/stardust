@@ -131,16 +131,14 @@ cp apps/api/.env.example apps/api/.env
 移动端不使用 `.env` 配置运行时地址。
 所有连接信息都通过设置页填写，并保存在设备本地的 AsyncStorage 中。
 
-当前支持两种运行模式：
+当前仅支持本地运行模式：
 
-- `Local`
-  - 移动端直接连接 OpenAI 兼容接口
-  - 需要填写 `Base URL`、`API Key`、`Model`
-- `Cloud`
-  - 移动端只连接 Stardust API
-  - 只需要填写 `API Base URL`
+- 移动端直接连接 OpenAI 兼容接口
+- 需要填写 `Base URL`、`API Key`、`Model`
 
-无论使用哪种模式，聊天记录、捕获内容、候选记忆和已确认记忆都会优先保存在设备本地。
+聊天记录、捕获内容、候选记忆和已确认记忆都会优先保存在设备本地。
+
+Cloud 模式将在未来添加。
 
 ## 项目结构
 
