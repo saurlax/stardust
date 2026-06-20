@@ -141,6 +141,9 @@ assertIncludes(personalScreen, 'pathname: "/memory"', "Personal page recent memo
 assertIncludes(personalScreen, 'params: { episodeId: episode.id }', "Personal page recent captures must open source episodes.");
 assertIncludes(personalDrawer, 'pathname: "/memory"', "Personal drawer recent memories must open the memory graph.");
 assertIncludes(personalDrawer, 'params: { episodeId: episode.id }', "Personal drawer recent captures must open source episodes.");
+assertIncludes(inboxScreen, "function SummaryTile", "Memory inbox must expose a capture pipeline summary.");
+assertIncludes(inboxScreen, "pendingDeviceReviews", "Memory inbox pipeline must count unreviewed device captures.");
+assertIncludes(inboxScreen, 'setDeviceEventFilter("promotable")', "Device review summary must jump to promotable device events.");
 assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");
 assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty state must open Settings.");
 assertIncludes(inboxScreen, "pendingKindFilters", "Pending inbox must expose candidate kind filters.");

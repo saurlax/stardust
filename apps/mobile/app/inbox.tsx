@@ -195,6 +195,43 @@ function TabButton({
   );
 }
 
+function SummaryTile({
+  label,
+  value,
+  icon,
+  active,
+  onPress,
+}: {
+  label: string;
+  value: number;
+  icon: keyof typeof Ionicons.glyphMap;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = active
+    ? colorScheme === "dark"
+      ? "#0A0A0A"
+      : "#FAFAFA"
+    : colorScheme === "dark"
+      ? "#FAFAFA"
+      : "#0A0A0A";
+
+  return (
+    <Button
+      variant={active ? "default" : "outline"}
+      className="min-h-[74px] flex-1 items-start justify-between rounded-md px-3 py-2"
+      onPress={onPress}
+    >
+      <View className="w-full flex-row items-center justify-between gap-2">
+        <Text className="text-xs">{label}</Text>
+        <Ionicons name={icon} size={15} color={iconColor} />
+      </View>
+      <Text className="text-2xl font-semibold leading-7">{value}</Text>
+    </Button>
+  );
+}
+
 function OpenEpisodeButton({ episodeId }: { episodeId?: string }) {
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
@@ -935,6 +972,10 @@ export default function InboxScreen() {
     },
     [deviceEvents, selectedDeviceId],
   );
+  const pendingDeviceReviews = useMemo(
+    () => deviceEvents.filter((event) => event.promotable && !event.candidateStatus).length,
+    [deviceEvents],
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
@@ -947,6 +988,45 @@ export default function InboxScreen() {
         <View className="gap-1 px-0.5">
           <Text className="text-xl font-semibold">{t("inbox.headerTitle")}</Text>
           <Text className="text-sm text-muted-foreground">{t("inbox.subtitle")}</Text>
+        </View>
+
+        <View className="gap-2">
+          <Text className="px-0.5 text-sm font-semibold">{t("inbox.pipelineTitle")}</Text>
+          <View className="flex-row gap-2">
+            <SummaryTile
+              active={tab === "pending"}
+              label={t("inbox.pipelinePending")}
+              value={candidates.length}
+              icon="sparkles-outline"
+              onPress={() => setTab("pending")}
+            />
+            <SummaryTile
+              active={tab === "saved"}
+              label={t("inbox.pipelineSaved")}
+              value={memories.length}
+              icon="archive-outline"
+              onPress={() => setTab("saved")}
+            />
+          </View>
+          <View className="flex-row gap-2">
+            <SummaryTile
+              active={tab === "reflections"}
+              label={t("inbox.pipelineReflections")}
+              value={reflections.length}
+              icon="prism-outline"
+              onPress={() => setTab("reflections")}
+            />
+            <SummaryTile
+              active={tab === "devices"}
+              label={t("inbox.pipelineDeviceReviews")}
+              value={pendingDeviceReviews}
+              icon="hardware-chip-outline"
+              onPress={() => {
+                setTab("devices");
+                setDeviceEventFilter("promotable");
+              }}
+            />
+          </View>
         </View>
 
         <View className="flex-row flex-wrap gap-2">
