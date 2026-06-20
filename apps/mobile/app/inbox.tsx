@@ -75,6 +75,9 @@ function CandidateCard({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(candidate.content);
   const card = toToolCardsFromCandidates([candidate])[0];
+  const relationSummary = card.payload.relationTarget
+    ? `${card.payload.relationType ?? t("inbox.relatedTo")} · ${card.payload.relationTarget}`
+    : undefined;
 
   return (
     <Card className="gap-3 py-4">
@@ -94,6 +97,15 @@ function CandidateCard({
         ) : (
           <Text className="text-sm leading-5">{candidate.content}</Text>
         )}
+
+        {relationSummary ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.relation")}
+            </Text>
+            <Text className="text-xs leading-4 text-muted-foreground">{relationSummary}</Text>
+          </View>
+        ) : null}
 
         {candidate.sourceContent ? (
           <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">

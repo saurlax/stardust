@@ -50,6 +50,11 @@ const getCardTypeLabel = (type: string) => {
   }
 };
 
+const getRelationSummary = (card: MessageToolCard) =>
+  card.payload.relationTarget
+    ? `${card.payload.relationType ?? t("chat.cardRelationDefault")} · ${card.payload.relationTarget}`
+    : undefined;
+
 function ToolCardActions({
   messageId,
   card,
@@ -233,29 +238,42 @@ export function ChatMessages({
                           <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                             {t("chat.cardTitle")}
                           </Text>
-                          {item.toolCards.map((card) => (
-                            <View
-                              key={card.id}
-                              className="gap-2 rounded-md border border-border/70 bg-background/80 p-2.5"
-                            >
-                              <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                {getCardTypeLabel(card.type)}
-                              </Text>
-                              <Text className="text-sm font-medium leading-5">
-                                {card.title}
-                              </Text>
-                              <Text className="text-sm leading-5">
-                                {card.payload.content}
-                              </Text>
-                              <ToolCardActions
-                                messageId={item.id}
-                                card={card}
-                                onUpdateCandidateStatus={
-                                  onUpdateCandidateStatus
-                                }
-                              />
-                            </View>
-                          ))}
+                          {item.toolCards.map((card) => {
+                            const relationSummary = getRelationSummary(card);
+                            return (
+                              <View
+                                key={card.id}
+                                className="gap-2 rounded-md border border-border/70 bg-background/80 p-2.5"
+                              >
+                                <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                  {getCardTypeLabel(card.type)}
+                                </Text>
+                                <Text className="text-sm font-medium leading-5">
+                                  {card.title}
+                                </Text>
+                                <Text className="text-sm leading-5">
+                                  {card.payload.content}
+                                </Text>
+                                {relationSummary ? (
+                                  <View className="gap-1 rounded-md bg-muted/70 px-2.5 py-2">
+                                    <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                      {t("chat.cardRelation")}
+                                    </Text>
+                                    <Text className="text-xs leading-4 text-muted-foreground">
+                                      {relationSummary}
+                                    </Text>
+                                  </View>
+                                ) : null}
+                                <ToolCardActions
+                                  messageId={item.id}
+                                  card={card}
+                                  onUpdateCandidateStatus={
+                                    onUpdateCandidateStatus
+                                  }
+                                />
+                              </View>
+                            );
+                          })}
                         </View>
                       ) : null}
                       {isStreaming || isRetrying ? (
