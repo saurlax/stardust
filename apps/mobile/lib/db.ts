@@ -1451,6 +1451,48 @@ const rankByTokenMatches = (value: string, tokens: string[]) => {
   return -tokens.filter((token) => normalized.includes(token.toLowerCase())).length;
 };
 
+const mergeRelevantKnowledge = (items: RelevantKnowledge[], limit: number) => {
+  const seen = new Set<string>();
+  return items
+    .sort((a, b) => a.rank - b.rank || Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .filter((item) => {
+      const key = `${item.source}:${item.id}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, limit);
+};
+
+async function listRecentEpisodeKnowledge(
+  db: SQLiteDatabase,
+  limit: number,
+): Promise<RelevantKnowledge[]> {
+  const rows = await db.getAllAsync<{
+    id: string;
+    type: string;
+    content: string;
+    created_at: string;
+  }>(
+    `
+      SELECT episode_id AS id, source AS type, content, created_at
+      FROM episodes
+      ORDER BY created_at DESC
+      LIMIT ?
+    `,
+    limit,
+  );
+
+  return rows.map((item, index) => ({
+    id: item.id,
+    source: "episode" as const,
+    type: item.type,
+    content: item.content,
+    createdAt: item.created_at,
+    rank: 2 + index * 0.05,
+  }));
+}
+
 export async function findRelevantKnowledge(
   db: SQLiteDatabase,
   query: string,
@@ -1465,7 +1507,8 @@ export async function findRelevantKnowledge(
     const like = tokens.map(() => "(content LIKE ? OR type LIKE ?)").join(" OR ");
     const episodeLike = tokens.map(() => "(content LIKE ? OR source LIKE ?)").join(" OR ");
     const params = tokens.flatMap((token) => [`%${token}%`, `%${token}%`]);
-    const [memoryRows, episodeRows, reflectionRows] = await Promise.all([
+    const recentEpisodeLimit = Math.min(3, limit);
+    const [memoryRows, episodeRows, reflectionRows, recentEpisodes] = await Promise.all([
       db.getAllAsync<any>(
         `SELECT memory_id AS id, type, content, created_at FROM memory_atoms WHERE status = 'active' AND ${like} LIMIT ?`,
         ...params,
@@ -1481,8 +1524,9 @@ export async function findRelevantKnowledge(
         `%${query}%`,
         limit,
       ),
+      listRecentEpisodeKnowledge(db, recentEpisodeLimit),
     ]);
-    return [
+    return mergeRelevantKnowledge([
       ...memoryRows.map((item) => ({
         id: item.id,
         source: "memory" as const,
@@ -1507,12 +1551,12 @@ export async function findRelevantKnowledge(
         createdAt: item.created_at,
         rank: rankByTokenMatches(item.content, tokens) - 0.2,
       })),
-    ]
-      .sort((a, b) => a.rank - b.rank || Date.parse(b.createdAt) - Date.parse(a.createdAt))
-      .slice(0, limit);
+      ...recentEpisodes,
+    ], limit);
   }
 
-  const [memoryRows, episodeRows, reflectionRows] = await Promise.all([
+  const recentEpisodeLimit = Math.min(3, limit);
+  const [memoryRows, episodeRows, reflectionRows, recentEpisodes] = await Promise.all([
     db.getAllAsync<any>(
       `
         SELECT memory_atoms.memory_id AS id, memory_atoms.type AS type,
@@ -1555,9 +1599,10 @@ export async function findRelevantKnowledge(
       ftsQuery,
       limit,
     ),
+    listRecentEpisodeKnowledge(db, recentEpisodeLimit),
   ]);
 
-  return [
+  return mergeRelevantKnowledge([
     ...memoryRows.map((item) => ({
       id: item.id,
       source: "memory" as const,
@@ -1582,9 +1627,8 @@ export async function findRelevantKnowledge(
       createdAt: item.created_at,
       rank: item.rank - 0.2,
     })),
-  ]
-    .sort((a, b) => a.rank - b.rank || Date.parse(b.createdAt) - Date.parse(a.createdAt))
-    .slice(0, limit);
+    ...recentEpisodes,
+  ], limit);
 }
 
 export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalSnapshot> {
