@@ -72,6 +72,23 @@ const getBleStatusLabel = (status: StardustBleStatus) => {
   }
 };
 
+const getDeviceStatusLabel = (status: DeviceRecord["status"]) => {
+  switch (status) {
+    case "connected":
+      return t("settings.deviceStatusConnected");
+    case "disconnected":
+      return t("settings.deviceStatusDisconnected");
+    default:
+      return t("settings.deviceStatusKnown");
+  }
+};
+
+const getSubscribeLabel = (device: DeviceRecord) => {
+  if (device.status === "connected") return t("settings.resubscribeDevice");
+  if (device.status === "disconnected") return t("settings.reconnectDevice");
+  return t("settings.subscribeDevice");
+};
+
 export function SettingsContent() {
   const db = useSQLiteContext();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
@@ -318,7 +335,7 @@ export function SettingsContent() {
                   <View key={device.id} className="gap-2 rounded-md border border-border p-3">
                     <Text className="text-sm font-semibold">{device.name}</Text>
                     <Text className="text-xs text-muted-foreground">
-                      {device.kind} · {device.status}
+                      {device.kind} · {getDeviceStatusLabel(device.status)}
                     </Text>
                     {getDeviceDetailLines(device).map((line) => (
                       <Text key={line} className="text-xs text-muted-foreground">
@@ -331,7 +348,7 @@ export function SettingsContent() {
                         size="sm"
                         onPress={() => void onSubscribeDevice(device)}
                       >
-                        <Text>{t("settings.subscribeDevice")}</Text>
+                        <Text>{getSubscribeLabel(device)}</Text>
                       </Button>
                       <Button
                         variant="outline"
