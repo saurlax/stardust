@@ -246,6 +246,35 @@ export default function MemoryScreen() {
     () => memories.filter((memory) => memory.candidateKind === "open_loop").length,
     [memories],
   );
+  const filterCounts = useMemo(
+    () =>
+      filters.reduce<Record<Filter, number>>(
+        (counts, item) => {
+          counts[item] =
+            item === "all"
+              ? memories.length
+              : item === "open_loop"
+                ? memories.filter((memory) => memory.candidateKind === "open_loop").length
+                : memories.filter((memory) => memory.type === item).length;
+          return counts;
+        },
+        {
+          all: 0,
+          open_loop: 0,
+          preference: 0,
+          fact: 0,
+          relationship: 0,
+          project: 0,
+          concern: 0,
+          goal: 0,
+          routine: 0,
+          memory: 0,
+          task: 0,
+          opinion: 0,
+        },
+      ),
+    [memories],
+  );
   const memoryTree = useMemo(
     () => buildMemoryTree(visibleMemories, reflections, entities, relations),
     [entities, reflections, relations, visibleMemories],
@@ -383,7 +412,7 @@ export default function MemoryScreen() {
                 <FilterButton
                   key={item}
                   active={filter === item}
-                  label={t(`memory.filter.${item}`)}
+                  label={`${t(`memory.filter.${item}`)} ${filterCounts[item]}`}
                   onPress={() => setFilter(item)}
                 />
               ))}

@@ -84,5 +84,8 @@ assertIncludes(memoryScreen, "memory.relationNodeDescription", "Selected relatio
 assertIncludes(memoryScreen, "setErrorMessage(t(\"memory.loadFailed\"))", "Memory graph load failures must be visible.");
 assertIncludes(memoryScreen, ".catch(onError)", "Saved memory actions must surface failures.");
 assertIncludes(memoryScreen, "{relations.length}", "Memory graph must expose relation counts.");
+assertIncludes(memoryScreen, "filterCounts", "Memory graph filters must expose memory counts.");
+assertIncludes(memoryScreen, "filterCounts[item]", "Memory graph filter labels must display counts.");
+assertIncludes(memoryScreen, "memory.candidateKind === \"open_loop\"", "Memory graph filter counts must include open loops.");
 
 console.log("Memory graph layout invariants look valid.");
