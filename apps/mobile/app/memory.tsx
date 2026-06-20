@@ -48,6 +48,11 @@ const getErrorMessage = (error: unknown) => {
   return t("memory.actionFailed");
 };
 
+const getMemoryTypeLabel = (memory: StoredMemory) =>
+  memory.candidateKind === "open_loop"
+    ? t("memory.filter.open_loop")
+    : t(`memory.filter.${memory.type}`);
+
 function FilterButton({
   active,
   label,
@@ -106,7 +111,7 @@ function MemoryEditor({
       <CardHeader className="gap-1">
         <CardDescription>
           {memory.candidateKind === "open_loop" ? `${t("memory.openLoopBadge")} · ` : ""}
-          {memory.type} · {new Date(memory.createdAt).toLocaleDateString()}
+          {getMemoryTypeLabel(memory)} · {new Date(memory.createdAt).toLocaleDateString()}
         </CardDescription>
         {editing ? (
           <Textarea

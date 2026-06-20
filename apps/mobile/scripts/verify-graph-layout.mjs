@@ -87,5 +87,6 @@ assertIncludes(memoryScreen, "{relations.length}", "Memory graph must expose rel
 assertIncludes(memoryScreen, "filterCounts", "Memory graph filters must expose memory counts.");
 assertIncludes(memoryScreen, "filterCounts[item]", "Memory graph filter labels must display counts.");
 assertIncludes(memoryScreen, "memory.candidateKind === \"open_loop\"", "Memory graph filter counts must include open loops.");
+assertIncludes(memoryScreen, "getMemoryTypeLabel", "Saved memory cards must use localized memory type labels.");
 
 console.log("Memory graph layout invariants look valid.");
