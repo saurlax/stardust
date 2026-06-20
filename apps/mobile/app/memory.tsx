@@ -42,6 +42,11 @@ const filters = [
 ] as const;
 type Filter = (typeof filters)[number];
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message;
+  return t("memory.actionFailed");
+};
+
 function FilterButton({
   active,
   label,
@@ -85,9 +90,11 @@ function OpenSourceButton({ episodeId }: { episodeId?: string }) {
 function MemoryEditor({
   memory,
   onRefresh,
+  onError,
 }: {
   memory: StoredMemory;
   onRefresh: () => void;
+  onError: (error: unknown) => void;
 }) {
   const db = useSQLiteContext();
   const [editing, setEditing] = useState(false);
@@ -139,10 +146,12 @@ function MemoryEditor({
             <Button
               size="sm"
               onPress={() => {
-                void updateStoredMemoryContent(db, memory.id, draft).then(() => {
-                  setEditing(false);
-                  onRefresh();
-                });
+                void updateStoredMemoryContent(db, memory.id, draft)
+                  .then(() => {
+                    setEditing(false);
+                    onRefresh();
+                  })
+                  .catch(onError);
               }}
             >
               <Text>{t("memory.save")}</Text>
@@ -157,7 +166,7 @@ function MemoryEditor({
               variant="outline"
               size="sm"
               onPress={() => {
-                void dismissStoredMemory(db, memory.id).then(onRefresh);
+                void dismissStoredMemory(db, memory.id).then(onRefresh).catch(onError);
               }}
             >
               <Text>{t("memory.archive")}</Text>
@@ -182,6 +191,7 @@ export default function MemoryScreen() {
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>("root");
   const [graphResetToken, setGraphResetToken] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     let active = true;
@@ -189,6 +199,7 @@ export default function MemoryScreen() {
     Promise.all([listStoredMemories(db), listReflections(db), listEntities(db), listRelations(db)])
       .then(([nextMemories, nextReflections, nextEntities, nextRelations]) => {
         if (!active) return;
+        setErrorMessage(null);
         setMemories(nextMemories);
         setReflections(nextReflections);
         setEntities(nextEntities);
@@ -196,6 +207,7 @@ export default function MemoryScreen() {
       })
       .catch(() => {
         if (!active) return;
+        setErrorMessage(t("memory.loadFailed"));
         setMemories([]);
         setReflections([]);
         setEntities([]);
@@ -206,6 +218,10 @@ export default function MemoryScreen() {
       active = false;
     };
   }, [db]);
+
+  const handleMemoryError = useCallback((error: unknown) => {
+    setErrorMessage(getErrorMessage(error));
+  }, []);
 
   useFocusEffect(refresh);
 
@@ -321,6 +337,19 @@ export default function MemoryScreen() {
             <Text className="text-sm text-muted-foreground">{t("memory.graphSubtitle")}</Text>
           </View>
 
+          {errorMessage ? (
+            <Card className="gap-3 border-destructive/50 bg-destructive/5 p-4">
+              <Text className="text-sm font-semibold text-destructive">
+                {t("memory.errorTitle")}
+              </Text>
+              <Text className="text-sm text-destructive">{errorMessage}</Text>
+              <Button variant="outline" size="sm" className="self-start" onPress={refresh}>
+                <Ionicons name="refresh-outline" size={14} color={iconColor} />
+                <Text>{t("memory.retry")}</Text>
+              </Button>
+            </Card>
+          ) : null}
+
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View className="flex-row gap-2 pr-4">
               {filters.map((item) => (
@@ -419,7 +448,12 @@ export default function MemoryScreen() {
             ) : null}
 
             {visibleMemories.map((memory) => (
-              <MemoryEditor key={memory.id} memory={memory} onRefresh={refresh} />
+              <MemoryEditor
+                key={memory.id}
+                memory={memory}
+                onRefresh={refresh}
+                onError={handleMemoryError}
+              />
             ))}
           </View>
         </View>

@@ -208,6 +208,10 @@ const translations = {
       relationWeight: "weight",
       nodeEmpty: "No details yet.",
       openSource: "Open source",
+      errorTitle: "Memory graph needs attention",
+      actionFailed: "Memory action failed.",
+      loadFailed: "Failed to load memory graph.",
+      retry: "Retry",
       visibleMemories: "visible memories",
       resetView: "Reset view",
       filter: {
@@ -476,6 +480,10 @@ const translations = {
       relationWeight: "强度",
       nodeEmpty: "暂无详情。",
       openSource: "打开来源",
+      errorTitle: "记忆星图需要处理",
+      actionFailed: "记忆操作失败。",
+      loadFailed: "无法加载记忆星图。",
+      retry: "重试",
       visibleMemories: "条可见记忆",
       resetView: "重置视图",
       filter: {
