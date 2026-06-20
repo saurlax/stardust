@@ -21,6 +21,7 @@ export type StardustBleStatus =
   | "unauthorized"
   | "unavailable";
 type BleState = Awaited<ReturnType<BleManagerInstance["state"]>>;
+type StardustDeviceCommand = "capture" | "sync" | "sleep";
 
 let manager: BleManagerInstance | null = null;
 const connectedDevices = new Map<string, DeviceInstance>();
@@ -251,6 +252,24 @@ const readCapabilities = (value: Record<string, unknown>) =>
   Array.isArray(value.capabilities)
     ? value.capabilities.filter((item): item is string => typeof item === "string")
     : undefined;
+const commandCapabilities: Record<StardustDeviceCommand, string> = {
+  capture: "command-capture",
+  sync: "command-sync",
+  sleep: "command-sleep",
+};
+const ensureDeviceCommandCapability = async (
+  db: SQLiteDatabase,
+  deviceId: string,
+  command: StardustDeviceCommand,
+) => {
+  const device = (await listDevices(db)).find((item) => item.id === deviceId);
+  const capabilities = device?.capabilities;
+  if (!capabilities?.length) return;
+  const requiredCapability = commandCapabilities[command];
+  if (!capabilities.includes(requiredCapability)) {
+    throw new Error(`Stardust Sense does not advertise ${requiredCapability}.`);
+  }
+};
 
 export const scanStardustDevices = async (db: SQLiteDatabase) => {
   const ble = await getBleManager();
@@ -419,12 +438,13 @@ export const restoreStardustDeviceSubscriptions = async (db: SQLiteDatabase) => 
 export const sendStardustDeviceCommand = async (
   db: SQLiteDatabase,
   deviceId: string,
-  command: "capture" | "sync" | "sleep",
+  command: StardustDeviceCommand,
 ) => {
   const ble = await getBleManager();
   const device = connectedDevices.get(deviceId) ?? (await ble.connectToDevice(deviceId, { timeout: 10000 }));
   const readyDevice = await device.discoverAllServicesAndCharacteristics();
   await activateStardustDevice(db, ble, readyDevice, { syncAfterActivate: false });
+  await ensureDeviceCommandCapability(db, deviceId, command);
   await readyDevice.writeCharacteristicWithResponseForService(
     SERVICE_UUID,
     COMMAND_CHARACTERISTIC_UUID,

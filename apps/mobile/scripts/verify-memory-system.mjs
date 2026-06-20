@@ -150,7 +150,11 @@ assertIncludes(schema, "capabilities_json TEXT", "Devices must persist capabilit
 assertIncludes(devices, "parseCapabilities", "Device repository must parse stored capabilities.");
 assertIncludes(ble, "readCapabilities", "BLE sync must parse manifest capabilities.");
 assertIncludes(ble, "protocolVersion", "BLE sync must persist protocol versions.");
+assertIncludes(ble, "ensureDeviceCommandCapability", "BLE commands must enforce advertised capabilities.");
+assertIncludes(ble, "commandCapabilities", "BLE commands must map commands to advertised capabilities.");
 assertIncludes(settings, "settings.capabilities", "Settings must display device capabilities.");
+assertIncludes(settings, "supportsDeviceCommand", "Settings device commands must respect advertised capabilities.");
+assertIncludes(settings, "disabled={!supportsDeviceCommand(device, \"capture\")}", "Settings must disable unsupported capture commands.");
 assertIncludes(inboxScreen, "inbox.capabilities", "Device inbox must display device capabilities.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM entities", "Personal snapshot must expose entity graph growth.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal snapshot must expose relation graph growth.");

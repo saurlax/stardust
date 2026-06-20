@@ -101,6 +101,13 @@ const getSubscribeLabel = (device: DeviceRecord) => {
   if (device.status === "disconnected") return t("settings.reconnectDevice");
   return t("settings.subscribeDevice");
 };
+const supportsDeviceCommand = (
+  device: DeviceRecord,
+  command: "capture" | "sync" | "sleep",
+) => {
+  if (!device.capabilities?.length) return true;
+  return device.capabilities.includes(`command-${command}`);
+};
 
 const openDeviceInbox = () => {
   router.push("/inbox?tab=devices" as Href);
@@ -411,6 +418,7 @@ export function SettingsContent() {
                       <Button
                         variant="outline"
                         size="sm"
+                        disabled={!supportsDeviceCommand(device, "capture")}
                         onPress={() => void onCaptureDevice(device)}
                       >
                         <Text>{t("settings.captureDevice")}</Text>
@@ -418,6 +426,7 @@ export function SettingsContent() {
                       <Button
                         variant="outline"
                         size="sm"
+                        disabled={!supportsDeviceCommand(device, "sync")}
                         onPress={() => void onSyncDevice(device)}
                       >
                         <Text>{t("settings.syncDevice")}</Text>
@@ -425,6 +434,7 @@ export function SettingsContent() {
                       <Button
                         variant="outline"
                         size="sm"
+                        disabled={!supportsDeviceCommand(device, "sleep")}
                         onPress={() => void onSleepDevice(device)}
                       >
                         <Text>{t("settings.sleepDevice")}</Text>
