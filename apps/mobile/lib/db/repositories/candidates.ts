@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 import type { MessageToolCard, ToolCardType } from "@/lib/chat/types";
 import { insertMemoryFts, insertReflectionFts } from "@/lib/db/fts";
-import { createEpisode } from "@/lib/db/repositories/episodes";
+import { createEpisodeInCurrentTransaction } from "@/lib/db/repositories/episodes";
 import { parseJson, parseToolCards, safeJson, serializeToolCards } from "@/lib/db/serialization";
 import { runInTransaction } from "@/lib/db/transactions";
 import type { CandidateKind, CandidateStatus, MemoryCandidate } from "@/lib/db/types";
@@ -237,7 +237,7 @@ export async function updateCandidateStatus(
     }
 
     if (candidate.kind === "journal") {
-      await createEpisode(db, {
+      await createEpisodeInCurrentTransaction(db, {
         id: `episode-${candidateId}`,
         source: "journal",
         title: candidate.title,

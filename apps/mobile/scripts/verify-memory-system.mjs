@@ -8,6 +8,7 @@ const repoRoot = path.join(mobileRoot, "..", "..");
 
 const read = (...parts) => fs.readFileSync(path.join(...parts), "utf8");
 const schema = read(mobileRoot, "lib", "db", "schema.ts");
+const candidates = read(mobileRoot, "lib", "db", "repositories", "candidates.ts");
 const devices = read(mobileRoot, "lib", "db", "repositories", "devices.ts");
 const episodes = read(mobileRoot, "lib", "db", "repositories", "episodes.ts");
 const memoryRecords = read(mobileRoot, "lib", "db", "repositories", "memoryRecords.ts");
@@ -69,6 +70,10 @@ for (const column of ["memory_context_json", "request_episode_id", "tool_cards_j
 }
 assertIncludes(chatScreen, "await createEpisode(db", "Chat input episodes must be persisted before AI candidate creation.");
 assertIncludes(chatScreen, "await saveChatSessionSnapshot(db", "Chat messages must be persisted before AI candidate creation.");
+assertIncludes(candidates, "createEpisodeInCurrentTransaction(db", "Accepted journal candidates must create episodes inside the candidate transaction.");
+if (readExportedFunction(candidates, "updateCandidateStatus").includes("createEpisode(db")) {
+  throw new Error("Accepted candidates must not open nested episode transactions.");
+}
 if (chatRuntime.includes('role: "tool"')) {
   throw new Error("Local candidate review results must not be replayed as OpenAI tool messages.");
 }
