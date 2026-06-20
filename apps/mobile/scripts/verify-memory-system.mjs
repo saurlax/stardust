@@ -57,7 +57,15 @@ for (const column of ["memory_context_json", "request_episode_id", "tool_cards_j
 }
 
 assertIncludes(schema, "episode_id TEXT", "Reflections must preserve source episodes.");
-assertIncludes(schema, "export const DATABASE_VERSION = 12", "Database version must reflect the current schema.");
+assertIncludes(schema, "export const DATABASE_VERSION = 13", "Database version must reflect the current schema.");
+for (const constraint of [
+  "FOREIGN KEY (episode_id) REFERENCES episodes(episode_id) ON DELETE SET NULL",
+  "FOREIGN KEY (candidate_id) REFERENCES memory_candidates(candidate_id) ON DELETE SET NULL",
+  "FOREIGN KEY (source_entity_id) REFERENCES entities(entity_id) ON DELETE CASCADE",
+  "FOREIGN KEY (device_id) REFERENCES devices(device_id) ON DELETE CASCADE",
+]) {
+  assertIncludes(schema, constraint, `Missing schema integrity constraint: ${constraint}`);
+}
 
 assertIncludes(devices, "createEpisode(db", "Device events must create timeline episodes.");
 assertIncludes(devices, 'source: "iot"', "Device event episodes must use the iot source.");

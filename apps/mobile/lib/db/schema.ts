@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
-export const DATABASE_VERSION = 12;
+export const DATABASE_VERSION = 13;
 
 let ftsAvailable: boolean | undefined;
 
@@ -74,7 +74,10 @@ async function createCurrentTables(db: SQLiteDatabase) {
       status TEXT NOT NULL DEFAULT 'pending',
       metadata_json TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE SET NULL,
+      FOREIGN KEY (message_id) REFERENCES chat_messages(message_id) ON DELETE SET NULL,
+      FOREIGN KEY (episode_id) REFERENCES episodes(episode_id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS memory_atoms (
@@ -88,7 +91,11 @@ async function createCurrentTables(db: SQLiteDatabase) {
       importance INTEGER NOT NULL DEFAULT 3,
       status TEXT NOT NULL DEFAULT 'active',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (candidate_id) REFERENCES memory_candidates(candidate_id) ON DELETE SET NULL,
+      FOREIGN KEY (episode_id) REFERENCES episodes(episode_id) ON DELETE SET NULL,
+      FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE SET NULL,
+      FOREIGN KEY (message_id) REFERENCES chat_messages(message_id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS reflections (
@@ -99,7 +106,9 @@ async function createCurrentTables(db: SQLiteDatabase) {
       content TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'active',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (candidate_id) REFERENCES memory_candidates(candidate_id) ON DELETE SET NULL,
+      FOREIGN KEY (episode_id) REFERENCES episodes(episode_id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS entities (
@@ -118,7 +127,9 @@ async function createCurrentTables(db: SQLiteDatabase) {
       type TEXT NOT NULL,
       weight INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (source_entity_id) REFERENCES entities(entity_id) ON DELETE CASCADE,
+      FOREIGN KEY (target_entity_id) REFERENCES entities(entity_id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS devices (
@@ -140,7 +151,8 @@ async function createCurrentTables(db: SQLiteDatabase) {
       content TEXT NOT NULL,
       metadata_json TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(device_id, device_event_id)
+      UNIQUE(device_id, device_event_id),
+      FOREIGN KEY (device_id) REFERENCES devices(device_id) ON DELETE CASCADE
     );
 
     CREATE INDEX IF NOT EXISTS idx_chat_sessions_updated_at ON chat_sessions(updated_at DESC);
@@ -178,19 +190,19 @@ async function createCurrentTables(db: SQLiteDatabase) {
 
 async function dropLegacyTables(db: SQLiteDatabase) {
   await db.execAsync(`
+    DROP TABLE IF EXISTS relations;
+    DROP TABLE IF EXISTS device_events;
+    DROP TABLE IF EXISTS memory_atoms;
+    DROP TABLE IF EXISTS reflections;
     DROP TABLE IF EXISTS memory_candidates;
+    DROP TABLE IF EXISTS chat_messages;
+    DROP TABLE IF EXISTS chat_sessions;
+    DROP TABLE IF EXISTS devices;
+    DROP TABLE IF EXISTS entities;
+    DROP TABLE IF EXISTS episodes;
     DROP TABLE IF EXISTS memories;
     DROP TABLE IF EXISTS journals;
     DROP TABLE IF EXISTS captures;
-    DROP TABLE IF EXISTS episodes;
-    DROP TABLE IF EXISTS memory_atoms;
-    DROP TABLE IF EXISTS reflections;
-    DROP TABLE IF EXISTS entities;
-    DROP TABLE IF EXISTS relations;
-    DROP TABLE IF EXISTS devices;
-    DROP TABLE IF EXISTS device_events;
-    DROP TABLE IF EXISTS chat_messages;
-    DROP TABLE IF EXISTS chat_sessions;
     DROP TABLE IF EXISTS episodes_fts;
     DROP TABLE IF EXISTS memory_atoms_fts;
     DROP TABLE IF EXISTS reflections_fts;
