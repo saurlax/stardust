@@ -220,6 +220,7 @@ export const watchStardustBleStatus = async (
 
 const normalizeEventTimestamp = (value?: string) => {
   if (!value) return undefined;
+  if (/^\d+$/.test(value.trim())) return undefined;
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? new Date(parsed).toISOString() : undefined;
 };
