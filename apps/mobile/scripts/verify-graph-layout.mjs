@@ -72,12 +72,15 @@ assertIncludes(graphSource, 'id: "root"', "Memory graph must keep a root node.")
 assertIncludes(graphSource, "memories.slice(0, 48)", "Memory graph must cap visible memory nodes.");
 assertIncludes(graphSource, "reflections.slice(0, 8)", "Memory graph must cap visible reflection nodes.");
 assertIncludes(graphSource, ".slice(0, 16)", "Memory graph must cap visible entity nodes.");
-for (const prefix of ["type-", "memory-", "reflection-", "entity-"]) {
+assertIncludes(graphSource, ".slice(0, 24)", "Memory graph must cap visible relation nodes.");
+for (const prefix of ["type-", "memory-", "reflection-", "entity-", "relation-"]) {
   assertIncludes(graphSource, prefix, `Memory graph is missing ${prefix} nodes.`);
 }
 assertIncludes(memoryScreen, "function OpenSourceButton", "Memory graph details must expose source episode navigation.");
 assertIncludes(memoryScreen, "<OpenSourceButton episodeId={memory.episodeId} />", "Saved memory cards must link to source episodes.");
 assertIncludes(memoryScreen, "relationSource?.episodeId", "Entity graph details must link relation source episodes.");
+assertIncludes(memoryScreen, "`relation-${item.id}`", "Memory graph must expose selected relation details.");
+assertIncludes(memoryScreen, "memory.relationNodeDescription", "Selected relation details must be labeled.");
 assertIncludes(memoryScreen, "setErrorMessage(t(\"memory.loadFailed\"))", "Memory graph load failures must be visible.");
 assertIncludes(memoryScreen, ".catch(onError)", "Saved memory actions must surface failures.");
 assertIncludes(memoryScreen, "{relations.length}", "Memory graph must expose relation counts.");

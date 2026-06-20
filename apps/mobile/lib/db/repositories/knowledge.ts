@@ -144,7 +144,7 @@ async function listEntityRelationKnowledge(
       type: item.type,
       content: `${item.source_name ?? "Unknown"} · ${item.type} · ${item.target_name ?? "Unknown"} (weight ${item.weight})`,
       createdAt: item.created_at,
-      nodeId: `entity-${item.source_entity_id || item.target_entity_id}`,
+      nodeId: `relation-${item.id}`,
       rank: rankByTokenMatches(
         `${item.type} ${item.source_name ?? ""} ${item.target_name ?? ""}`,
         tokens,

@@ -73,6 +73,34 @@ export const buildMemoryTree = (
     });
   });
 
+  relations
+    .filter(
+      (relation) =>
+        visibleEntityIds.has(relation.sourceEntityId) ||
+        visibleEntityIds.has(relation.targetEntityId) ||
+        relation.sourceEntityId === SELF_ENTITY_ID,
+    )
+    .slice(0, 24)
+    .forEach((relation, index) => {
+      const linksTo = [
+        relation.sourceEntityId === SELF_ENTITY_ID
+          ? "root"
+          : visibleEntityIds.has(relation.sourceEntityId)
+            ? `entity-${relation.sourceEntityId}`
+            : undefined,
+        visibleEntityIds.has(relation.targetEntityId)
+          ? `entity-${relation.targetEntityId}`
+          : undefined,
+      ].filter((nodeId): nodeId is string => !!nodeId);
+
+      nodes.push({
+        id: `relation-${relation.id}`,
+        title: relation.type.length > 18 ? `${relation.type.slice(0, 18)}...` : relation.type,
+        linksTo: linksTo.length ? linksTo : ["root"],
+        size: 4.6 + Math.min(relation.weight, 6) * 0.18 - Math.min(index, 18) * 0.04,
+      });
+    });
+
   visibleMemories.forEach((memory, index) => {
     const parentId = typeNodes.has(memory.type) ? `type-${memory.type}` : "root";
     const tokens = tokenize(memory.content);

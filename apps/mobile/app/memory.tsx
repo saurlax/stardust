@@ -316,6 +316,19 @@ export default function MemoryScreen() {
       };
     }
 
+    const relation = relations.find((item) => `relation-${item.id}` === selectedNodeId);
+    if (relation) {
+      return {
+        title: relation.type,
+        description: t("memory.relationNodeDescription"),
+        content: `${relation.sourceEntityName ?? relation.sourceEntityId} · ${relation.type} · ${
+          relation.targetEntityName ?? relation.targetEntityId
+        }\n${t("memory.relationWeight")} ${relation.weight}`,
+        source: relation.sourceContent,
+        sourceEpisodeId: relation.episodeId,
+      };
+    }
+
     return null;
   }, [entities, reflections, relations, selectedNodeId, visibleMemories]);
 

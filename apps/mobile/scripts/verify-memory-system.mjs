@@ -155,6 +155,7 @@ assertIncludes(inboxScreen, "inbox.openLoopBadge", "Saved inbox memories must la
 assertIncludes(knowledge, "listEntityRelationKnowledge", "Retrieval must include entity graph knowledge.");
 assertIncludes(knowledge, 'source: "entity" as const', "Entity graph retrieval results must be typed.");
 assertIncludes(knowledge, 'source: "relation" as const', "Relation graph retrieval results must be typed.");
+assertIncludes(knowledge, "nodeId: `relation-${item.id}`", "Relation retrieval must navigate to relation graph nodes.");
 assertIncludes(knowledge, "nodeId:", "Entity and relation retrieval results must carry graph navigation ids.");
 
 assertIncludes(ble, "Stardust Sense", "BLE device name must match Stardust Sense.");
