@@ -191,6 +191,7 @@ export function SettingsContent() {
   const onSleepDevice = async (device: DeviceRecord) => {
     try {
       await sendStardustDeviceCommand(db, device.id, "sleep");
+      await disconnectStardustDevice(db, device.id);
       showToast(t("settings.deviceSleepSent"), "success");
       setDevices(await listDevices(db));
     } catch (error) {
