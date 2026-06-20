@@ -28,6 +28,7 @@
     "plugins": [
       "expo-router",
       "expo-calendar",
+      "react-native-ble-plx",
       [
         "expo-share-intent",
         {
