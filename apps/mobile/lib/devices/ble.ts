@@ -1,7 +1,7 @@
 import { PermissionsAndroid, Platform } from "react-native";
 import type { SQLiteDatabase } from "expo-sqlite";
 
-import { createDeviceEvent, updateDeviceStatus, upsertDevice } from "@/lib/db";
+import { createDeviceEvent, listDevices, updateDeviceStatus, upsertDevice } from "@/lib/db";
 
 const STARDUST_DEVICE_NAME = "Stardust Sense";
 const SERVICE_UUID = "7b3f4a10-9d62-4a7d-a0d9-2ffb9239c4d1";
@@ -13,6 +13,7 @@ const MANIFEST_CHARACTERISTIC_UUID = "7b3f4a14-9d62-4a7d-a0d9-2ffb9239c4d1";
 type BlePlxModule = typeof import("react-native-ble-plx");
 type BleManagerInstance = InstanceType<BlePlxModule["BleManager"]>;
 type DeviceInstance = Awaited<ReturnType<BleManagerInstance["connectToDevice"]>>;
+type Subscription = { remove: () => void };
 export type StardustBleStatus =
   | "poweredOn"
   | "poweredOff"
@@ -23,6 +24,8 @@ type BleState = Awaited<ReturnType<BleManagerInstance["state"]>>;
 
 let manager: BleManagerInstance | null = null;
 const connectedDevices = new Map<string, DeviceInstance>();
+const disconnectSubscriptions = new Map<string, Subscription>();
+const eventSubscriptions = new Map<string, Subscription>();
 
 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -265,14 +268,20 @@ export const scanStardustDevices = async (db: SQLiteDatabase) => {
   return [...found.values()];
 };
 
-export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: string) => {
-  const ble = await getBleManager();
-  const device = await ble.connectToDevice(deviceId, { timeout: 10000 });
-  const readyDevice = await device.discoverAllServicesAndCharacteristics();
-  ble.onDeviceDisconnected(readyDevice.id, () => {
+const activateStardustDevice = async (
+  db: SQLiteDatabase,
+  ble: BleManagerInstance,
+  readyDevice: DeviceInstance,
+) => {
+  disconnectSubscriptions.get(readyDevice.id)?.remove();
+  disconnectSubscriptions.set(readyDevice.id, ble.onDeviceDisconnected(readyDevice.id, () => {
     connectedDevices.delete(readyDevice.id);
+    eventSubscriptions.get(readyDevice.id)?.remove();
+    eventSubscriptions.delete(readyDevice.id);
+    disconnectSubscriptions.get(readyDevice.id)?.remove();
+    disconnectSubscriptions.delete(readyDevice.id);
     void updateDeviceStatus(db, readyDevice.id, "disconnected");
-  });
+  }));
   connectedDevices.set(readyDevice.id, readyDevice);
   await upsertDevice(db, {
     id: readyDevice.id,
@@ -320,40 +329,59 @@ export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: st
     }
   }
 
-  readyDevice.monitorCharacteristicForService(
-    SERVICE_UUID,
-    EVENT_CHARACTERISTIC_UUID,
-    (error, characteristic) => {
-      if (error || !characteristic?.value) return;
-      try {
-        const event = JSON.parse(decodeBase64(characteristic.value)) as {
-          id?: string;
-          type?: string;
-          content?: string;
-          ts?: string;
-          metadata?: Record<string, unknown>;
-        };
-        void createDeviceEvent(db, {
-          id: scopedDeviceEventId(readyDevice.id, event.id),
-          deviceId: readyDevice.id,
-          eventType: event.type ?? "capture",
-          content: event.content ?? "Screen-off capture",
-          metadata: {
-            ...(event.metadata ?? {}),
-            deviceTimestamp: event.ts,
-          },
-          createdAt: normalizeEventTimestamp(event.ts),
-        });
-      } catch {
-        // Ignore malformed event payloads.
-      }
-    },
+  eventSubscriptions.get(readyDevice.id)?.remove();
+  eventSubscriptions.set(
+    readyDevice.id,
+    readyDevice.monitorCharacteristicForService(
+      SERVICE_UUID,
+      EVENT_CHARACTERISTIC_UUID,
+      (error, characteristic) => {
+        if (error || !characteristic?.value) return;
+        try {
+          const event = JSON.parse(decodeBase64(characteristic.value)) as {
+            id?: string;
+            type?: string;
+            content?: string;
+            ts?: string;
+            metadata?: Record<string, unknown>;
+          };
+          void createDeviceEvent(db, {
+            id: scopedDeviceEventId(readyDevice.id, event.id),
+            deviceId: readyDevice.id,
+            eventType: event.type ?? "capture",
+            content: event.content ?? "Screen-off capture",
+            metadata: {
+              ...(event.metadata ?? {}),
+              deviceTimestamp: event.ts,
+            },
+            createdAt: normalizeEventTimestamp(event.ts),
+          });
+        } catch {
+          // Ignore malformed event payloads.
+        }
+      },
+    ),
   );
 
   await readyDevice.writeCharacteristicWithResponseForService(
     SERVICE_UUID,
     COMMAND_CHARACTERISTIC_UUID,
     encodeBase64(JSON.stringify({ type: "sync" })),
+  );
+};
+
+export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: string) => {
+  const ble = await getBleManager();
+  const device = connectedDevices.get(deviceId) ?? (await ble.connectToDevice(deviceId, { timeout: 10000 }));
+  const readyDevice = await device.discoverAllServicesAndCharacteristics();
+  await activateStardustDevice(db, ble, readyDevice);
+};
+
+export const restoreStardustDeviceSubscriptions = async (db: SQLiteDatabase) => {
+  const devices = await listDevices(db);
+  const connected = devices.filter((device) => device.status === "connected");
+  await Promise.allSettled(
+    connected.map((device) => subscribeToStardustDevice(db, device.id)),
   );
 };
 
@@ -383,6 +411,10 @@ export const disconnectStardustDevice = async (db: SQLiteDatabase, deviceId: str
   await ble.cancelDeviceConnection(deviceId).catch(async () => {
     await connectedDevices.get(deviceId)?.cancelConnection().catch(() => undefined);
   });
+  eventSubscriptions.get(deviceId)?.remove();
+  eventSubscriptions.delete(deviceId);
+  disconnectSubscriptions.get(deviceId)?.remove();
+  disconnectSubscriptions.delete(deviceId);
   connectedDevices.delete(deviceId);
   await updateDeviceStatus(db, deviceId, "disconnected");
 };

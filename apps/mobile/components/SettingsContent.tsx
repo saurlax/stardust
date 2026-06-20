@@ -18,6 +18,7 @@ import { listDevices, type DeviceRecord } from "@/lib/db";
 import {
   disconnectStardustDevice,
   getStardustBleStatus,
+  restoreStardustDeviceSubscriptions,
   scanStardustDevices,
   sendStardustDeviceCommand,
   subscribeToStardustDevice,
@@ -141,8 +142,15 @@ export function SettingsContent() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      Promise.all([listDevices(db), getStardustBleStatus()])
-        .then(([nextDevices, nextBleStatus]) => {
+      getStardustBleStatus()
+        .then(async (nextBleStatus) => {
+          if (nextBleStatus === "poweredOn") {
+            await restoreStardustDeviceSubscriptions(db);
+          }
+          const nextDevices = await listDevices(db);
+          return { nextBleStatus, nextDevices };
+        })
+        .then(({ nextDevices, nextBleStatus }) => {
           if (!active) return;
           setDevices(nextDevices);
           setBleStatus(nextBleStatus);
