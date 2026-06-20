@@ -3,7 +3,7 @@ import { router, useFocusEffect, type Href } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
-import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
@@ -82,7 +82,7 @@ export default function PersonalScreen() {
         }}
       />
 
-      <View className="flex-1 gap-4 p-4">
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View className="flex-row items-center gap-2.5 px-0.5 py-0.5">
           <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
             <Ionicons name="person" size={20} color={avatarIconColor} />
@@ -105,6 +105,21 @@ export default function PersonalScreen() {
           <Card className="flex-1 gap-2 px-4 py-4">
             <CardDescription>{t("personal.episodeCount")}</CardDescription>
             <Text className="text-2xl font-semibold">{snapshot.episodeCount}</Text>
+          </Card>
+        </View>
+
+        <View className="flex-row gap-3">
+          <Card className="flex-1 gap-2 px-4 py-4">
+            <CardDescription>{t("personal.reflectionCount")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.reflectionCount}</Text>
+          </Card>
+          <Card className="flex-1 gap-2 px-4 py-4">
+            <CardDescription>{t("personal.journalCount")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.journalEntries}</Text>
+          </Card>
+          <Card className="flex-1 gap-2 px-4 py-4">
+            <CardDescription>{t("personal.deviceCount")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.deviceCount}</Text>
           </Card>
         </View>
 
@@ -197,7 +212,15 @@ export default function PersonalScreen() {
             </Card>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  content: {
+    gap: 16,
+    padding: 16,
+    paddingBottom: 28,
+  },
+});

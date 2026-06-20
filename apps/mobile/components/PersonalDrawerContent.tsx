@@ -111,6 +111,22 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
           <Text className="text-2xl font-semibold">{snapshot.episodeCount}</Text>
         </Card>
 
+        <View className="flex-row gap-2">
+          <Card className="flex-1 gap-2 px-3 py-3">
+            <CardDescription>{t("personal.reflectionCount")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.reflectionCount}</Text>
+          </Card>
+          <Card className="flex-1 gap-2 px-3 py-3">
+            <CardDescription>{t("personal.journalCount")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.journalEntries}</Text>
+          </Card>
+        </View>
+
+        <Card className="gap-2 px-3 py-3">
+          <CardDescription>{t("personal.deviceCount")}</CardDescription>
+          <Text className="text-2xl font-semibold">{snapshot.deviceCount}</Text>
+        </Card>
+
         <Card className="gap-2 px-4 py-4">
           <CardDescription>{t("personal.latestMemory")}</CardDescription>
           <Text className="text-sm leading-5">
