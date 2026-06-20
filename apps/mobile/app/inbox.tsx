@@ -488,38 +488,59 @@ export default function InboxScreen() {
   const [deviceEvents, setDeviceEvents] = useState<DeviceEventRecord[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("all");
 
+  const loadInboxData = useCallback(
+    () =>
+      Promise.all([
+        listMemoryCandidates(db, "pending"),
+        listStoredMemories(db),
+        listReflections(db),
+        listDevices(db),
+        listDeviceEvents(db),
+      ]),
+    [db],
+  );
+
+  const applyInboxData = useCallback(
+    ([nextCandidates, nextMemories, nextReflections, nextDevices, nextDeviceEvents]: Awaited<
+      ReturnType<typeof loadInboxData>
+    >) => {
+      setCandidates(nextCandidates);
+      setMemories(nextMemories);
+      setReflections(nextReflections);
+      setDevices(nextDevices);
+      setDeviceEvents(nextDeviceEvents);
+    },
+    [],
+  );
+
+  const clearInboxData = useCallback(() => {
+    setCandidates([]);
+    setMemories([]);
+    setReflections([]);
+    setDevices([]);
+    setDeviceEvents([]);
+  }, []);
+
   const refresh = useCallback(() => {
-    let active = true;
-    Promise.all([
-      listMemoryCandidates(db, "pending"),
-      listStoredMemories(db),
-      listReflections(db),
-      listDevices(db),
-      listDeviceEvents(db),
-    ])
-      .then(([nextCandidates, nextMemories, nextReflections, nextDevices, nextDeviceEvents]) => {
-        if (!active) return;
-        setCandidates(nextCandidates);
-        setMemories(nextMemories);
-        setReflections(nextReflections);
-        setDevices(nextDevices);
-        setDeviceEvents(nextDeviceEvents);
-      })
-      .catch(() => {
-        if (!active) return;
-        setCandidates([]);
-        setMemories([]);
-        setReflections([]);
-        setDevices([]);
-        setDeviceEvents([]);
-      });
+    void loadInboxData().then(applyInboxData).catch(clearInboxData);
+  }, [applyInboxData, clearInboxData, loadInboxData]);
 
-    return () => {
-      active = false;
-    };
-  }, [db]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      loadInboxData()
+        .then((data) => {
+          if (active) applyInboxData(data);
+        })
+        .catch(() => {
+          if (active) clearInboxData();
+        });
 
-  useFocusEffect(refresh);
+      return () => {
+        active = false;
+      };
+    }, [applyInboxData, clearInboxData, loadInboxData]),
+  );
 
   const emptyText = useMemo(() => {
     switch (tab) {
