@@ -83,6 +83,10 @@ for (const required of [
   "\\\"microphone\\\":\\\"reserved\\\"",
   "\\\"microSD\\\":\\\"reserved\\\"",
   "\\\"largeTransfer\\\":\\\"future-wifi\\\"",
+  "\\\"transferPlan\\\"",
+  "\\\"metadata\\\":\\\"ble\\\"",
+  "\\\"storage\\\":\\\"microSD\\\"",
+  "\\\"largeMedia\\\":\\\"future-wifi-lan\\\"",
   "publishEvent(\"button\"",
   "publishEvent(\"serial\"",
 ]) {
