@@ -161,10 +161,11 @@ export default function JournalScreen() {
   const [results, setResults] = useState<
     {
       id: string;
-      source: "memory" | "episode" | "reflection" | "entity";
+      source: "memory" | "episode" | "reflection" | "entity" | "relation";
       type?: string;
       content: string;
       createdAt: string;
+      nodeId?: string;
       rank: number;
     }[]
   >([]);
@@ -341,6 +342,8 @@ export default function JournalScreen() {
                         ? t("journal.reflectionEntryPrefix")
                         : result.source === "entity"
                           ? t("journal.entityEntryPrefix")
+                          : result.source === "relation"
+                            ? t("journal.relationEntryPrefix")
                           : t("journal.episodeEntryPrefix")}
                     {result.type ? ` · ${result.type}` : ""}
                   </CardDescription>
@@ -359,7 +362,10 @@ export default function JournalScreen() {
                     >
                       <Text>{t("journal.openTimeline")}</Text>
                     </Button>
-                  ) : result.source === "memory" || result.source === "reflection" || result.source === "entity" ? (
+                  ) : result.source === "memory" ||
+                    result.source === "reflection" ||
+                    result.source === "entity" ||
+                    result.source === "relation" ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -369,11 +375,14 @@ export default function JournalScreen() {
                           pathname: "/memory",
                           params: {
                             nodeId:
-                              result.source === "memory"
+                              result.nodeId ??
+                              (result.source === "memory"
                                 ? `memory-${result.id}`
                                 : result.source === "entity"
                                   ? `entity-${result.id}`
-                                  : `reflection-${result.id}`,
+                                  : result.source === "relation"
+                                    ? "root"
+                                    : `reflection-${result.id}`),
                           },
                         } as Href)
                       }

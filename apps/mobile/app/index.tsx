@@ -51,7 +51,7 @@ const createGreetingMessage = (): ChatMessage => ({
 
 const buildMemoryContext = (
   memories: {
-    source: "memory" | "episode" | "reflection" | "entity";
+    source: "memory" | "episode" | "reflection" | "entity" | "relation";
     type?: string;
     content: string;
     createdAt: string;
@@ -72,7 +72,9 @@ const buildMemoryContext = (
     },
     {
       title: "Relationship graph",
-      items: memories.filter((memory) => memory.source === "entity"),
+      items: memories.filter(
+        (memory) => memory.source === "entity" || memory.source === "relation",
+      ),
     },
   ];
 

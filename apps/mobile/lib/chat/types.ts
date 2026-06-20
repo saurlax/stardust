@@ -34,10 +34,11 @@ export type MessageToolCard = {
 
 export type MessageMemoryContext = {
   id: string;
-  source: "memory" | "episode" | "reflection" | "entity";
+  source: "memory" | "episode" | "reflection" | "entity" | "relation";
   type?: string;
   content: string;
   createdAt: string;
+  nodeId?: string;
 };
 
 export type ChatMessage = {

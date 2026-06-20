@@ -20,6 +20,7 @@ const ble = read(mobileRoot, "lib", "devices", "ble.ts");
 const config = read(mobileRoot, "lib", "config.ts");
 const chatScreen = read(mobileRoot, "app", "index.tsx");
 const chatRuntime = read(mobileRoot, "lib", "chat", "runtime.ts");
+const chatMessages = read(mobileRoot, "components", "ChatMessages.tsx");
 const journalScreen = read(mobileRoot, "app", "journal.tsx");
 const inboxScreen = read(mobileRoot, "app", "inbox.tsx");
 const settings = read(mobileRoot, "components", "SettingsContent.tsx");
@@ -81,10 +82,14 @@ assertIncludes(chatScreen, "setChatError(getErrorMessage(error))", "Chat persist
 assertIncludes(chatScreen, "void updateCandidateStatus(db, cardId, status, nextContent)", "Chat candidate review must persist before updating local cards.");
 assertIncludes(chatScreen, "savedToolCards = []", "Assistant replies must survive candidate persistence failures without showing unsaved cards.");
 assertIncludes(chatScreen, "Relationship graph", "Chat context must include retrieved relationship graph knowledge.");
+assertIncludes(chatMessages, "item.nodeId", "Chat memory context must use graph node ids when available.");
+assertIncludes(chatMessages, 'item.source === "relation"', "Chat memory context must handle relation graph results.");
 assertIncludes(journalScreen, "setErrorMessage(t(\"journal.loadFailed\"))", "Episode timeline load failures must be visible.");
 assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be visible.");
 assertIncludes(journalScreen, "entityEntryPrefix", "Journal search must label entity graph results.");
+assertIncludes(journalScreen, "relationEntryPrefix", "Journal search must label relation graph results.");
 assertIncludes(journalScreen, "`entity-${result.id}`", "Journal search must open entity graph results.");
+assertIncludes(journalScreen, "result.nodeId", "Journal search must use graph node ids when available.");
 assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");
 assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty state must open Settings.");
 assertIncludes(candidates, "createEpisodeInCurrentTransaction(db", "Accepted journal candidates must create episodes inside the candidate transaction.");
@@ -138,6 +143,8 @@ assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal sn
 assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snapshot must expose confirmed open loops.");
 assertIncludes(knowledge, "listEntityRelationKnowledge", "Retrieval must include entity graph knowledge.");
 assertIncludes(knowledge, 'source: "entity" as const', "Entity graph retrieval results must be typed.");
+assertIncludes(knowledge, 'source: "relation" as const', "Relation graph retrieval results must be typed.");
+assertIncludes(knowledge, "nodeId:", "Entity and relation retrieval results must carry graph navigation ids.");
 
 assertIncludes(ble, "Stardust Sense", "BLE device name must match Stardust Sense.");
 assertIncludes(ble, "sendStardustDeviceCommand", "Mobile BLE commands are missing.");

@@ -187,9 +187,10 @@ export type JournalDay = {
 
 export type RelevantKnowledge = {
   id: string;
-  source: "memory" | "episode" | "reflection" | "entity";
+  source: "memory" | "episode" | "reflection" | "entity" | "relation";
   type?: string;
   content: string;
   createdAt: string;
+  nodeId?: string;
   rank: number;
 };

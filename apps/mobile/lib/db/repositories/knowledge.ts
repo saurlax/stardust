@@ -101,14 +101,18 @@ async function listEntityRelationKnowledge(
       id: string;
       type: string;
       source_name: string | null;
+      source_entity_id: string;
       target_name: string | null;
+      target_entity_id: string;
       weight: number;
       created_at: string;
     }>(
       `
         SELECT
-          relations.source_entity_id AS id,
+          relations.relation_id AS id,
           relations.type AS type,
+          relations.source_entity_id AS source_entity_id,
+          relations.target_entity_id AS target_entity_id,
           source_entities.name AS source_name,
           target_entities.name AS target_name,
           relations.weight AS weight,
@@ -131,14 +135,16 @@ async function listEntityRelationKnowledge(
       type: item.type,
       content: item.content,
       createdAt: item.created_at,
+      nodeId: `entity-${item.id}`,
       rank: rankByTokenMatches(`${item.type} ${item.content}`, tokens) + 0.1,
     })),
     ...relationRows.map((item) => ({
       id: item.id,
-      source: "entity" as const,
+      source: "relation" as const,
       type: item.type,
       content: `${item.source_name ?? "Unknown"} · ${item.type} · ${item.target_name ?? "Unknown"} (weight ${item.weight})`,
       createdAt: item.created_at,
+      nodeId: `entity-${item.source_entity_id || item.target_entity_id}`,
       rank: rankByTokenMatches(
         `${item.type} ${item.source_name ?? ""} ${item.target_name ?? ""}`,
         tokens,
