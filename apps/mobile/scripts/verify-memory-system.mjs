@@ -11,6 +11,7 @@ const schema = read(mobileRoot, "lib", "db", "schema.ts");
 const devices = read(mobileRoot, "lib", "db", "repositories", "devices.ts");
 const ble = read(mobileRoot, "lib", "devices", "ble.ts");
 const config = read(mobileRoot, "lib", "config.ts");
+const chatScreen = read(mobileRoot, "app", "index.tsx");
 const iotSketch = read(repoRoot, "iot", "iot.ino");
 
 const assertIncludes = (source, value, message) => {
@@ -55,6 +56,8 @@ for (const ftsTable of ["episodes_fts", "memory_atoms_fts", "reflections_fts"]) 
 for (const column of ["memory_context_json", "request_episode_id", "tool_cards_json"]) {
   assertIncludes(schema, column, `Chat persistence is missing column: ${column}`);
 }
+assertIncludes(chatScreen, "await createEpisode(db", "Chat input episodes must be persisted before AI candidate creation.");
+assertIncludes(chatScreen, "await saveChatSessionSnapshot(db", "Chat messages must be persisted before AI candidate creation.");
 
 assertIncludes(schema, "episode_id TEXT", "Reflections must preserve source episodes.");
 assertIncludes(schema, "export const DATABASE_VERSION = 13", "Database version must reflect the current schema.");

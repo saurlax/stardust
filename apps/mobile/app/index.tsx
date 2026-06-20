@@ -328,16 +328,6 @@ export default function Index() {
       const createdAt = new Date(timestamp).toISOString();
       const episodeId = `episode-user-${timestamp}`;
 
-      void createEpisode(db, {
-        id: episodeId,
-        source: imageUri ? "image" : "chat",
-        title: imageUri ? t("chat.imageEpisodeTitle") : t("chat.chatEpisodeTitle"),
-        content: effectivePrompt,
-        mediaUri: imageUri,
-        metadata: { sessionId: sessionIdRef.current },
-        createdAt,
-      }).catch(console.error);
-
       const request: NonNullable<ChatMessage["request"]> = {
         prompt: effectivePrompt,
         imageUri,
@@ -362,24 +352,53 @@ export default function Index() {
         request,
       };
       const sourceMessages = [...createTransportMessages(), userMessage];
+      const nextMessages = [...messagesRef.current, userMessage, assistantMessage];
 
       activeRequestRef.current = {
         assistantId: assistantMessage.id,
         request,
       };
       setSending(true);
-      setMessages((current) => [...current, userMessage, assistantMessage]);
+      setMessages(nextMessages);
       setText("");
       setSelectedImageUri(undefined);
       setSelectedImageMimeType(undefined);
 
-      void runRequest({
-        assistantId: assistantMessage.id,
-        request,
-        sourceMessages,
-      });
+      void (async () => {
+        try {
+          await createEpisode(db, {
+            id: episodeId,
+            source: imageUri ? "image" : "chat",
+            title: imageUri ? t("chat.imageEpisodeTitle") : t("chat.chatEpisodeTitle"),
+            content: effectivePrompt,
+            mediaUri: imageUri,
+            metadata: { sessionId: sessionIdRef.current },
+            createdAt,
+          });
+          await saveChatSessionSnapshot(db, {
+            sessionId: sessionIdRef.current,
+            remoteChatId: chatIdRef.current,
+            messages: nextMessages,
+          });
+          await runRequest({
+            assistantId: assistantMessage.id,
+            request,
+            sourceMessages,
+          });
+        } catch (error) {
+          const message =
+            error instanceof Error && error.message ? error.message : t("chat.requestFailed");
+          replaceMessage(assistantMessage.id, (current) => ({
+            ...current,
+            status: "error",
+            error: message,
+          }));
+          activeRequestRef.current = null;
+          setSending(false);
+        }
+      })();
     },
-    [createTransportMessages, db, ready, runRequest, sending],
+    [createTransportMessages, db, ready, replaceMessage, runRequest, sending],
   );
 
   const sendText = () => sendPrompt(text, selectedImageUri, selectedImageMimeType);
