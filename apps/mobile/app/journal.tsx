@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams, type Href } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -277,6 +277,21 @@ export default function JournalScreen() {
                     {result.type ? ` · ${result.type}` : ""}
                   </CardDescription>
                   <Text className="text-sm leading-5">{result.content}</Text>
+                  {result.source === "episode" ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-1 self-start"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/journal",
+                          params: { episodeId: result.id },
+                        } as Href)
+                      }
+                    >
+                      <Text>{t("journal.openTimeline")}</Text>
+                    </Button>
+                  ) : null}
                 </CardContent>
               </Card>
             ))}
