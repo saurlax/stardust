@@ -445,6 +445,10 @@ function DeviceEventCard({
           <Text className="text-xs font-semibold text-muted-foreground">
             {t("inbox.deviceEventInReview")} · {event.candidateStatus}
           </Text>
+        ) : !event.promotable ? (
+          <Text className="text-xs font-semibold text-muted-foreground">
+            {t("inbox.deviceEventOperational")}
+          </Text>
         ) : null}
         <View className="flex-row flex-wrap gap-2">
           <Button
@@ -460,7 +464,7 @@ function DeviceEventCard({
             <Ionicons name="open-outline" size={14} />
             <Text>{t("inbox.openTimeline")}</Text>
           </Button>
-          {!event.candidateStatus ? (
+          {!event.candidateStatus && event.promotable ? (
             <Button
               variant="outline"
               size="sm"

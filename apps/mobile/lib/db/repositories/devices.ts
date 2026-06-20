@@ -8,6 +8,9 @@ import type { CandidateStatus, DeviceEventRecord, DeviceRecord, DeviceStatus } f
 const nowIso = () => new Date().toISOString();
 const createId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+const promotableDeviceEventTypes = new Set(["capture", "button", "serial"]);
+const isPromotableDeviceEvent = (eventType: string) =>
+  promotableDeviceEventTypes.has(eventType.toLowerCase());
 
 export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
   const rows = await db.getAllAsync<{
@@ -172,6 +175,7 @@ export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventR
     eventType: row.event_type,
     content: row.content,
     metadata: parseJson(row.metadata_json),
+    promotable: isPromotableDeviceEvent(row.event_type),
     candidateId: row.candidate_id ?? undefined,
     candidateStatus: row.candidate_status ?? undefined,
     createdAt: row.created_at,
@@ -182,6 +186,9 @@ export async function promoteDeviceEventToCandidate(
   db: SQLiteDatabase,
   event: DeviceEventRecord,
 ) {
+  if (!event.promotable) {
+    throw new Error("Only capture-like device events can be promoted to memory review.");
+  }
   const createdAt = nowIso();
   const candidateId = `candidate-${event.id}`;
   await db.runAsync(

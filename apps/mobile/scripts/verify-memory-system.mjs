@@ -64,6 +64,7 @@ assertIncludes(devices, 'source: "iot"', "Device event episodes must use the iot
 assertIncludes(devices, "INSERT OR IGNORE INTO device_events", "Device events must be idempotent.");
 assertIncludes(devices, "promoteDeviceEventToCandidate", "Device events must be promotable to memory review.");
 assertIncludes(devices, "'memory', 'memory'", "Promoted device events must become pending memory candidates.");
+assertIncludes(devices, "promotableDeviceEventTypes", "Device event promotion must filter operational events.");
 
 assertIncludes(ble, "Stardust Sense", "BLE device name must match Stardust Sense.");
 assertIncludes(ble, "sendStardustDeviceCommand", "Mobile BLE commands are missing.");

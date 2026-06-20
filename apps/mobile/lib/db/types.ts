@@ -138,6 +138,7 @@ export type DeviceEventRecord = {
   eventType: string;
   content: string;
   metadata?: Record<string, unknown>;
+  promotable: boolean;
   candidateId?: string;
   candidateStatus?: CandidateStatus;
   createdAt: string;
