@@ -219,6 +219,7 @@ const translations = {
       loadFailed: "Failed to load memory inbox.",
       retry: "Retry",
       source: "Source",
+      importance: "Importance",
       openLoopBadge: "Open loop",
       pendingFilter: {
         all: "All",
@@ -285,6 +286,7 @@ const translations = {
       openLoopCount: "Open loops",
       reflectionsTitle: "Current reflection",
       source: "Source",
+      importance: "Importance",
       rootNodeTitle: "You",
       rootNodeDescription: "Graph center",
       rootNodeContent: "Confirmed memories, reflections, and entities orbit around your local profile.",
@@ -605,6 +607,7 @@ const translations = {
       loadFailed: "无法加载记忆收件箱。",
       retry: "重试",
       source: "来源",
+      importance: "重要性",
       openLoopBadge: "未解问题",
       pendingFilter: {
         all: "全部",
@@ -671,6 +674,7 @@ const translations = {
       openLoopCount: "未解问题",
       reflectionsTitle: "当前反思",
       source: "来源",
+      importance: "重要性",
       rootNodeTitle: "你",
       rootNodeDescription: "图谱中心",
       rootNodeContent: "已确认记忆、反思与实体都会围绕你的本地画像展开。",

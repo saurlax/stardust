@@ -436,7 +436,8 @@ function MemoryCard({
       <CardContent className="gap-2">
         <CardDescription>
           {memory.candidateKind === "open_loop" ? `${t("inbox.openLoopBadge")} · ` : ""}
-          {getMemoryTypeLabel(memory.type)} · {new Date(memory.createdAt).toLocaleDateString()}
+          {getMemoryTypeLabel(memory.type)} · {t("inbox.importance")} {memory.importance} ·{" "}
+          {new Date(memory.createdAt).toLocaleDateString()}
         </CardDescription>
         {editing ? (
           <Textarea

@@ -138,7 +138,8 @@ function MemoryEditor({
       <CardHeader className="gap-1">
         <CardDescription>
           {memory.candidateKind === "open_loop" ? `${t("memory.openLoopBadge")} · ` : ""}
-          {getStoredMemoryTypeLabel(memory)} · {new Date(memory.createdAt).toLocaleDateString()}
+          {getStoredMemoryTypeLabel(memory)} · {t("memory.importance")} {memory.importance} ·{" "}
+          {new Date(memory.createdAt).toLocaleDateString()}
         </CardDescription>
         {editing ? (
           <Textarea

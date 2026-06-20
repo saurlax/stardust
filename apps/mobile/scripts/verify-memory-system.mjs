@@ -298,8 +298,10 @@ assertIncludes(memoryRecords, "memory_candidates.kind AS candidate_kind", "Store
 assertIncludes(memoryRecords, "episodes.source AS source_kind", "Stored memories must retain source episode kinds.");
 assertIncludes(memoryLabels, "getEpisodeTitleLabel", "Episode source titles must use shared user-facing labels.");
 assertIncludes(inboxScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Inbox saved memory sources must use user-facing episode titles.");
+assertIncludes(inboxScreen, "memory.importance", "Inbox saved memories must display importance.");
 assertIncludes(inboxScreen, "getSourcePrefix(reflection.sourceKind, reflection.sourceTitle)", "Inbox reflection sources must use user-facing episode titles.");
 assertIncludes(memoryScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Memory management sources must use user-facing episode titles.");
+assertIncludes(memoryScreen, "memory.importance", "Memory management cards must display importance.");
 assertIncludes(memoryScreen, "getSourcePrefix(reflections[0].sourceKind, reflections[0].sourceTitle)", "Memory reflection summaries must expose source episode titles.");
 assertIncludes(memoryScreen, "OpenSourceButton episodeId={reflections[0].episodeId}", "Memory reflection summaries must open source episodes.");
 assertIncludes(memoryScreen, '"open_loop"', "Memory screen must expose an open-loop filter.");
