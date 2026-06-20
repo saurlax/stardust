@@ -169,12 +169,22 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
           </View>
           {recentMemories.length ? (
             recentMemories.map((memory) => (
-              <View key={memory.id} className="gap-1 rounded-lg bg-muted/50 px-3 py-3">
+              <Pressable
+                key={memory.id}
+                accessibilityRole="button"
+                className="gap-1 rounded-lg bg-muted/50 px-3 py-3"
+                onPress={() =>
+                  navigateFromDrawer(navigation, {
+                    pathname: "/memory",
+                    params: { nodeId: `memory-${memory.id}` },
+                  } as Href)
+                }
+              >
                 <Text className="text-xs uppercase text-muted-foreground">
                   {getMemoryTypeLabel(memory.candidateKind === "open_loop" ? "open_loop" : memory.type)}
                 </Text>
                 <Text className="text-sm leading-5">{memory.content}</Text>
-              </View>
+              </Pressable>
             ))
           ) : (
             <Text className="text-sm text-muted-foreground">{t("personal.noRecentMemories")}</Text>
@@ -190,7 +200,17 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
           </View>
           {recentEpisodes.length ? (
             recentEpisodes.map((episode) => (
-              <View key={episode.id} className="gap-1 rounded-lg bg-muted/50 px-3 py-3">
+              <Pressable
+                key={episode.id}
+                accessibilityRole="button"
+                className="gap-1 rounded-lg bg-muted/50 px-3 py-3"
+                onPress={() =>
+                  navigateFromDrawer(navigation, {
+                    pathname: "/journal",
+                    params: { episodeId: episode.id },
+                  } as Href)
+                }
+              >
                 <Text className="text-xs uppercase text-muted-foreground">
                   {t(`journal.source.${episode.source}`)}
                 </Text>
@@ -200,7 +220,7 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
                   </Text>
                 ) : null}
                 <Text className="text-sm leading-5">{episode.content}</Text>
-              </View>
+              </Pressable>
             ))
           ) : (
             <Text className="text-sm text-muted-foreground">{t("personal.noRecentCaptures")}</Text>

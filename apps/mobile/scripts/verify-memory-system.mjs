@@ -117,6 +117,10 @@ assertIncludes(personalScreen, "getEpisodeTitle(episode)", "Personal page must s
 assertIncludes(personalDrawer, "getEpisodeTitle(episode)", "Personal drawer must show recent episode titles.");
 assertIncludes(personalScreen, "getDeviceEventTypeLabel(episode.title)", "Personal page must label IoT episode titles.");
 assertIncludes(personalDrawer, "getDeviceEventTypeLabel(episode.title)", "Personal drawer must label IoT episode titles.");
+assertIncludes(personalScreen, 'pathname: "/memory"', "Personal page recent memories must open the memory graph.");
+assertIncludes(personalScreen, 'params: { episodeId: episode.id }', "Personal page recent captures must open source episodes.");
+assertIncludes(personalDrawer, 'pathname: "/memory"', "Personal drawer recent memories must open the memory graph.");
+assertIncludes(personalDrawer, 'params: { episodeId: episode.id }', "Personal drawer recent captures must open source episodes.");
 assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");
 assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty state must open Settings.");
 assertIncludes(inboxScreen, "pendingKindFilters", "Pending inbox must expose candidate kind filters.");
