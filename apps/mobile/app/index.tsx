@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, type Href } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -27,6 +27,7 @@ import {
   createEpisode,
   createSessionId,
   findRelevantKnowledge,
+  getPersonalSnapshot,
   loadLatestChatSession,
   saveChatSessionSnapshot,
   updateCandidateStatus,
@@ -76,6 +77,7 @@ export default function Index() {
   const [selectedImageUri, setSelectedImageUri] = useState<string>();
   const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>();
   const [messages, setMessages] = useState<ChatMessage[]>([createGreetingMessage()]);
+  const [pendingCandidates, setPendingCandidates] = useState(0);
   const [sending, setSending] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const chatIdRef = useRef<string | null>(null);
@@ -169,6 +171,18 @@ export default function Index() {
     [],
   );
 
+  const refreshPendingCandidates = useCallback(() => {
+    void getPersonalSnapshot(db)
+      .then((snapshot) => setPendingCandidates(snapshot.pendingCards))
+      .catch(() => setPendingCandidates(0));
+  }, [db]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshPendingCandidates();
+    }, [refreshPendingCandidates]),
+  );
+
   const updateAssistantText = useCallback(
     (assistantId: string, content: string, status: ChatMessage["status"]) => {
       replaceMessage(assistantId, (message) => ({
@@ -250,6 +264,7 @@ export default function Index() {
           episodeId: request.episodeId,
           cards: result.toolCards,
         });
+        refreshPendingCandidates();
 
         replaceMessage(assistantId, (message) => ({
           ...message,
@@ -269,7 +284,7 @@ export default function Index() {
         setSending(false);
       }
     },
-    [db, replaceMessage, updateAssistantText],
+    [db, refreshPendingCandidates, replaceMessage, updateAssistantText],
   );
 
   const sendPrompt = useCallback(
@@ -409,7 +424,9 @@ export default function Index() {
       ),
     }));
 
-    void updateCandidateStatus(db, cardId, status, nextContent).catch(console.error);
+    void updateCandidateStatus(db, cardId, status, nextContent)
+      .then(refreshPendingCandidates)
+      .catch(console.error);
   };
 
   const openCamera = async () => {
@@ -494,7 +511,7 @@ export default function Index() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
-      <View className="relative h-[72px] justify-center border-b border-border bg-background/80 px-16">
+      <View className="relative h-[72px] justify-center border-b border-border bg-background/80 px-24">
         <View className="absolute bottom-0 left-3 top-0 justify-center">
           <Button
             accessibilityRole="button"
@@ -516,7 +533,25 @@ export default function Index() {
           </Text>
         </View>
 
-        <View className="absolute bottom-0 right-3 top-0 justify-center">
+        <View className="absolute bottom-0 right-3 top-0 flex-row items-center justify-center gap-1">
+          <Button
+            accessibilityRole="button"
+            accessibilityLabel={t("chat.openMemoryInbox")}
+            hitSlop={10}
+            onPress={() => router.push("/inbox" as Href)}
+            variant="ghost"
+            size="icon"
+            className="relative rounded-full"
+          >
+            <Ionicons name="file-tray-full-outline" size={21} color={iconColor} />
+            {pendingCandidates ? (
+              <View className="absolute right-1 top-1 min-h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1">
+                <Text className="text-[10px] font-semibold leading-4 text-primary-foreground">
+                  {pendingCandidates > 9 ? "9+" : pendingCandidates}
+                </Text>
+              </View>
+            ) : null}
+          </Button>
           <Button
             accessibilityRole="button"
             accessibilityLabel={t("chat.openSettings")}
