@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { PermissionsAndroid, Platform } from "react-native";
 import type { SQLiteDatabase } from "expo-sqlite";
 
 import { createDeviceEvent, updateDeviceStatus, upsertDevice } from "@/lib/db";
@@ -16,8 +16,80 @@ let manager: BleManagerInstance | null = null;
 
 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+const utf8Encode = (value: string) => {
+  const bytes: number[] = [];
+  for (let index = 0; index < value.length; index += 1) {
+    let codePoint = value.charCodeAt(index);
+    if (codePoint >= 0xd800 && codePoint <= 0xdbff && index + 1 < value.length) {
+      const next = value.charCodeAt(index + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        codePoint = 0x10000 + ((codePoint - 0xd800) << 10) + (next - 0xdc00);
+        index += 1;
+      }
+    }
+
+    if (codePoint <= 0x7f) {
+      bytes.push(codePoint);
+    } else if (codePoint <= 0x7ff) {
+      bytes.push(0xc0 | (codePoint >> 6), 0x80 | (codePoint & 0x3f));
+    } else if (codePoint <= 0xffff) {
+      bytes.push(
+        0xe0 | (codePoint >> 12),
+        0x80 | ((codePoint >> 6) & 0x3f),
+        0x80 | (codePoint & 0x3f),
+      );
+    } else {
+      bytes.push(
+        0xf0 | (codePoint >> 18),
+        0x80 | ((codePoint >> 12) & 0x3f),
+        0x80 | ((codePoint >> 6) & 0x3f),
+        0x80 | (codePoint & 0x3f),
+      );
+    }
+  }
+  return bytes;
+};
+
+const utf8Decode = (bytes: number[]) => {
+  let result = "";
+  for (let index = 0; index < bytes.length; ) {
+    const byte1 = bytes[index++] ?? 0;
+    if (byte1 < 0x80) {
+      result += String.fromCharCode(byte1);
+      continue;
+    }
+
+    if (byte1 < 0xe0) {
+      const byte2 = bytes[index++] ?? 0;
+      result += String.fromCharCode(((byte1 & 0x1f) << 6) | (byte2 & 0x3f));
+      continue;
+    }
+
+    if (byte1 < 0xf0) {
+      const byte2 = bytes[index++] ?? 0;
+      const byte3 = bytes[index++] ?? 0;
+      result += String.fromCharCode(
+        ((byte1 & 0x0f) << 12) | ((byte2 & 0x3f) << 6) | (byte3 & 0x3f),
+      );
+      continue;
+    }
+
+    const byte2 = bytes[index++] ?? 0;
+    const byte3 = bytes[index++] ?? 0;
+    const byte4 = bytes[index++] ?? 0;
+    const codePoint =
+      ((byte1 & 0x07) << 18) |
+      ((byte2 & 0x3f) << 12) |
+      ((byte3 & 0x3f) << 6) |
+      (byte4 & 0x3f);
+    const adjusted = codePoint - 0x10000;
+    result += String.fromCharCode(0xd800 + (adjusted >> 10), 0xdc00 + (adjusted & 0x3ff));
+  }
+  return result;
+};
+
 const encodeBase64 = (value: string) => {
-  const bytes = new TextEncoder().encode(value);
+  const bytes = utf8Encode(value);
   let result = "";
   for (let index = 0; index < bytes.length; index += 3) {
     const byte1 = bytes[index] ?? 0;
@@ -47,7 +119,30 @@ const decodeBase64 = (value: string) => {
       bytes.push((buffer >> bits) & 255);
     }
   }
-  return new TextDecoder().decode(new Uint8Array(bytes));
+  return utf8Decode(bytes);
+};
+
+const ensureBlePermissions = async () => {
+  if (Platform.OS !== "android") return;
+  if (Platform.Version < 31) {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+    );
+    if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+      throw new Error("Location permission is required to scan BLE devices on this Android version.");
+    }
+    return;
+  }
+
+  const permissions = [
+    PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+    PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+  ];
+  const result = await PermissionsAndroid.requestMultiple(permissions);
+  const denied = permissions.some((permission) => result[permission] !== PermissionsAndroid.RESULTS.GRANTED);
+  if (denied) {
+    throw new Error("Bluetooth permissions are required to connect Stardust Sense.");
+  }
 };
 
 const getBleManager = async () => {
@@ -57,6 +152,7 @@ const getBleManager = async () => {
   if (manager) return manager;
 
   try {
+    await ensureBlePermissions();
     const { BleManager } = await import("react-native-ble-plx");
     manager = new BleManager();
     return manager;

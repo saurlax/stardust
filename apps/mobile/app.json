@@ -32,6 +32,7 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": true,
+          "neverForLocation": true,
           "modes": ["central"],
           "bluetoothAlwaysPermission": "Allow Stardust to connect to Stardust Sense devices."
         }
