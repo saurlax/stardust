@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
-export const DATABASE_VERSION = 14;
+export const DATABASE_VERSION = 15;
 
 let ftsAvailable: boolean | undefined;
 
@@ -151,11 +151,13 @@ async function createCurrentTables(db: SQLiteDatabase) {
     CREATE TABLE IF NOT EXISTS device_events (
       device_event_id TEXT PRIMARY KEY NOT NULL,
       device_id TEXT NOT NULL,
+      candidate_id TEXT,
       event_type TEXT NOT NULL,
       content TEXT NOT NULL,
       metadata_json TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(device_id, device_event_id),
+      FOREIGN KEY (candidate_id) REFERENCES memory_candidates(candidate_id) ON DELETE SET NULL,
       FOREIGN KEY (device_id) REFERENCES devices(device_id) ON DELETE CASCADE
     );
 

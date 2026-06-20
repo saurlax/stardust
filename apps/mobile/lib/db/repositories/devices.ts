@@ -38,7 +38,7 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
       MAX(device_events.created_at) AS last_event_at
     FROM devices
     LEFT JOIN device_events ON device_events.device_id = devices.device_id
-    LEFT JOIN memory_candidates ON memory_candidates.candidate_id = 'candidate-' || device_events.device_event_id
+    LEFT JOIN memory_candidates ON memory_candidates.candidate_id = device_events.candidate_id
     GROUP BY devices.device_id
     ORDER BY COALESCE(devices.last_seen_at, devices.updated_at) DESC
   `);
@@ -178,12 +178,12 @@ export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventR
       device_events.event_type AS event_type,
       device_events.content AS content,
       device_events.metadata_json AS metadata_json,
-      memory_candidates.candidate_id AS candidate_id,
+      device_events.candidate_id AS candidate_id,
       memory_candidates.status AS candidate_status,
       device_events.created_at AS created_at
     FROM device_events
     LEFT JOIN devices ON devices.device_id = device_events.device_id
-    LEFT JOIN memory_candidates ON memory_candidates.candidate_id = 'candidate-' || device_events.device_event_id
+    LEFT JOIN memory_candidates ON memory_candidates.candidate_id = device_events.candidate_id
     ORDER BY device_events.created_at DESC
     LIMIT 80
   `);
@@ -210,26 +210,38 @@ export async function promoteDeviceEventToCandidate(
   }
   const createdAt = nowIso();
   const candidateId = `candidate-${event.id}`;
-  await db.runAsync(
-    `
-      INSERT OR IGNORE INTO memory_candidates (
-        candidate_id, episode_id, kind, type, title, content, status,
-        metadata_json, created_at, updated_at
-      )
-      VALUES (?, ?, 'memory', 'memory', ?, ?, 'pending', ?, ?, ?)
-    `,
-    candidateId,
-    `episode-${event.id}`,
-    event.deviceName ? `${event.eventType} · ${event.deviceName}` : event.eventType,
-    event.content,
-    safeJson({
-      toolType: "save_memory",
-      source: "device_event",
-      deviceId: event.deviceId,
-      eventId: event.id,
-      eventType: event.eventType,
-    }),
-    createdAt,
-    createdAt,
-  );
+  await runInTransaction(db, async () => {
+    await db.runAsync(
+      `
+        INSERT OR IGNORE INTO memory_candidates (
+          candidate_id, episode_id, kind, type, title, content, status,
+          metadata_json, created_at, updated_at
+        )
+        VALUES (?, ?, 'memory', 'memory', ?, ?, 'pending', ?, ?, ?)
+      `,
+      candidateId,
+      `episode-${event.id}`,
+      event.deviceName ? `${event.eventType} · ${event.deviceName}` : event.eventType,
+      event.content,
+      safeJson({
+        toolType: "save_memory",
+        source: "device_event",
+        deviceId: event.deviceId,
+        eventId: event.id,
+        eventType: event.eventType,
+      }),
+      createdAt,
+      createdAt,
+    );
+    await db.runAsync(
+      `
+        UPDATE device_events
+        SET candidate_id = ?
+        WHERE device_event_id = ? AND device_id = ?
+      `,
+      candidateId,
+      event.id,
+      event.deviceId,
+    );
+  });
 }

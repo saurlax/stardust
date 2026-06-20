@@ -108,7 +108,7 @@ for (const functionName of [
 }
 
 assertIncludes(schema, "episode_id TEXT", "Reflections must preserve source episodes.");
-assertIncludes(schema, "export const DATABASE_VERSION = 14", "Database version must reflect the current schema.");
+assertIncludes(schema, "export const DATABASE_VERSION = 15", "Database version must reflect the current schema.");
 assertIncludes(schema, "candidate_id TEXT", "Relations must preserve source candidates.");
 assertIncludes(schema, "episode_id TEXT", "Relations must preserve source episodes.");
 assertIncludes(candidates, "candidate_id, episode_id, source_entity_id", "Entity candidate acceptance must write relation provenance.");
@@ -129,6 +129,9 @@ assertIncludes(devices, "createEpisodeInCurrentTransaction", "Device events must
 assertIncludes(devices, "INSERT OR IGNORE INTO device_events", "Device events must be idempotent.");
 assertIncludes(devices, "promoteDeviceEventToCandidate", "Device events must be promotable to memory review.");
 assertIncludes(devices, "'memory', 'memory'", "Promoted device events must become pending memory candidates.");
+assertIncludes(schema, "candidate_id TEXT", "Device events must retain promoted candidate ids.");
+assertIncludes(devices, "SET candidate_id = ?", "Device event promotion must link back to the candidate.");
+assertIncludes(devices, "memory_candidates.candidate_id = device_events.candidate_id", "Device event review state must use explicit candidate links.");
 assertIncludes(devices, "promotableDeviceEventTypes", "Device event promotion must filter operational events.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM entities", "Personal snapshot must expose entity graph growth.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal snapshot must expose relation graph growth.");
