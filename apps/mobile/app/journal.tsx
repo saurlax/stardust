@@ -1,8 +1,9 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useMemo, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { ScrollView, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,39 @@ import {
   type JournalRecord,
   updateJournalContent,
 } from "@/lib/db";
+
+const sourceFilters = ["all", "chat", "share", "image", "calendar", "iot", "journal", "memory"] as const;
+type SourceFilter = (typeof sourceFilters)[number];
+
+const sourceIcons: Record<Exclude<SourceFilter, "all">, keyof typeof Ionicons.glyphMap> = {
+  chat: "chatbubble-ellipses-outline",
+  share: "share-social-outline",
+  image: "image-outline",
+  calendar: "calendar-outline",
+  iot: "hardware-chip-outline",
+  journal: "create-outline",
+  memory: "sparkles-outline",
+};
+
+function sourceLabel(source: SourceFilter) {
+  return t(`journal.source.${source}`);
+}
+
+function SourceFilterButton({
+  active,
+  source,
+  onPress,
+}: {
+  active: boolean;
+  source: SourceFilter;
+  onPress: () => void;
+}) {
+  return (
+    <Button variant={active ? "default" : "outline"} size="sm" onPress={onPress}>
+      <Text>{sourceLabel(source)}</Text>
+    </Button>
+  );
+}
 
 function JournalManager({
   journals,
@@ -104,8 +138,11 @@ function JournalManager({
 
 export default function JournalScreen() {
   const db = useSQLiteContext();
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const [days, setDays] = useState<JournalDay[]>([]);
   const [journals, setJournals] = useState<JournalRecord[]>([]);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<
     {
@@ -157,6 +194,18 @@ export default function JournalScreen() {
 
   const hasSearch = query.trim().length > 0;
   const visibleResults = useMemo(() => results.slice(0, 8), [results]);
+  const visibleDays = useMemo(
+    () =>
+      sourceFilter === "all"
+        ? days
+        : days
+            .map((day) => ({
+              ...day,
+              entries: day.entries.filter((entry) => entry.source === sourceFilter),
+            }))
+            .filter((day) => day.entries.length),
+    [days, sourceFilter],
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
@@ -213,13 +262,32 @@ export default function JournalScreen() {
 
         <JournalManager journals={journals} onRefresh={refresh} />
 
-        {!days.length ? (
+        <View className="gap-2">
+          <View className="px-0.5">
+            <Text className="text-lg font-semibold">{t("journal.timelineTitle")}</Text>
+            <Text className="text-sm text-muted-foreground">{t("journal.timelineSubtitle")}</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View className="flex-row gap-2 pr-4">
+              {sourceFilters.map((source) => (
+                <SourceFilterButton
+                  key={source}
+                  active={sourceFilter === source}
+                  source={source}
+                  onPress={() => setSourceFilter(source)}
+                />
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
+        {!visibleDays.length ? (
           <Card className="min-h-24 items-center justify-center px-4">
             <Text variant="muted">{t("journal.empty")}</Text>
           </Card>
         ) : null}
 
-        {days.map((day, index, allDays) => {
+        {visibleDays.map((day, index, allDays) => {
           const isLastDay = index === allDays.length - 1;
 
           return (
@@ -235,10 +303,12 @@ export default function JournalScreen() {
                 {day.entries.map((entry) => (
                   <Card key={entry.id} className="min-h-[72px] justify-center gap-1 py-4">
                     <CardContent className="gap-1">
-                      <CardDescription>
-                        {formatTime(new Date(entry.timestamp))}
-                        {entry.source === "memory" ? ` · ${t("journal.memoryEntryPrefix")}` : ""}
-                      </CardDescription>
+                      <View className="flex-row items-center gap-1.5">
+                        <Ionicons name={sourceIcons[entry.source]} size={13} color={iconColor} />
+                        <CardDescription>
+                          {formatTime(new Date(entry.timestamp))} · {sourceLabel(entry.source)}
+                        </CardDescription>
+                      </View>
                       <Text className="text-sm leading-5">{entry.note}</Text>
                     </CardContent>
                   </Card>
