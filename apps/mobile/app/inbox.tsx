@@ -410,9 +410,11 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
 function DeviceEventCard({
   event,
   onPromoted,
+  onOpenReview,
 }: {
   event: DeviceEventRecord;
   onPromoted: () => void;
+  onOpenReview: () => void;
 }) {
   const db = useSQLiteContext();
   const metadataLines = Object.entries(event.metadata ?? {})
@@ -474,6 +476,11 @@ function DeviceEventCard({
             >
               <Ionicons name="sparkles-outline" size={14} />
               <Text>{t("inbox.promoteDeviceEvent")}</Text>
+            </Button>
+          ) : event.candidateStatus === "pending" ? (
+            <Button variant="outline" size="sm" onPress={onOpenReview}>
+              <Ionicons name="sparkles-outline" size={14} />
+              <Text>{t("inbox.openReview")}</Text>
             </Button>
           ) : null}
         </View>
@@ -651,6 +658,7 @@ export default function InboxScreen() {
                   refresh();
                   setTab("pending");
                 }}
+                onOpenReview={() => setTab("pending")}
               />
             ))}
           </View>
