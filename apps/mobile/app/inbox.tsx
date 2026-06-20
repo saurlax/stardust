@@ -66,6 +66,30 @@ function TabButton({
   );
 }
 
+function OpenEpisodeButton({ episodeId }: { episodeId?: string }) {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
+
+  if (!episodeId) return null;
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="mt-1 self-start"
+      onPress={() =>
+        router.push({
+          pathname: "/journal",
+          params: { episodeId },
+        } as Href)
+      }
+    >
+      <Ionicons name="open-outline" size={14} color={iconColor} />
+      <Text>{t("inbox.openTimeline")}</Text>
+    </Button>
+  );
+}
+
 function CandidateCard({
   candidate,
   onRefresh,
@@ -118,6 +142,7 @@ function CandidateCard({
               {candidate.sourceTitle ? `${candidate.sourceTitle} · ` : ""}
               {candidate.sourceContent}
             </Text>
+            <OpenEpisodeButton episodeId={candidate.episodeId} />
           </View>
         ) : null}
 
@@ -213,6 +238,7 @@ function MemoryCard({
               {memory.sourceTitle ? `${memory.sourceTitle} · ` : ""}
               {memory.sourceContent}
             </Text>
+            <OpenEpisodeButton episodeId={memory.episodeId} />
           </View>
         ) : null}
         <View className="flex-row flex-wrap gap-2">
