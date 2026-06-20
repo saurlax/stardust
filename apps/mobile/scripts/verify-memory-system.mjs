@@ -25,6 +25,7 @@ const chatScreen = read(mobileRoot, "app", "index.tsx");
 const chatRuntime = read(mobileRoot, "lib", "chat", "runtime.ts");
 const chatMessages = read(mobileRoot, "components", "ChatMessages.tsx");
 const nebulaView = read(mobileRoot, "components", "NebulaView.tsx");
+const calendarScreen = read(mobileRoot, "app", "calendar.tsx");
 const journalScreen = read(mobileRoot, "app", "journal.tsx");
 const inboxScreen = read(mobileRoot, "app", "inbox.tsx");
 const memoryScreen = read(mobileRoot, "app", "memory.tsx");
@@ -108,6 +109,8 @@ assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be 
 assertIncludes(journalScreen, "sourceCounts", "Episode timeline source filters must expose counts.");
 assertIncludes(journalScreen, "sourceCounts[source]", "Episode timeline source filter labels must display counts.");
 assertIncludes(journalScreen, "entries.filter((entry) => entry.source === source).length", "Episode timeline source counts must be source-specific.");
+assertIncludes(calendarScreen, "buildCalendarEpisodeContent(event)", "Calendar episodes must preserve searchable date and location context.");
+assertIncludes(calendarScreen, "calendar.location", "Calendar episode content must label locations.");
 assertIncludes(timeline, "title: episode.title", "Episode timeline entries must preserve episode titles.");
 assertIncludes(timeline, "mediaUri: episode.mediaUri", "Episode timeline entries must preserve media URIs.");
 assertIncludes(knowledge, "hasMedia: !!item.media_uri", "Knowledge retrieval must expose media-bearing episodes.");

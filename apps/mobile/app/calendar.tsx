@@ -80,6 +80,15 @@ const groupEventsByDay = (events: CalendarEvent[]): CalendarDay[] => {
   );
 };
 
+const buildCalendarEpisodeContent = (event: CalendarEvent) =>
+  [
+    event.title,
+    `${formatMonthDay(event.startDate)} ${formatTime(event.startDate)} - ${formatTime(event.endDate)}`,
+    event.location ? `${t("calendar.location")}: ${event.location}` : undefined,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
 const getAppCalendarIds = async () => {
   const calendars = await Calendar.getCalendarsAsync(
     Calendar.EntityTypes.EVENT,
@@ -165,7 +174,7 @@ export default function CalendarScreen() {
           id: `episode-calendar-${event.id}`,
           source: "calendar",
           title: event.title,
-          content: `${event.title} (${formatTime(event.startDate)} - ${formatTime(event.endDate)})`,
+          content: buildCalendarEpisodeContent(event),
           metadata: {
             calendarEventId: event.id,
             location: event.location,
