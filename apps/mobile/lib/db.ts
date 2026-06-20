@@ -10,6 +10,7 @@ import {
   createDeviceEvent,
   listDeviceEvents,
   listDevices,
+  promoteDeviceEventToCandidate,
   updateDeviceStatus,
   upsertDevice,
 } from "@/lib/db/repositories/devices";
@@ -59,7 +60,14 @@ export {
   updateCandidateStatus,
 };
 export { createEpisode, listEpisodes, listJournalRecords, updateJournalContent };
-export { createDeviceEvent, listDeviceEvents, listDevices, updateDeviceStatus, upsertDevice };
+export {
+  createDeviceEvent,
+  listDeviceEvents,
+  listDevices,
+  promoteDeviceEventToCandidate,
+  updateDeviceStatus,
+  upsertDevice,
+};
 export { loadLatestChatSession, saveChatSessionSnapshot };
 export { migrateDbIfNeeded };
 export { findRelevantKnowledge };

@@ -3,7 +3,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 import { createEpisode } from "@/lib/db/repositories/episodes";
 import { parseJson, safeJson } from "@/lib/db/serialization";
 import { runInTransaction } from "@/lib/db/transactions";
-import type { DeviceEventRecord, DeviceRecord, DeviceStatus } from "@/lib/db/types";
+import type { CandidateStatus, DeviceEventRecord, DeviceRecord, DeviceStatus } from "@/lib/db/types";
 
 const nowIso = () => new Date().toISOString();
 const createId = (prefix: string) =>
@@ -145,6 +145,8 @@ export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventR
     event_type: string;
     content: string;
     metadata_json: string | null;
+    candidate_id: string | null;
+    candidate_status: CandidateStatus | null;
     created_at: string;
   }>(`
     SELECT
@@ -154,9 +156,12 @@ export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventR
       device_events.event_type AS event_type,
       device_events.content AS content,
       device_events.metadata_json AS metadata_json,
+      memory_candidates.candidate_id AS candidate_id,
+      memory_candidates.status AS candidate_status,
       device_events.created_at AS created_at
     FROM device_events
     LEFT JOIN devices ON devices.device_id = device_events.device_id
+    LEFT JOIN memory_candidates ON memory_candidates.candidate_id = 'candidate-' || device_events.device_event_id
     ORDER BY device_events.created_at DESC
     LIMIT 80
   `);
@@ -167,6 +172,38 @@ export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventR
     eventType: row.event_type,
     content: row.content,
     metadata: parseJson(row.metadata_json),
+    candidateId: row.candidate_id ?? undefined,
+    candidateStatus: row.candidate_status ?? undefined,
     createdAt: row.created_at,
   }));
+}
+
+export async function promoteDeviceEventToCandidate(
+  db: SQLiteDatabase,
+  event: DeviceEventRecord,
+) {
+  const createdAt = nowIso();
+  const candidateId = `candidate-${event.id}`;
+  await db.runAsync(
+    `
+      INSERT OR IGNORE INTO memory_candidates (
+        candidate_id, episode_id, kind, type, title, content, status,
+        metadata_json, created_at, updated_at
+      )
+      VALUES (?, ?, 'memory', 'memory', ?, ?, 'pending', ?, ?, ?)
+    `,
+    candidateId,
+    `episode-${event.id}`,
+    event.deviceName ? `${event.eventType} · ${event.deviceName}` : event.eventType,
+    event.content,
+    safeJson({
+      toolType: "save_memory",
+      source: "device_event",
+      deviceId: event.deviceId,
+      eventId: event.id,
+      eventType: event.eventType,
+    }),
+    createdAt,
+    createdAt,
+  );
 }

@@ -19,6 +19,7 @@ import {
   listMemoryCandidates,
   listReflections,
   listStoredMemories,
+  promoteDeviceEventToCandidate,
   toToolCardsFromCandidates,
   updateCandidateStatus,
   updateReflectionContent,
@@ -406,7 +407,14 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
   );
 }
 
-function DeviceEventCard({ event }: { event: DeviceEventRecord }) {
+function DeviceEventCard({
+  event,
+  onRefresh,
+}: {
+  event: DeviceEventRecord;
+  onRefresh: () => void;
+}) {
+  const db = useSQLiteContext();
   const metadataLines = Object.entries(event.metadata ?? {})
     .slice(0, 5)
     .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`);
@@ -433,20 +441,38 @@ function DeviceEventCard({ event }: { event: DeviceEventRecord }) {
             ))}
           </View>
         ) : null}
-        <Button
-          variant="outline"
-          size="sm"
-          className="self-start"
-          onPress={() =>
-            router.push({
-              pathname: "/journal",
-              params: { episodeId: `episode-${event.id}` },
-            } as Href)
-          }
-        >
-          <Ionicons name="open-outline" size={14} />
-          <Text>{t("inbox.openTimeline")}</Text>
-        </Button>
+        {event.candidateStatus ? (
+          <Text className="text-xs font-semibold text-muted-foreground">
+            {t("inbox.deviceEventInReview")} · {event.candidateStatus}
+          </Text>
+        ) : null}
+        <View className="flex-row flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onPress={() =>
+              router.push({
+                pathname: "/journal",
+                params: { episodeId: `episode-${event.id}` },
+              } as Href)
+            }
+          >
+            <Ionicons name="open-outline" size={14} />
+            <Text>{t("inbox.openTimeline")}</Text>
+          </Button>
+          {!event.candidateStatus ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onPress={() => {
+                void promoteDeviceEventToCandidate(db, event).then(onRefresh);
+              }}
+            >
+              <Ionicons name="sparkles-outline" size={14} />
+              <Text>{t("inbox.promoteDeviceEvent")}</Text>
+            </Button>
+          ) : null}
+        </View>
       </CardContent>
     </Card>
   );
@@ -593,7 +619,7 @@ export default function InboxScreen() {
               </View>
             </ScrollView>
             {visibleDeviceEvents.map((event) => (
-              <DeviceEventCard key={event.id} event={event} />
+              <DeviceEventCard key={event.id} event={event} onRefresh={refresh} />
             ))}
           </View>
         ) : null}
