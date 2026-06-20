@@ -910,6 +910,11 @@ export default function InboxScreen() {
                 ))}
               </View>
             </ScrollView>
+            {!visibleDeviceEvents.length ? (
+              <Card className="min-h-24 items-center justify-center px-4">
+                <Text variant="muted">{t("inbox.emptyFilteredDeviceEvents")}</Text>
+              </Card>
+            ) : null}
             {visibleDeviceEvents.map((event) => (
               <DeviceEventCard
                 key={event.id}
@@ -929,6 +934,12 @@ export default function InboxScreen() {
               />
             ))}
           </View>
+        ) : null}
+
+        {tab === "devices" && devices.length && !deviceEvents.length ? (
+          <Card className="min-h-24 items-center justify-center px-4">
+            <Text variant="muted">{t("inbox.emptyDeviceEvents")}</Text>
+          </Card>
         ) : null}
 
         {tab === "devices" && !devices.length && !deviceEvents.length ? (
