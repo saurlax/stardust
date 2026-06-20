@@ -31,7 +31,8 @@ import {
   updateReflectionContent,
   updateStoredMemoryContent,
 } from "@/lib/db/repositories/memoryRecords";
-import { isFtsAvailable, migrateDbIfNeeded } from "@/lib/db/schema";
+import { findRelevantKnowledge } from "@/lib/db/repositories/knowledge";
+import { migrateDbIfNeeded } from "@/lib/db/schema";
 import type {
   DeviceEventRecord,
   DeviceRecord,
@@ -62,6 +63,7 @@ export { createEpisode, listEpisodes, listJournalRecords, updateJournalContent }
 export { createDeviceEvent, listDeviceEvents, listDevices, updateDeviceStatus, upsertDevice };
 export { loadLatestChatSession, saveChatSessionSnapshot };
 export { migrateDbIfNeeded };
+export { findRelevantKnowledge };
 export {
   archiveReflection,
   dismissStoredMemory,
@@ -99,12 +101,6 @@ const createId = (prefix: string) =>
 
 export const createSessionId = () => createId("session");
 
-const tokenize = (value: string) =>
-  value
-    .toLowerCase()
-    .split(/[^a-z0-9\u4e00-\u9fff]+/i)
-    .filter((token) => token.length >= 2);
-
 export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]> {
   const [episodes, memories] = await Promise.all([listEpisodes(db), listStoredMemories(db)]);
   const entries: JournalEntry[] = [
@@ -134,199 +130,6 @@ export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]>
     }
   }
   return [...grouped.values()].sort((a, b) => b.date.getTime() - a.date.getTime());
-}
-
-const toFtsQuery = (query: string) =>
-  query
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((token) => `"${token.replace(/"/g, '""')}"*`)
-    .join(" OR ");
-
-const rankByTokenMatches = (value: string, tokens: string[]) => {
-  const normalized = value.toLowerCase();
-  return -tokens.filter((token) => normalized.includes(token.toLowerCase())).length;
-};
-
-const mergeRelevantKnowledge = (items: RelevantKnowledge[], limit: number) => {
-  const seen = new Set<string>();
-  return items
-    .sort((a, b) => a.rank - b.rank || Date.parse(b.createdAt) - Date.parse(a.createdAt))
-    .filter((item) => {
-      const key = `${item.source}:${item.id}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .slice(0, limit);
-};
-
-async function listRecentEpisodeKnowledge(
-  db: SQLiteDatabase,
-  limit: number,
-): Promise<RelevantKnowledge[]> {
-  const rows = await db.getAllAsync<{
-    id: string;
-    type: string;
-    content: string;
-    created_at: string;
-  }>(
-    `
-      SELECT episode_id AS id, source AS type, content, created_at
-      FROM episodes
-      ORDER BY created_at DESC
-      LIMIT ?
-    `,
-    limit,
-  );
-
-  return rows.map((item, index) => ({
-    id: item.id,
-    source: "episode" as const,
-    type: item.type,
-    content: item.content,
-    createdAt: item.created_at,
-    rank: 2 + index * 0.05,
-  }));
-}
-
-export async function findRelevantKnowledge(
-  db: SQLiteDatabase,
-  query: string,
-  limit = 8,
-): Promise<RelevantKnowledge[]> {
-  const ftsQuery = toFtsQuery(query);
-  if (!ftsQuery) return [];
-
-  if (!(await isFtsAvailable(db))) {
-    const tokens = tokenize(query);
-    if (!tokens.length) return [];
-    const like = tokens.map(() => "(content LIKE ? OR type LIKE ?)").join(" OR ");
-    const episodeLike = tokens.map(() => "(content LIKE ? OR source LIKE ?)").join(" OR ");
-    const params = tokens.flatMap((token) => [`%${token}%`, `%${token}%`]);
-    const recentEpisodeLimit = Math.min(3, limit);
-    const [memoryRows, episodeRows, reflectionRows, recentEpisodes] = await Promise.all([
-      db.getAllAsync<any>(
-        `SELECT memory_id AS id, type, content, created_at FROM memory_atoms WHERE status = 'active' AND ${like} LIMIT ?`,
-        ...params,
-        limit,
-      ),
-      db.getAllAsync<any>(
-        `SELECT episode_id AS id, source AS type, content, created_at FROM episodes WHERE ${episodeLike} LIMIT ?`,
-        ...params,
-        limit,
-      ),
-      db.getAllAsync<any>(
-        `SELECT reflection_id AS id, 'reflection' AS type, content, created_at FROM reflections WHERE status = 'active' AND content LIKE ? LIMIT ?`,
-        `%${query}%`,
-        limit,
-      ),
-      listRecentEpisodeKnowledge(db, recentEpisodeLimit),
-    ]);
-    return mergeRelevantKnowledge([
-      ...memoryRows.map((item) => ({
-        id: item.id,
-        source: "memory" as const,
-        type: item.type,
-        content: item.content,
-        createdAt: item.created_at,
-        rank: rankByTokenMatches(`${item.type} ${item.content}`, tokens),
-      })),
-      ...episodeRows.map((item) => ({
-        id: item.id,
-        source: "episode" as const,
-        type: item.type,
-        content: item.content,
-        createdAt: item.created_at,
-        rank: rankByTokenMatches(`${item.type} ${item.content}`, tokens) + 0.2,
-      })),
-      ...reflectionRows.map((item) => ({
-        id: item.id,
-        source: "reflection" as const,
-        type: item.type,
-        content: item.content,
-        createdAt: item.created_at,
-        rank: rankByTokenMatches(item.content, tokens) - 0.2,
-      })),
-      ...recentEpisodes,
-    ], limit);
-  }
-
-  const recentEpisodeLimit = Math.min(3, limit);
-  const [memoryRows, episodeRows, reflectionRows, recentEpisodes] = await Promise.all([
-    db.getAllAsync<any>(
-      `
-        SELECT memory_atoms.memory_id AS id, memory_atoms.type AS type,
-          memory_atoms.content AS content, memory_atoms.created_at AS created_at,
-          bm25(memory_atoms_fts) AS rank
-        FROM memory_atoms_fts
-        JOIN memory_atoms ON memory_atoms.memory_id = memory_atoms_fts.memory_id
-        WHERE memory_atoms.status = 'active' AND memory_atoms_fts MATCH ?
-        ORDER BY rank
-        LIMIT ?
-      `,
-      ftsQuery,
-      limit,
-    ),
-    db.getAllAsync<any>(
-      `
-        SELECT episodes.episode_id AS id, episodes.source AS type,
-          episodes.content AS content, episodes.created_at AS created_at,
-          bm25(episodes_fts) AS rank
-        FROM episodes_fts
-        JOIN episodes ON episodes.episode_id = episodes_fts.episode_id
-        WHERE episodes_fts MATCH ?
-        ORDER BY rank
-        LIMIT ?
-      `,
-      ftsQuery,
-      limit,
-    ),
-    db.getAllAsync<any>(
-      `
-        SELECT reflections.reflection_id AS id, 'reflection' AS type,
-          reflections.content AS content, reflections.created_at AS created_at,
-          bm25(reflections_fts) AS rank
-        FROM reflections_fts
-        JOIN reflections ON reflections.reflection_id = reflections_fts.reflection_id
-        WHERE reflections.status = 'active' AND reflections_fts MATCH ?
-        ORDER BY rank
-        LIMIT ?
-      `,
-      ftsQuery,
-      limit,
-    ),
-    listRecentEpisodeKnowledge(db, recentEpisodeLimit),
-  ]);
-
-  return mergeRelevantKnowledge([
-    ...memoryRows.map((item) => ({
-      id: item.id,
-      source: "memory" as const,
-      type: item.type,
-      content: item.content,
-      createdAt: item.created_at,
-      rank: item.rank,
-    })),
-    ...episodeRows.map((item) => ({
-      id: item.id,
-      source: "episode" as const,
-      type: item.type,
-      content: item.content,
-      createdAt: item.created_at,
-      rank: item.rank + 0.2,
-    })),
-    ...reflectionRows.map((item) => ({
-      id: item.id,
-      source: "reflection" as const,
-      type: item.type,
-      content: item.content,
-      createdAt: item.created_at,
-      rank: item.rank - 0.2,
-    })),
-    ...recentEpisodes,
-  ], limit);
 }
 
 export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalSnapshot> {
