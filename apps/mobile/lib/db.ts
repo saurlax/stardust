@@ -229,6 +229,54 @@ const parseToolCards = (value?: string | null): MessageToolCard[] | undefined =>
 const serializeToolCards = (value?: MessageToolCard[]) =>
   value?.length ? JSON.stringify(value) : null;
 
+async function syncCandidateToolCardSnapshot(
+  db: SQLiteDatabase,
+  candidate: MemoryCandidate,
+  status: CandidateStatus,
+  content: string,
+  updatedAt: string,
+) {
+  if (!candidate.sessionId || !candidate.messageId) return;
+
+  const row = await db.getFirstAsync<{ tool_cards_json: string | null }>(
+    `
+      SELECT tool_cards_json
+      FROM chat_messages
+      WHERE session_id = ? AND message_id = ?
+      LIMIT 1
+    `,
+    candidate.sessionId,
+    candidate.messageId,
+  );
+  const cards = parseToolCards(row?.tool_cards_json);
+  if (!cards?.length) return;
+
+  const nextCards = cards.map((card) =>
+    card.id === candidate.id
+      ? {
+          ...card,
+          status,
+          payload: {
+            ...card.payload,
+            content,
+          },
+        }
+      : card,
+  );
+
+  await db.runAsync(
+    `
+      UPDATE chat_messages
+      SET tool_cards_json = ?, updated_at = ?
+      WHERE session_id = ? AND message_id = ?
+    `,
+    serializeToolCards(nextCards),
+    updatedAt,
+    candidate.sessionId,
+    candidate.messageId,
+  );
+}
+
 let transactionQueue: Promise<void> = Promise.resolve();
 let ftsAvailable: boolean | undefined;
 
@@ -722,6 +770,7 @@ export async function updateCandidateStatus(
       updatedAt,
       candidateId,
     );
+    await syncCandidateToolCardSnapshot(db, candidate, status, content, updatedAt);
 
     if (status !== "accepted") return;
 

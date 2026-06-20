@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -117,6 +117,31 @@ export default function Index() {
       active = false;
     };
   }, [db]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      if (!sessionReady || hydratingRef.current || sending) {
+        return () => {
+          active = false;
+        };
+      }
+
+      loadLatestChatSession(db)
+        .then((session) => {
+          if (!active || !session) return;
+          sessionIdRef.current = session.sessionId;
+          chatIdRef.current = session.remoteChatId ?? null;
+          setMessages(session.messages.length ? session.messages : [createGreetingMessage()]);
+        })
+        .catch(console.error);
+
+      return () => {
+        active = false;
+      };
+    }, [db, sending, sessionReady]),
+  );
 
   useEffect(() => {
     if (!sessionReady || hydratingRef.current) return;
