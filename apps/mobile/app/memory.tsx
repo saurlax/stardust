@@ -223,12 +223,17 @@ export default function MemoryScreen() {
       const related = relations.filter(
         (relation) => relation.sourceEntityId === entity.id || relation.targetEntityId === entity.id,
       );
+      const relationLines = related.map((relation) => {
+        const isSource = relation.sourceEntityId === entity.id;
+        const peerName = isSource
+          ? relation.targetEntityName ?? relation.targetEntityId
+          : relation.sourceEntityName ?? relation.sourceEntityId;
+        return `${peerName} · ${relation.type} · ${t("memory.relationWeight")} ${relation.weight}`;
+      });
       return {
         title: entity.name,
         description: `${t("memory.entityNodeDescription")} · ${entity.type}`,
-        content: related.length
-          ? related.map((relation) => `${relation.type} (${relation.weight})`).join("\n")
-          : t("memory.entityNodeEmpty"),
+        content: relationLines.length ? relationLines.join("\n") : t("memory.entityNodeEmpty"),
       };
     }
 

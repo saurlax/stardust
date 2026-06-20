@@ -123,6 +123,8 @@ export type RelationRecord = {
   id: string;
   sourceEntityId: string;
   targetEntityId: string;
+  sourceEntityName?: string;
+  targetEntityName?: string;
   type: string;
   weight: number;
   createdAt: string;
@@ -1172,14 +1174,27 @@ export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[
     relation_id: string;
     source_entity_id: string;
     target_entity_id: string;
+    source_entity_name: string | null;
+    target_entity_name: string | null;
     type: string;
     weight: number;
     created_at: string;
     updated_at: string;
   }>(`
-    SELECT relation_id, source_entity_id, target_entity_id, type, weight, created_at, updated_at
+    SELECT
+      relations.relation_id AS relation_id,
+      relations.source_entity_id AS source_entity_id,
+      relations.target_entity_id AS target_entity_id,
+      source_entities.name AS source_entity_name,
+      target_entities.name AS target_entity_name,
+      relations.type AS type,
+      relations.weight AS weight,
+      relations.created_at AS created_at,
+      relations.updated_at AS updated_at
     FROM relations
-    ORDER BY weight DESC, updated_at DESC
+    LEFT JOIN entities AS source_entities ON source_entities.entity_id = relations.source_entity_id
+    LEFT JOIN entities AS target_entities ON target_entities.entity_id = relations.target_entity_id
+    ORDER BY relations.weight DESC, relations.updated_at DESC
     LIMIT 120
   `);
 
@@ -1187,6 +1202,8 @@ export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[
     id: row.relation_id,
     sourceEntityId: row.source_entity_id,
     targetEntityId: row.target_entity_id,
+    sourceEntityName: row.source_entity_name ?? undefined,
+    targetEntityName: row.target_entity_name ?? undefined,
     type: row.type,
     weight: row.weight,
     createdAt: row.created_at,

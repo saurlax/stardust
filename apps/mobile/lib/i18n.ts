@@ -155,6 +155,7 @@ const translations = {
       reflectionNodeDescription: "Confirmed reflection",
       entityNodeDescription: "Entity",
       entityNodeEmpty: "No relation details yet.",
+      relationWeight: "weight",
       nodeEmpty: "No details yet.",
       filter: {
         all: "All",
@@ -364,6 +365,7 @@ const translations = {
       reflectionNodeDescription: "已确认反思",
       entityNodeDescription: "实体",
       entityNodeEmpty: "还没有关系详情。",
+      relationWeight: "强度",
       nodeEmpty: "暂无详情。",
       filter: {
         all: "全部",
