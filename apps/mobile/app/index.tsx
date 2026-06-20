@@ -51,19 +51,35 @@ const createGreetingMessage = (): ChatMessage => ({
 
 const buildMemoryContext = (
   memories: { source: "memory" | "episode" | "reflection"; type?: string; content: string; createdAt: string }[],
-) =>
-  memories
+) => {
+  const sections = [
+    {
+      title: "Saved memories",
+      items: memories.filter((memory) => memory.source === "memory"),
+    },
+    {
+      title: "Recent episodes",
+      items: memories.filter((memory) => memory.source === "episode"),
+    },
+    {
+      title: "Reflections",
+      items: memories.filter((memory) => memory.source === "reflection"),
+    },
+  ];
+
+  return sections
+    .filter((section) => section.items.length)
     .map(
-      (memory, index) =>
-        `${index + 1}. [${
-          memory.source === "memory"
-            ? memory.type ?? "memory"
-            : memory.source === "reflection"
-              ? "reflection"
-              : memory.type ?? "episode"
-        }] ${memory.content} (${memory.createdAt.slice(0, 10)})`,
+      (section) =>
+        `${section.title}:\n${section.items
+          .map(
+            (memory, index) =>
+              `${index + 1}. [${memory.type ?? memory.source}] ${memory.content} (${memory.createdAt.slice(0, 10)})`,
+          )
+          .join("\n")}`,
     )
-    .join("\n");
+    .join("\n\n");
+};
 
 export default function Index() {
   const db = useSQLiteContext();

@@ -77,7 +77,7 @@ Rules:
 
 const buildSystemPrompt = (memoryContext?: string) =>
   memoryContext?.trim()
-    ? `${SYSTEM_PROMPT}\n\nRelevant saved context:\n${memoryContext.trim()}`
+    ? `${SYSTEM_PROMPT}\n\nLocal memory context for this turn:\n${memoryContext.trim()}`
     : SYSTEM_PROMPT;
 
 const toolDefinitions = [
