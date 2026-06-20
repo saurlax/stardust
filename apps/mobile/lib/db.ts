@@ -119,6 +119,16 @@ export type EntityRecord = {
   updatedAt?: string;
 };
 
+export type RelationRecord = {
+  id: string;
+  sourceEntityId: string;
+  targetEntityId: string;
+  type: string;
+  weight: number;
+  createdAt: string;
+  updatedAt?: string;
+};
+
 export type DeviceEventRecord = {
   id: string;
   deviceId: string;
@@ -181,6 +191,7 @@ const memoryTypeOrder = [
 ];
 
 const nowIso = () => new Date().toISOString();
+const SELF_ENTITY_ID = "entity-self";
 const createId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -778,6 +789,18 @@ export async function updateCandidateStatus(
     if (candidate.kind === "entity") {
       const entityName = candidate.title.trim() || content;
       const entityId = `entity-${candidate.type}-${entityName.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-").replace(/^-+|-+$/g, "") || candidateId}`;
+      const relationId = `relation-self-${entityId}`;
+      await db.runAsync(
+        `
+          INSERT INTO entities (entity_id, name, type, created_at, updated_at)
+          VALUES (?, ?, 'person', ?, ?)
+          ON CONFLICT(name, type) DO UPDATE SET updated_at = excluded.updated_at
+        `,
+        SELF_ENTITY_ID,
+        "you",
+        updatedAt,
+        updatedAt,
+      );
       await db.runAsync(
         `
           INSERT INTO entities (entity_id, name, type, created_at, updated_at)
@@ -787,6 +810,23 @@ export async function updateCandidateStatus(
         entityId,
         entityName,
         candidate.type || "topic",
+        updatedAt,
+        updatedAt,
+      );
+      await db.runAsync(
+        `
+          INSERT INTO relations (
+            relation_id, source_entity_id, target_entity_id, type, weight, created_at, updated_at
+          )
+          VALUES (?, ?, ?, ?, 1, ?, ?)
+          ON CONFLICT(relation_id) DO UPDATE SET
+            weight = relations.weight + 1,
+            updated_at = excluded.updated_at
+        `,
+        relationId,
+        SELF_ENTITY_ID,
+        entityId,
+        "noticed",
         updatedAt,
         updatedAt,
       );
@@ -1028,6 +1068,33 @@ export async function listEntities(db: SQLiteDatabase): Promise<EntityRecord[]> 
     id: row.entity_id,
     name: row.name,
     type: row.type,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[]> {
+  const rows = await db.getAllAsync<{
+    relation_id: string;
+    source_entity_id: string;
+    target_entity_id: string;
+    type: string;
+    weight: number;
+    created_at: string;
+    updated_at: string;
+  }>(`
+    SELECT relation_id, source_entity_id, target_entity_id, type, weight, created_at, updated_at
+    FROM relations
+    ORDER BY weight DESC, updated_at DESC
+    LIMIT 120
+  `);
+
+  return rows.map((row) => ({
+    id: row.relation_id,
+    sourceEntityId: row.source_entity_id,
+    targetEntityId: row.target_entity_id,
+    type: row.type,
+    weight: row.weight,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
@@ -1519,6 +1586,7 @@ export const buildMemoryTree = (
   memories: StoredMemory[],
   reflections: ReflectionRecord[] = [],
   entities: EntityRecord[] = [],
+  relations: RelationRecord[] = [],
 ): NebulaTree => {
   const nodes: NebulaTree["nodes"] = [{ id: "root", title: "you", size: 10 }];
   const visibleMemories = memories.slice(0, 48);
@@ -1545,11 +1613,22 @@ export const buildMemoryTree = (
     });
   });
 
-  entities.slice(0, 16).forEach((entity, index) => {
+  const visibleEntities = entities.filter((entity) => entity.id !== SELF_ENTITY_ID).slice(0, 16);
+  const visibleEntityIds = new Set(visibleEntities.map((entity) => entity.id));
+
+  visibleEntities.forEach((entity, index) => {
+    const relationLinks = relations
+      .filter((relation) => relation.targetEntityId === entity.id)
+      .flatMap((relation) => {
+        if (relation.sourceEntityId === SELF_ENTITY_ID) return ["root"];
+        return visibleEntityIds.has(relation.sourceEntityId)
+          ? [`entity-${relation.sourceEntityId}`]
+          : [];
+      });
     nodes.push({
       id: `entity-${entity.id}`,
       title: entity.name.length > 18 ? `${entity.name.slice(0, 18)}...` : entity.name,
-      linksTo: ["root"],
+      linksTo: relationLinks.length ? relationLinks : ["root"],
       size: 6.8 - Math.min(index, 12) * 0.08,
     });
   });

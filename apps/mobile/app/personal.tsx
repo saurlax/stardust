@@ -15,6 +15,7 @@ import {
   listEntities,
   listJournalRecords,
   listReflections,
+  listRelations,
   listStoredMemories,
   type JournalRecord,
   type PersonalSnapshot,
@@ -50,11 +51,12 @@ export default function PersonalScreen() {
         listJournalRecords(db),
         listReflections(db),
         listEntities(db),
+        listRelations(db),
       ])
-        .then(([nextSnapshot, memories, journals, reflections, entities]) => {
+        .then(([nextSnapshot, memories, journals, reflections, entities, relations]) => {
           if (!active) return;
           setSnapshot(nextSnapshot);
-          setMemoryTree(buildMemoryTree(memories, reflections, entities));
+          setMemoryTree(buildMemoryTree(memories, reflections, entities, relations));
           setRecentMemories(memories.slice(0, 3));
           setRecentJournals(journals.slice(0, 3));
         })

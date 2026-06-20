@@ -16,8 +16,10 @@ import {
   dismissStoredMemory,
   listEntities,
   listReflections,
+  listRelations,
   listStoredMemories,
   type EntityRecord,
+  type RelationRecord,
   type ReflectionRecord,
   type StoredMemory,
   updateStoredMemoryContent,
@@ -137,23 +139,27 @@ export default function MemoryScreen() {
   const [memories, setMemories] = useState<StoredMemory[]>([]);
   const [reflections, setReflections] = useState<ReflectionRecord[]>([]);
   const [entities, setEntities] = useState<EntityRecord[]>([]);
+  const [relations, setRelations] = useState<RelationRecord[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>("root");
 
   const refresh = useCallback(() => {
     let active = true;
 
-    Promise.all([listStoredMemories(db), listReflections(db), listEntities(db)])
-      .then(([nextMemories, nextReflections, nextEntities]) => {
+    Promise.all([listStoredMemories(db), listReflections(db), listEntities(db), listRelations(db)])
+      .then(([nextMemories, nextReflections, nextEntities, nextRelations]) => {
         if (!active) return;
         setMemories(nextMemories);
         setReflections(nextReflections);
         setEntities(nextEntities);
+        setRelations(nextRelations);
       })
       .catch(() => {
         if (!active) return;
         setMemories([]);
         setReflections([]);
         setEntities([]);
+        setRelations([]);
       });
 
     return () => {
@@ -168,9 +174,66 @@ export default function MemoryScreen() {
     [filter, memories],
   );
   const memoryTree = useMemo(
-    () => buildMemoryTree(visibleMemories, reflections, entities),
-    [entities, reflections, visibleMemories],
+    () => buildMemoryTree(visibleMemories, reflections, entities, relations),
+    [entities, reflections, relations, visibleMemories],
   );
+  const selectedNode = useMemo(() => {
+    if (!selectedNodeId || selectedNodeId === "root") {
+      return {
+        title: t("memory.rootNodeTitle"),
+        description: t("memory.rootNodeDescription"),
+        content: t("memory.rootNodeContent"),
+      };
+    }
+
+    if (selectedNodeId.startsWith("type-")) {
+      const type = selectedNodeId.replace("type-", "");
+      return {
+        title: t(`memory.filter.${type}`),
+        description: t("memory.typeNodeDescription"),
+        content: visibleMemories
+          .filter((memory) => memory.type === type)
+          .slice(0, 3)
+          .map((memory) => memory.content)
+          .join("\n"),
+      };
+    }
+
+    const memory = visibleMemories.find((item) => `memory-${item.id}` === selectedNodeId);
+    if (memory) {
+      return {
+        title: memory.type,
+        description: t("memory.memoryNodeDescription"),
+        content: memory.content,
+        source: memory.sourceContent,
+      };
+    }
+
+    const reflection = reflections.find((item) => `reflection-${item.id}` === selectedNodeId);
+    if (reflection) {
+      return {
+        title: reflection.title,
+        description: t("memory.reflectionNodeDescription"),
+        content: reflection.content,
+      };
+    }
+
+    const entity = entities.find((item) => `entity-${item.id}` === selectedNodeId);
+    if (entity) {
+      const related = relations.filter(
+        (relation) => relation.sourceEntityId === entity.id || relation.targetEntityId === entity.id,
+      );
+      return {
+        title: entity.name,
+        description: `${t("memory.entityNodeDescription")} · ${entity.type}`,
+        content: related.length
+          ? related.map((relation) => `${relation.type} (${relation.weight})`).join("\n")
+          : t("memory.entityNodeEmpty"),
+      };
+    }
+
+    return null;
+  }, [entities, reflections, relations, selectedNodeId, visibleMemories]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
@@ -187,7 +250,14 @@ export default function MemoryScreen() {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
         <View style={{ height: 420 }}>
-          <NebulaView style={{ flex: 1 }} tree={memoryTree} showLabels interactive />
+          <NebulaView
+            style={{ flex: 1 }}
+            tree={memoryTree}
+            showLabels
+            interactive
+            selectedNodeId={selectedNodeId}
+            onSelectNode={setSelectedNodeId}
+          />
         </View>
 
         <View className="gap-4 px-4 pt-4">
@@ -223,6 +293,28 @@ export default function MemoryScreen() {
               <Text className="text-2xl font-semibold">{entities.length}</Text>
             </Card>
           </View>
+
+          {selectedNode ? (
+            <Card className="gap-3 py-4">
+              <CardHeader className="gap-1">
+                <CardDescription>{selectedNode.description}</CardDescription>
+                <CardTitle className="text-base">{selectedNode.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="gap-2">
+                <Text className="text-sm leading-5">{selectedNode.content || t("memory.nodeEmpty")}</Text>
+                {"source" in selectedNode && selectedNode.source ? (
+                  <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+                    <Text className="text-xs font-semibold uppercase text-muted-foreground">
+                      {t("memory.source")}
+                    </Text>
+                    <Text className="text-xs leading-4 text-muted-foreground">
+                      {selectedNode.source}
+                    </Text>
+                  </View>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
 
           {reflections.length ? (
             <Card className="gap-3 py-4">

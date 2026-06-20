@@ -224,9 +224,18 @@ type NebulaViewProps = {
   tree?: NebulaTree;
   showLabels?: boolean;
   interactive?: boolean;
+  selectedNodeId?: string | null;
+  onSelectNode?: (nodeId: string) => void;
 };
 
-export function NebulaView({ style, tree, showLabels = true, interactive = false }: NebulaViewProps) {
+export function NebulaView({
+  style,
+  tree,
+  showLabels = true,
+  interactive = false,
+  selectedNodeId,
+  onSelectNode,
+}: NebulaViewProps) {
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const isDark = colorScheme === "dark";
   const isWeb = Platform.OS === "web";
@@ -331,7 +340,9 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
 
   const lineColor = isDark ? "#D4D4D4" : "#404040";
   const pointCore = isDark ? "#FAFAFA" : "#0A0A0A";
+  const selectedPointCore = isDark ? "#67E8F9" : "#0E7490";
   const pointGlow = isDark ? "rgba(250,250,250,0.22)" : "rgba(10,10,10,0.14)";
+  const selectedPointGlow = isDark ? "rgba(103,232,249,0.34)" : "rgba(14,116,144,0.24)";
   const panStart = useRef({ tx: 0, ty: 0 });
   const pinchStart = useRef(1);
   const flushViewport = useCallback((nextViewport: typeof viewport) => {
@@ -346,6 +357,27 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
     });
   }, []);
   const visibleLabels = showLabels && (!interactive || !isInteracting);
+
+  const selectNearestNode = useCallback(
+    (x: number, y: number) => {
+      if (!onSelectNode) return;
+      let nearest: { id: string; distance: number; radius: number } | null = null;
+
+      for (const node of layoutNodes) {
+        const point = projected.get(node.id);
+        if (!point) continue;
+        const distance = Math.hypot(point.x - x, point.y - y);
+        const radius = Math.max(22, point.size * 2.2);
+        if (distance > radius) continue;
+        if (!nearest || distance < nearest.distance) {
+          nearest = { id: node.id, distance, radius };
+        }
+      }
+
+      if (nearest) onSelectNode(nearest.id);
+    },
+    [layoutNodes, onSelectNode, projected],
+  );
 
   const panGesture = Gesture.Pan()
     .runOnJS(true)
@@ -382,7 +414,15 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
       setIsInteracting(false);
     });
 
-  const gesture = Gesture.Simultaneous(panGesture, pinchGesture);
+  const tapGesture = Gesture.Tap()
+    .runOnJS(true)
+    .enabled(interactive && !isWeb && !!onSelectNode)
+    .maxDuration(220)
+    .onEnd((event) => {
+      selectNearestNode(event.x, event.y);
+    });
+
+  const gesture = Gesture.Simultaneous(panGesture, pinchGesture, tapGesture);
 
   const webEventHandlers = useMemo(() => {
     if (!interactive || !isWeb) return {};
@@ -415,9 +455,14 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
       onPointerUp: (event: any) => {
         const pointerId = event.nativeEvent.pointerId ?? 0;
         if (webDragStateRef.current.pointerId === pointerId) {
+          const dx = event.nativeEvent.pageX - webDragStateRef.current.startX;
+          const dy = event.nativeEvent.pageY - webDragStateRef.current.startY;
           webDragStateRef.current.dragging = false;
           setIsInteracting(false);
           event.currentTarget?.releasePointerCapture?.(pointerId);
+          if (Math.hypot(dx, dy) < 6) {
+            selectNearestNode(event.nativeEvent.locationX ?? event.nativeEvent.offsetX ?? 0, event.nativeEvent.locationY ?? event.nativeEvent.offsetY ?? 0);
+          }
         }
       },
       onPointerCancel: (event: any) => {
@@ -437,7 +482,7 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
         });
       },
     };
-  }, [flushViewport, interactive, isWeb]);
+  }, [flushViewport, interactive, isWeb, selectNearestNode]);
 
   const content = (
     <View
@@ -471,9 +516,24 @@ export function NebulaView({ style, tree, showLabels = true, interactive = false
         {animated.nodes.map(({ node }) => {
           const p = projected.get(node.id);
           if (!p) return null;
+          const selected = selectedNodeId === node.id;
           return [
-            <Circle key={`${node.id}-g`} cx={p.x} cy={p.y} r={p.size * 1.6} color={pointGlow} opacity={p.alpha * 0.5} />,
-            <Circle key={`${node.id}-c`} cx={p.x} cy={p.y} r={p.size} color={pointCore} opacity={p.alpha} />,
+            <Circle
+              key={`${node.id}-g`}
+              cx={p.x}
+              cy={p.y}
+              r={p.size * (selected ? 2.4 : 1.6)}
+              color={selected ? selectedPointGlow : pointGlow}
+              opacity={p.alpha * (selected ? 0.85 : 0.5)}
+            />,
+            <Circle
+              key={`${node.id}-c`}
+              cx={p.x}
+              cy={p.y}
+              r={p.size * (selected ? 1.2 : 1)}
+              color={selected ? selectedPointCore : pointCore}
+              opacity={p.alpha}
+            />,
           ];
         })}
       </Canvas>
