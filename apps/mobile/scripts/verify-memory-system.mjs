@@ -18,6 +18,7 @@ const ble = read(mobileRoot, "lib", "devices", "ble.ts");
 const config = read(mobileRoot, "lib", "config.ts");
 const chatScreen = read(mobileRoot, "app", "index.tsx");
 const chatRuntime = read(mobileRoot, "lib", "chat", "runtime.ts");
+const settings = read(mobileRoot, "components", "SettingsContent.tsx");
 const iotSketch = read(repoRoot, "iot", "iot.ino");
 
 const assertIncludes = (source, value, message) => {
@@ -119,6 +120,7 @@ assertIncludes(ble, "manifestEventId", "BLE manifest events need stable ids that
 assertIncludes(ble, "manifest.bootId", "BLE manifest ids must use firmware boot ids when available.");
 assertIncludes(ble, "manifest.eventCount", "BLE manifest ids must use firmware event counts when available.");
 assertIncludes(ble, "await ensureBlePermissions();", "BLE permission errors should surface before module import failures.");
+assertIncludes(settings, '"/inbox?tab=devices" as Href', "Settings devices panel must open the device review tab.");
 assertIncludes(appConfig, '"react-native-ble-plx"', "Expo config must include the BLE plugin.");
 assertIncludes(appConfig, '"neverForLocation": true', "BLE scan permission should declare neverForLocation.");
 assertIncludes(appConfig, '"modes": ["central"]', "BLE plugin must run in central mode for Stardust Sense.");

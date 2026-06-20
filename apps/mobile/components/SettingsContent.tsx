@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect, type Href } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, useColorScheme, View } from "react-native";
@@ -96,6 +96,10 @@ const getSubscribeLabel = (device: DeviceRecord) => {
   if (device.status === "connected") return t("settings.resubscribeDevice");
   if (device.status === "disconnected") return t("settings.reconnectDevice");
   return t("settings.subscribeDevice");
+};
+
+const openDeviceInbox = () => {
+  router.push("/inbox?tab=devices" as Href);
 };
 
 export function SettingsContent() {
@@ -375,6 +379,10 @@ export function SettingsContent() {
               >
                 <Text>{scanning ? t("settings.scanningDevices") : t("settings.scanDevices")}</Text>
               </Button>
+              <Button variant="outline" onPress={openDeviceInbox} className="w-full">
+                <Ionicons name="file-tray-full-outline" size={16} color={iconColor} />
+                <Text>{t("settings.openDeviceInbox")}</Text>
+              </Button>
 
               {devices.length ? (
                 devices.map((device) => (
@@ -423,6 +431,9 @@ export function SettingsContent() {
                         onPress={() => void onDisconnectDevice(device)}
                       >
                         <Text>{t("settings.disconnectDevice")}</Text>
+                      </Button>
+                      <Button variant="outline" size="sm" onPress={openDeviceInbox}>
+                        <Text>{t("settings.reviewDeviceEvents")}</Text>
                       </Button>
                     </View>
                   </View>
