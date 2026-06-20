@@ -13,6 +13,7 @@
     "lint": "pnpm --filter ./apps/mobile run lint",
     "smoke:web": "pnpm --filter ./apps/mobile run smoke:web",
     "typecheck": "pnpm --filter ./apps/mobile run typecheck",
+    "verify": "pnpm verify:memory && pnpm verify:iot && pnpm typecheck && pnpm lint",
     "verify:iot": "node scripts/verify-iot.mjs",
     "verify:memory": "pnpm --filter ./apps/mobile run verify:config && pnpm --filter ./apps/mobile run verify:memory && pnpm --filter ./apps/mobile run verify:graph",
     "prepare": "husky"

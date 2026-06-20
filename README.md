@@ -196,6 +196,7 @@ pnpm dev:mobile          # 仅启动移动端
 pnpm dev:api             # 仅启动 API
 pnpm lint                # 代码检查
 pnpm typecheck           # TypeScript 类型检查
+pnpm verify              # 运行记忆、IoT、类型和 lint 验证
 pnpm verify:memory       # 验证本地优先记忆 schema、IoT 事件链路和星图布局
 pnpm verify:iot          # 验证 XIAO BLE 固件协议，并在 Arduino CLI 可用时编译
 pnpm smoke:web           # 导出 Expo Web 静态产物并检查基础 bundle
