@@ -13,6 +13,7 @@ const schema = read(mobileRoot, "lib", "db", "schema.ts");
 const candidates = read(mobileRoot, "lib", "db", "repositories", "candidates.ts");
 const devices = read(mobileRoot, "lib", "db", "repositories", "devices.ts");
 const episodes = read(mobileRoot, "lib", "db", "repositories", "episodes.ts");
+const knowledge = read(mobileRoot, "lib", "db", "repositories", "knowledge.ts");
 const snapshot = read(mobileRoot, "lib", "db", "repositories", "snapshot.ts");
 const memoryRecords = read(mobileRoot, "lib", "db", "repositories", "memoryRecords.ts");
 const ble = read(mobileRoot, "lib", "devices", "ble.ts");
@@ -79,8 +80,11 @@ assertIncludes(chatScreen, "await saveChatSessionSnapshot(db", "Chat messages mu
 assertIncludes(chatScreen, "setChatError(getErrorMessage(error))", "Chat persistence failures must be visible.");
 assertIncludes(chatScreen, "void updateCandidateStatus(db, cardId, status, nextContent)", "Chat candidate review must persist before updating local cards.");
 assertIncludes(chatScreen, "savedToolCards = []", "Assistant replies must survive candidate persistence failures without showing unsaved cards.");
+assertIncludes(chatScreen, "Relationship graph", "Chat context must include retrieved relationship graph knowledge.");
 assertIncludes(journalScreen, "setErrorMessage(t(\"journal.loadFailed\"))", "Episode timeline load failures must be visible.");
 assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be visible.");
+assertIncludes(journalScreen, "entityEntryPrefix", "Journal search must label entity graph results.");
+assertIncludes(journalScreen, "`entity-${result.id}`", "Journal search must open entity graph results.");
 assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");
 assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty state must open Settings.");
 assertIncludes(candidates, "createEpisodeInCurrentTransaction(db", "Accepted journal candidates must create episodes inside the candidate transaction.");
@@ -124,6 +128,8 @@ assertIncludes(devices, "promotableDeviceEventTypes", "Device event promotion mu
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM entities", "Personal snapshot must expose entity graph growth.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal snapshot must expose relation graph growth.");
 assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snapshot must expose confirmed open loops.");
+assertIncludes(knowledge, "listEntityRelationKnowledge", "Retrieval must include entity graph knowledge.");
+assertIncludes(knowledge, 'source: "entity" as const', "Entity graph retrieval results must be typed.");
 
 assertIncludes(ble, "Stardust Sense", "BLE device name must match Stardust Sense.");
 assertIncludes(ble, "sendStardustDeviceCommand", "Mobile BLE commands are missing.");

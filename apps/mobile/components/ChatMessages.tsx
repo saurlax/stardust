@@ -72,7 +72,12 @@ function MemoryContextSummary({ message }: { message: ChatMessage }) {
     router.push({
       pathname: "/memory",
       params: {
-        nodeId: item.source === "memory" ? `memory-${item.id}` : `reflection-${item.id}`,
+        nodeId:
+          item.source === "memory"
+            ? `memory-${item.id}`
+            : item.source === "entity"
+              ? `entity-${item.id}`
+              : `reflection-${item.id}`,
       },
     } as Href);
   };

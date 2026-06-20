@@ -182,7 +182,7 @@ export type JournalDay = {
 
 export type RelevantKnowledge = {
   id: string;
-  source: "memory" | "episode" | "reflection";
+  source: "memory" | "episode" | "reflection" | "entity";
   type?: string;
   content: string;
   createdAt: string;

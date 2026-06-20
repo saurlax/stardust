@@ -161,7 +161,7 @@ export default function JournalScreen() {
   const [results, setResults] = useState<
     {
       id: string;
-      source: "memory" | "episode" | "reflection";
+      source: "memory" | "episode" | "reflection" | "entity";
       type?: string;
       content: string;
       createdAt: string;
@@ -339,7 +339,9 @@ export default function JournalScreen() {
                       ? t("journal.memoryEntryPrefix")
                       : result.source === "reflection"
                         ? t("journal.reflectionEntryPrefix")
-                        : t("journal.episodeEntryPrefix")}
+                        : result.source === "entity"
+                          ? t("journal.entityEntryPrefix")
+                          : t("journal.episodeEntryPrefix")}
                     {result.type ? ` · ${result.type}` : ""}
                   </CardDescription>
                   <Text className="text-sm leading-5">{result.content}</Text>
@@ -357,7 +359,7 @@ export default function JournalScreen() {
                     >
                       <Text>{t("journal.openTimeline")}</Text>
                     </Button>
-                  ) : result.source === "memory" || result.source === "reflection" ? (
+                  ) : result.source === "memory" || result.source === "reflection" || result.source === "entity" ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -369,7 +371,9 @@ export default function JournalScreen() {
                             nodeId:
                               result.source === "memory"
                                 ? `memory-${result.id}`
-                                : `reflection-${result.id}`,
+                                : result.source === "entity"
+                                  ? `entity-${result.id}`
+                                  : `reflection-${result.id}`,
                           },
                         } as Href)
                       }

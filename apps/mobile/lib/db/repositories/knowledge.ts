@@ -64,6 +64,89 @@ async function listRecentEpisodeKnowledge(
   }));
 }
 
+async function listEntityRelationKnowledge(
+  db: SQLiteDatabase,
+  tokens: string[],
+  limit: number,
+): Promise<RelevantKnowledge[]> {
+  if (!tokens.length) return [];
+
+  const like = tokens.map(() => "(entities.name LIKE ? OR entities.type LIKE ?)").join(" OR ");
+  const relationLike = tokens
+    .map(
+      () =>
+        "(relations.type LIKE ? OR source_entities.name LIKE ? OR target_entities.name LIKE ?)",
+    )
+    .join(" OR ");
+  const entityParams = tokens.flatMap((token) => [`%${token}%`, `%${token}%`]);
+  const relationParams = tokens.flatMap((token) => [`%${token}%`, `%${token}%`, `%${token}%`]);
+
+  const [entityRows, relationRows] = await Promise.all([
+    db.getAllAsync<{
+      id: string;
+      type: string;
+      content: string;
+      created_at: string;
+    }>(
+      `
+        SELECT entity_id AS id, type, name AS content, created_at
+        FROM entities
+        WHERE ${like}
+        LIMIT ?
+      `,
+      ...entityParams,
+      limit,
+    ),
+    db.getAllAsync<{
+      id: string;
+      type: string;
+      source_name: string | null;
+      target_name: string | null;
+      weight: number;
+      created_at: string;
+    }>(
+      `
+        SELECT
+          relations.source_entity_id AS id,
+          relations.type AS type,
+          source_entities.name AS source_name,
+          target_entities.name AS target_name,
+          relations.weight AS weight,
+          relations.created_at AS created_at
+        FROM relations
+        LEFT JOIN entities AS source_entities ON source_entities.entity_id = relations.source_entity_id
+        LEFT JOIN entities AS target_entities ON target_entities.entity_id = relations.target_entity_id
+        WHERE ${relationLike}
+        LIMIT ?
+      `,
+      ...relationParams,
+      limit,
+    ),
+  ]);
+
+  return [
+    ...entityRows.map((item) => ({
+      id: item.id,
+      source: "entity" as const,
+      type: item.type,
+      content: item.content,
+      createdAt: item.created_at,
+      rank: rankByTokenMatches(`${item.type} ${item.content}`, tokens) + 0.1,
+    })),
+    ...relationRows.map((item) => ({
+      id: item.id,
+      source: "entity" as const,
+      type: item.type,
+      content: `${item.source_name ?? "Unknown"} · ${item.type} · ${item.target_name ?? "Unknown"} (weight ${item.weight})`,
+      createdAt: item.created_at,
+      rank: rankByTokenMatches(
+        `${item.type} ${item.source_name ?? ""} ${item.target_name ?? ""}`,
+        tokens,
+      ) + 0.15,
+    })),
+  ];
+}
+
 export async function findRelevantKnowledge(
   db: SQLiteDatabase,
   query: string,
@@ -79,7 +162,7 @@ export async function findRelevantKnowledge(
     const episodeLike = tokens.map(() => "(content LIKE ? OR source LIKE ?)").join(" OR ");
     const params = tokens.flatMap((token) => [`%${token}%`, `%${token}%`]);
     const recentEpisodeLimit = Math.min(3, limit);
-    const [memoryRows, episodeRows, reflectionRows, recentEpisodes] = await Promise.all([
+    const [memoryRows, episodeRows, reflectionRows, recentEpisodes, entityRows] = await Promise.all([
       db.getAllAsync<any>(
         `SELECT memory_id AS id, type, content, created_at FROM memory_atoms WHERE status = 'active' AND ${like} LIMIT ?`,
         ...params,
@@ -96,6 +179,7 @@ export async function findRelevantKnowledge(
         limit,
       ),
       listRecentEpisodeKnowledge(db, recentEpisodeLimit),
+      listEntityRelationKnowledge(db, tokens, limit),
     ]);
     return mergeRelevantKnowledge([
       ...memoryRows.map((item) => ({
@@ -122,12 +206,14 @@ export async function findRelevantKnowledge(
         createdAt: item.created_at,
         rank: rankByTokenMatches(item.content, tokens) - 0.2,
       })),
+      ...entityRows,
       ...recentEpisodes,
     ], limit);
   }
 
+  const tokens = tokenize(query);
   const recentEpisodeLimit = Math.min(3, limit);
-  const [memoryRows, episodeRows, reflectionRows, recentEpisodes] = await Promise.all([
+  const [memoryRows, episodeRows, reflectionRows, recentEpisodes, entityRows] = await Promise.all([
     db.getAllAsync<any>(
       `
         SELECT memory_atoms.memory_id AS id, memory_atoms.type AS type,
@@ -171,6 +257,7 @@ export async function findRelevantKnowledge(
       limit,
     ),
     listRecentEpisodeKnowledge(db, recentEpisodeLimit),
+    listEntityRelationKnowledge(db, tokens, limit),
   ]);
 
   return mergeRelevantKnowledge([
@@ -198,6 +285,7 @@ export async function findRelevantKnowledge(
       createdAt: item.created_at,
       rank: item.rank - 0.2,
     })),
+    ...entityRows,
     ...recentEpisodes,
   ], limit);
 }
