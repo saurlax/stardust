@@ -3,7 +3,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 import type { PersonalSnapshot } from "@/lib/db/types";
 
 export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalSnapshot> {
-  const [memoryRow, pendingRow, episodeRow, reflectionRow, deviceRow, recentMemory] =
+  const [memoryRow, pendingRow, episodeRow, journalRow, reflectionRow, deviceRow, recentMemory] =
     await Promise.all([
       db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM memory_atoms WHERE status = 'active'",
@@ -12,6 +12,9 @@ export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalS
         "SELECT COUNT(*) AS count FROM memory_candidates WHERE status = 'pending'",
       ),
       db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM episodes"),
+      db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM episodes WHERE source = 'journal'",
+      ),
       db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM reflections WHERE status = 'active'",
       ),
@@ -29,7 +32,7 @@ export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalS
   return {
     acceptedMemories: memoryRow?.count ?? 0,
     pendingCards: pendingRow?.count ?? 0,
-    journalEntries: episodeRow?.count ?? 0,
+    journalEntries: journalRow?.count ?? 0,
     episodeCount: episodeRow?.count ?? 0,
     reflectionCount: reflectionRow?.count ?? 0,
     deviceCount: deviceRow?.count ?? 0,
