@@ -294,21 +294,27 @@ export default function Index() {
           error: undefined,
           memoryContextCount: relevantKnowledge.length,
           memoryContext: relevantKnowledge.slice(0, 5),
-          toolCards: result.toolCards,
         };
 
-        await createCandidatesFromToolCards(db, {
-          sessionId: sessionIdRef.current,
-          messageId: assistantId,
-          episodeId: request.episodeId,
-          cards: result.toolCards,
-        });
-        setChatError(null);
+        let savedToolCards = result.toolCards;
+        try {
+          await createCandidatesFromToolCards(db, {
+            sessionId: sessionIdRef.current,
+            messageId: assistantId,
+            episodeId: request.episodeId,
+            cards: result.toolCards,
+          });
+          setChatError(null);
+        } catch (error) {
+          savedToolCards = [];
+          setChatError(getErrorMessage(error));
+        }
         refreshPendingCandidates();
 
         replaceMessage(assistantId, (message) => ({
           ...message,
           ...nextAssistantMessage,
+          toolCards: savedToolCards,
         }));
       } catch (error) {
         const message =
