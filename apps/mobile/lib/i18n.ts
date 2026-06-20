@@ -133,6 +133,23 @@ const translations = {
       commandSync: "Remote sync",
       commandSleep: "Remote sleep",
     },
+    devices: {
+      kind: {
+        xiaoEsp32s3Sense: "XIAO ESP32S3 Sense",
+      },
+      eventType: {
+        boot: "Boot",
+        capture: "Capture",
+        button: "Button capture",
+        serial: "Serial capture",
+        sync: "Sync",
+        command: "Command",
+        connection: "Connection",
+        manifest: "Manifest",
+        status: "Status",
+        sleep: "Sleep",
+      },
+    },
     inbox: {
       title: "Memory Inbox",
       headerTitle: "Memory Inbox",
@@ -461,6 +478,23 @@ const translations = {
       commandCapture: "远程捕获",
       commandSync: "远程同步",
       commandSleep: "远程休眠",
+    },
+    devices: {
+      kind: {
+        xiaoEsp32s3Sense: "XIAO ESP32S3 Sense",
+      },
+      eventType: {
+        boot: "启动",
+        capture: "捕获",
+        button: "按钮捕获",
+        serial: "串口捕获",
+        sync: "同步",
+        command: "命令",
+        connection: "连接",
+        manifest: "清单",
+        status: "状态",
+        sleep: "休眠",
+      },
     },
     inbox: {
       title: "记忆收件箱",

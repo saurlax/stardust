@@ -25,6 +25,11 @@ import {
   updateStoredMemoryContent,
 } from "@/lib/db";
 import { t } from "@/lib/i18n";
+import {
+  getEntityTypeLabel,
+  getMemoryTypeLabel,
+  getRelationTypeLabel,
+} from "@/lib/memoryLabels";
 import { THEME } from "@/lib/theme";
 
 const filters = [
@@ -48,10 +53,10 @@ const getErrorMessage = (error: unknown) => {
   return t("memory.actionFailed");
 };
 
-const getMemoryTypeLabel = (memory: StoredMemory) =>
+const getStoredMemoryTypeLabel = (memory: StoredMemory) =>
   memory.candidateKind === "open_loop"
     ? t("memory.filter.open_loop")
-    : t(`memory.filter.${memory.type}`);
+    : getMemoryTypeLabel(memory.type);
 
 function FilterButton({
   active,
@@ -111,7 +116,7 @@ function MemoryEditor({
       <CardHeader className="gap-1">
         <CardDescription>
           {memory.candidateKind === "open_loop" ? `${t("memory.openLoopBadge")} · ` : ""}
-          {getMemoryTypeLabel(memory)} · {new Date(memory.createdAt).toLocaleDateString()}
+          {getStoredMemoryTypeLabel(memory)} · {new Date(memory.createdAt).toLocaleDateString()}
         </CardDescription>
         {editing ? (
           <Textarea
@@ -309,7 +314,10 @@ export default function MemoryScreen() {
     const memory = visibleMemories.find((item) => `memory-${item.id}` === selectedNodeId);
     if (memory) {
       return {
-        title: memory.type,
+        title:
+          memory.candidateKind === "open_loop"
+            ? t("memory.filter.open_loop")
+            : getMemoryTypeLabel(memory.type),
         description: t("memory.memoryNodeDescription"),
         content: memory.content,
         source: memory.sourceContent,
@@ -339,11 +347,11 @@ export default function MemoryScreen() {
         const peerName = isSource
           ? relation.targetEntityName ?? relation.targetEntityId
           : relation.sourceEntityName ?? relation.sourceEntityId;
-        return `${peerName} · ${relation.type} · ${t("memory.relationWeight")} ${relation.weight}`;
+        return `${peerName} · ${getRelationTypeLabel(relation.type)} · ${t("memory.relationWeight")} ${relation.weight}`;
       });
       return {
         title: entity.name,
-        description: `${t("memory.entityNodeDescription")} · ${entity.type}`,
+        description: `${t("memory.entityNodeDescription")} · ${getEntityTypeLabel(entity.type)}`,
         content: relationLines.length ? relationLines.join("\n") : t("memory.entityNodeEmpty"),
         source: relationSource?.sourceContent,
         sourceEpisodeId: relationSource?.episodeId,
@@ -353,9 +361,9 @@ export default function MemoryScreen() {
     const relation = relations.find((item) => `relation-${item.id}` === selectedNodeId);
     if (relation) {
       return {
-        title: relation.type,
+        title: getRelationTypeLabel(relation.type),
         description: t("memory.relationNodeDescription"),
-        content: `${relation.sourceEntityName ?? relation.sourceEntityId} · ${relation.type} · ${
+        content: `${relation.sourceEntityName ?? relation.sourceEntityId} · ${getRelationTypeLabel(relation.type)} · ${
           relation.targetEntityName ?? relation.targetEntityId
         }\n${t("memory.relationWeight")} ${relation.weight}`,
         source: relation.sourceContent,

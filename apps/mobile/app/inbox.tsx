@@ -32,6 +32,12 @@ import {
 } from "@/lib/db";
 import { getDeviceCapabilitySummary } from "@/lib/devices/capabilities";
 import { t } from "@/lib/i18n";
+import {
+  getCandidateKindLabel,
+  getDeviceEventTypeLabel,
+  getDeviceKindLabel,
+  getMemoryTypeLabel,
+} from "@/lib/memoryLabels";
 
 type Tab = "pending" | "saved" | "reflections" | "devices";
 const pendingKindFilters = ["all", "memory", "journal", "reflection", "entity", "open_loop"] as const;
@@ -165,7 +171,7 @@ function CandidateCard({
     <Card className={`gap-3 py-4 ${highlighted ? "border-primary bg-primary/5" : ""}`}>
       <CardHeader className="gap-1">
         <CardDescription>
-          {candidate.kind} · {candidate.type}
+          {getCandidateKindLabel(candidate.kind)} · {getMemoryTypeLabel(candidate.type)}
         </CardDescription>
         <CardTitle className="text-base leading-5">{candidate.title}</CardTitle>
       </CardHeader>
@@ -283,7 +289,7 @@ function MemoryCard({
       <CardContent className="gap-2">
         <CardDescription>
           {memory.candidateKind === "open_loop" ? `${t("inbox.openLoopBadge")} · ` : ""}
-          {memory.type} · {new Date(memory.createdAt).toLocaleDateString()}
+          {getMemoryTypeLabel(memory.type)} · {new Date(memory.createdAt).toLocaleDateString()}
         </CardDescription>
         {editing ? (
           <Textarea
@@ -473,7 +479,7 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
     <Card className="gap-2 py-4">
       <CardContent className="gap-2">
         <CardDescription>
-          {device.kind} · {getDeviceStatusLabel(device.status)}
+          {getDeviceKindLabel(device.kind)} · {getDeviceStatusLabel(device.status)}
         </CardDescription>
         <Text className="text-base font-semibold">{device.name}</Text>
         {detailLines.map((line) => (
@@ -507,7 +513,7 @@ function DeviceEventCard({
     <Card className="gap-2 py-4">
       <CardContent className="gap-3">
         <CardDescription>
-          {event.eventType}
+          {getDeviceEventTypeLabel(event.eventType)}
           {event.deviceName ? ` · ${event.deviceName}` : ""}
           {" · "}
           {new Date(event.createdAt).toLocaleString()}

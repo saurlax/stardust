@@ -27,6 +27,7 @@ import {
 } from "@/lib/devices/ble";
 import { getDeviceCapabilitySummary, supportsDeviceCommand } from "@/lib/devices/capabilities";
 import { t } from "@/lib/i18n";
+import { getDeviceKindLabel } from "@/lib/memoryLabels";
 
 type SettingsFieldProps = React.ComponentProps<typeof Input> & {
   label: string;
@@ -419,7 +420,7 @@ export function SettingsContent() {
                   <View key={device.id} className="gap-2 rounded-md border border-border p-3">
                     <Text className="text-sm font-semibold">{device.name}</Text>
                     <Text className="text-xs text-muted-foreground">
-                      {device.kind} · {getDeviceStatusLabel(device.status)}
+                      {getDeviceKindLabel(device.kind)} · {getDeviceStatusLabel(device.status)}
                     </Text>
                     {getDeviceDetailLines(device).map((line) => (
                       <Text key={line} className="text-xs text-muted-foreground">

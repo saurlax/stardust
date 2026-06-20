@@ -26,6 +26,7 @@ const journalScreen = read(mobileRoot, "app", "journal.tsx");
 const inboxScreen = read(mobileRoot, "app", "inbox.tsx");
 const memoryScreen = read(mobileRoot, "app", "memory.tsx");
 const settings = read(mobileRoot, "components", "SettingsContent.tsx");
+const memoryLabels = read(mobileRoot, "lib", "memoryLabels.ts");
 const iotSketch = read(repoRoot, "iot", "iot.ino");
 
 const assertIncludes = (source, value, message) => {
@@ -203,6 +204,12 @@ assertIncludes(settings, "sleepDeviceUnavailable", "Settings must explain unsupp
 assertIncludes(inboxScreen, "inbox.capabilities", "Device inbox must display device capabilities.");
 assertIncludes(inboxScreen, "getDeviceCapabilitySummary(device.capabilities)", "Device inbox must show friendly capability labels.");
 assertIncludes(inboxScreen, "getDeviceStatusLabel", "Device inbox must use localized device status labels.");
+assertIncludes(inboxScreen, "getCandidateKindLabel(candidate.kind)", "Pending candidates must use user-facing kind labels.");
+assertIncludes(inboxScreen, "getDeviceEventTypeLabel(event.eventType)", "Device events must use user-facing event labels.");
+assertIncludes(settings, "getDeviceKindLabel(device.kind)", "Settings must use user-facing device kind labels.");
+assertIncludes(memoryLabels, "getKnowledgeTypeLabel", "Knowledge search results need shared user-facing type labels.");
+assertIncludes(memoryLabels, "xiao-esp32s3-sense", "Device kind labels must cover Stardust Sense hardware.");
+assertIncludes(memoryLabels, "devices.eventType.button", "Device event labels must cover screen-off capture events.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM entities", "Personal snapshot must expose entity graph growth.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal snapshot must expose relation graph growth.");
 assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snapshot must expose confirmed open loops.");

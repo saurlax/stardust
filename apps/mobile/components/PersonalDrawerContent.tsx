@@ -22,6 +22,7 @@ import {
   type StoredMemory,
 } from "@/lib/db";
 import { t } from "@/lib/i18n";
+import { getMemoryTypeLabel } from "@/lib/memoryLabels";
 
 const emptySnapshot: PersonalSnapshot = {
   acceptedMemories: 0,
@@ -163,7 +164,9 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
           {recentMemories.length ? (
             recentMemories.map((memory) => (
               <View key={memory.id} className="gap-1 rounded-lg bg-muted/50 px-3 py-3">
-                <Text className="text-xs uppercase text-muted-foreground">{memory.type}</Text>
+                <Text className="text-xs uppercase text-muted-foreground">
+                  {getMemoryTypeLabel(memory.candidateKind === "open_loop" ? "open_loop" : memory.type)}
+                </Text>
                 <Text className="text-sm leading-5">{memory.content}</Text>
               </View>
             ))

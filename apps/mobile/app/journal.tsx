@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMonthDay, formatTime, t } from "@/lib/i18n";
+import { getKnowledgeTypeLabel } from "@/lib/memoryLabels";
 import {
   findRelevantKnowledge,
   listJournalDays,
@@ -372,7 +373,7 @@ export default function JournalScreen() {
                           : result.source === "relation"
                             ? t("journal.relationEntryPrefix")
                           : t("journal.episodeEntryPrefix")}
-                    {result.type ? ` · ${result.type}` : ""}
+                    {result.type ? ` · ${getKnowledgeTypeLabel(result.source, result.type)}` : ""}
                   </CardDescription>
                   <Text className="text-sm leading-5">{result.content}</Text>
                   {result.source === "episode" ? (
