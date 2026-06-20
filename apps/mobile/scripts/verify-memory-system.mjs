@@ -281,6 +281,9 @@ assertIncludes(inboxScreen, "getManifestCapabilityLines(event.metadata)", "Devic
 assertIncludes(inboxScreen, "getDeviceCapabilityLabel(capability)", "Device manifest capabilities must use friendly labels.");
 assertIncludes(inboxScreen, 'key !== "capabilities"', "Device manifest capabilities should not be repeated as raw metadata.");
 assertIncludes(inboxScreen, "inbox.deviceManifestCapabilities", "Device manifest capabilities must have a localized heading.");
+assertIncludes(inboxScreen, "getManifestTransferPlanLines", "Device manifest cards must summarize transfer plans.");
+assertIncludes(inboxScreen, 'key !== "transferPlan"', "Device transfer plans should not be repeated as raw metadata.");
+assertIncludes(inboxScreen, "inbox.deviceManifestTransferPlan", "Device manifest transfer plans must have a localized heading.");
 assertIncludes(settings, "getDeviceKindLabel(device.kind)", "Settings must use user-facing device kind labels.");
 assertIncludes(memoryLabels, "getKnowledgeTypeLabel", "Knowledge search results need shared user-facing type labels.");
 assertIncludes(memoryLabels, "xiao-esp32s3-sense", "Device kind labels must cover Stardust Sense hardware.");

@@ -149,6 +149,14 @@ const getManifestCapabilityLines = (metadata?: Record<string, unknown>) => {
     .map((capability) => getDeviceCapabilityLabel(capability));
 };
 
+const getManifestTransferPlanLines = (metadata?: Record<string, unknown>) => {
+  const transferPlan = metadata?.transferPlan;
+  if (!transferPlan || typeof transferPlan !== "object" || Array.isArray(transferPlan)) return [];
+  return Object.entries(transferPlan as Record<string, unknown>).map(
+    ([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`,
+  );
+};
+
 const getDeviceEventContextLines = (event: DeviceEventRecord) => {
   const captureSource =
     typeof event.metadata?.source === "string" ? event.metadata.source : undefined;
@@ -651,11 +659,14 @@ function DeviceEventCard({
     event.eventType === "manifest" ? getManifestCaptureSourceLines(event.metadata) : [];
   const manifestCapabilityLines =
     event.eventType === "manifest" ? getManifestCapabilityLines(event.metadata) : [];
+  const manifestTransferPlanLines =
+    event.eventType === "manifest" ? getManifestTransferPlanLines(event.metadata) : [];
   const deviceEventContextLines = getDeviceEventContextLines(event);
   const metadataLines = Object.entries(event.metadata ?? {})
     .filter(
       ([key]) =>
         key !== "media" &&
+        key !== "transferPlan" &&
         key !== "captureSources" &&
         key !== "capabilities" &&
         key !== "source" &&
@@ -704,6 +715,18 @@ function DeviceEventCard({
               {t("inbox.deviceManifestCapabilities")}
             </Text>
             {manifestCapabilityLines.map((line) => (
+              <Text key={line} className="text-xs leading-4 text-muted-foreground">
+                {line}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+        {manifestTransferPlanLines.length ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.deviceManifestTransferPlan")}
+            </Text>
+            {manifestTransferPlanLines.map((line) => (
               <Text key={line} className="text-xs leading-4 text-muted-foreground">
                 {line}
               </Text>
