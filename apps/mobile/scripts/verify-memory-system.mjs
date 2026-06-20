@@ -123,6 +123,8 @@ assertIncludes(journalScreen, "`entity-${result.id}`", "Journal search must open
 assertIncludes(journalScreen, "result.nodeId", "Journal search must use graph node ids when available.");
 assertIncludes(personalScreen, "getEpisodeTitle(episode)", "Personal page must show recent episode titles.");
 assertIncludes(personalDrawer, "getEpisodeTitle(episode)", "Personal drawer must show recent episode titles.");
+assertIncludes(personalScreen, "source={{ uri: episode.mediaUri }}", "Personal page must preview recent episode media.");
+assertIncludes(personalDrawer, "source={{ uri: episode.mediaUri }}", "Personal drawer must preview recent episode media.");
 assertIncludes(personalScreen, "getEpisodeTitleLabel(episode.source, episode.title)", "Personal page must label IoT episode titles.");
 assertIncludes(personalDrawer, "getEpisodeTitleLabel(episode.source, episode.title)", "Personal drawer must label IoT episode titles.");
 assertIncludes(personalScreen, 'pathname: "/memory"', "Personal page recent memories must open the memory graph.");

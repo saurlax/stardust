@@ -3,7 +3,7 @@ import { router, useFocusEffect, type Href } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, useColorScheme, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
@@ -39,6 +39,19 @@ const emptySnapshot: PersonalSnapshot = {
 const getEpisodeTitle = (episode: Episode) => {
   return getEpisodeTitleLabel(episode.source, episode.title);
 };
+
+function EpisodeMediaPreview({ episode }: { episode: Episode }) {
+  if (!episode.mediaUri) return null;
+
+  return (
+    <Image
+      source={{ uri: episode.mediaUri }}
+      resizeMode="cover"
+      accessibilityLabel={getEpisodeTitle(episode) ?? t("journal.mediaPreview")}
+      className="mt-1 h-24 w-full rounded-md bg-muted"
+    />
+  );
+}
 
 export default function PersonalScreen() {
   const db = useSQLiteContext();
@@ -216,6 +229,7 @@ export default function PersonalScreen() {
                       {getEpisodeTitle(episode)}
                     </Text>
                   ) : null}
+                  <EpisodeMediaPreview episode={episode} />
                   <Text className="text-sm leading-5">{episode.content}</Text>
                 </Pressable>
               ))

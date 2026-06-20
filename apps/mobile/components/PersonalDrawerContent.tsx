@@ -3,7 +3,7 @@ import type { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { router, useFocusEffect, type Href } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, useColorScheme, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NebulaView } from "@/components/NebulaView";
@@ -44,6 +44,19 @@ const navigateFromDrawer = (navigation: DrawerContentComponentProps["navigation"
 const getEpisodeTitle = (episode: Episode) => {
   return getEpisodeTitleLabel(episode.source, episode.title);
 };
+
+function EpisodeMediaPreview({ episode }: { episode: Episode }) {
+  if (!episode.mediaUri) return null;
+
+  return (
+    <Image
+      source={{ uri: episode.mediaUri }}
+      resizeMode="cover"
+      accessibilityLabel={getEpisodeTitle(episode) ?? t("journal.mediaPreview")}
+      className="mt-1 h-24 w-full rounded-md bg-muted"
+    />
+  );
+}
 
 export function PersonalDrawerContent({ navigation }: DrawerContentComponentProps) {
   const db = useSQLiteContext();
@@ -217,6 +230,7 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
                     {getEpisodeTitle(episode)}
                   </Text>
                 ) : null}
+                <EpisodeMediaPreview episode={episode} />
                 <Text className="text-sm leading-5">{episode.content}</Text>
               </Pressable>
             ))
