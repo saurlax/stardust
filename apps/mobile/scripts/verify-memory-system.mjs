@@ -293,6 +293,8 @@ assertIncludes(memoryScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTi
 assertIncludes(memoryScreen, '"open_loop"', "Memory screen must expose an open-loop filter.");
 assertIncludes(memoryScreen, "candidateKind === \"open_loop\"", "Memory screen must identify confirmed open loops.");
 assertIncludes(memoryScreen, "graphLegendItems", "Memory screen must explain graph node accents.");
+assertIncludes(memoryScreen, "graphLegendCounts", "Memory graph legend must show node-type counts.");
+assertIncludes(memoryScreen, 'memory.sourceKind === "iot"', "Memory graph legend must count screen-off IoT memories.");
 assertIncludes(memoryScreen, "memory.graphLegend", "Memory graph accent legend must be localized.");
 assertIncludes(memoryScreen, "nodeNotFoundTitle", "Memory screen must explain stale graph navigation targets.");
 assertIncludes(memoryScreen, "setSelectedNodeId(\"root\")", "Memory screen must let users recover from stale graph targets.");

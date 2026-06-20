@@ -78,6 +78,7 @@ const graphLegendItems = [
   { key: "relation", color: "#BE123C" },
   { key: "open_loop", color: "#B45309" },
 ] as const;
+type GraphLegendKey = (typeof graphLegendItems)[number]["key"];
 
 function FilterButton({
   active,
@@ -277,6 +278,19 @@ export default function MemoryScreen() {
     () => memories.filter((memory) => memory.candidateKind === "open_loop").length,
     [memories],
   );
+  const graphLegendCounts = useMemo<Record<GraphLegendKey, number>>(
+    () => ({
+      memory: memories.filter(
+        (memory) => memory.candidateKind !== "open_loop" && memory.sourceKind !== "iot",
+      ).length,
+      iot: memories.filter((memory) => memory.sourceKind === "iot").length,
+      reflection: reflections.length,
+      entity: entities.length,
+      relation: relations.length,
+      open_loop: openLoopCount,
+    }),
+    [entities.length, memories, openLoopCount, reflections.length, relations.length],
+  );
   const filterCounts = useMemo(
     () =>
       filters.reduce<Record<Filter, number>>(
@@ -453,7 +467,7 @@ export default function MemoryScreen() {
                   }}
                 />
                 <Text className="text-xs text-muted-foreground">
-                  {t(`memory.graphLegend.${item.key}`)}
+                  {t(`memory.graphLegend.${item.key}`)} {graphLegendCounts[item.key]}
                 </Text>
               </View>
             ))}
