@@ -45,6 +45,15 @@ const getErrorMessage = (error: unknown) => {
   return t("settings.testFailed");
 };
 
+const getDeviceDetailLines = (device: DeviceRecord) =>
+  [
+    `${t("settings.lastSeen")}: ${
+      device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : t("settings.neverSeen")
+    }`,
+    device.batteryLevel === undefined ? undefined : `${t("settings.battery")}: ${device.batteryLevel}%`,
+    device.firmwareVersion ? `${t("settings.firmware")}: ${device.firmwareVersion}` : undefined,
+  ].filter(Boolean);
+
 export function SettingsContent() {
   const db = useSQLiteContext();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
@@ -252,6 +261,11 @@ export function SettingsContent() {
                     <Text className="text-xs text-muted-foreground">
                       {device.kind} · {device.status}
                     </Text>
+                    {getDeviceDetailLines(device).map((line) => (
+                      <Text key={line} className="text-xs text-muted-foreground">
+                        {line}
+                      </Text>
+                    ))}
                     <View className="flex-row flex-wrap gap-2">
                       <Button
                         variant="outline"

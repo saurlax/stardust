@@ -281,6 +281,14 @@ function ReflectionCard({
 }
 
 function DeviceCard({ device }: { device: DeviceRecord }) {
+  const detailLines = [
+    `${t("inbox.lastSeen")}: ${
+      device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : t("inbox.neverSeen")
+    }`,
+    device.batteryLevel === undefined ? undefined : `${t("inbox.battery")}: ${device.batteryLevel}%`,
+    device.firmwareVersion ? `${t("inbox.firmware")}: ${device.firmwareVersion}` : undefined,
+  ].filter(Boolean);
+
   return (
     <Card className="gap-2 py-4">
       <CardContent className="gap-2">
@@ -288,9 +296,11 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
           {device.kind} · {device.status}
         </CardDescription>
         <Text className="text-base font-semibold">{device.name}</Text>
-        <Text className="text-sm text-muted-foreground">
-          {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : t("inbox.neverSeen")}
-        </Text>
+        {detailLines.map((line) => (
+          <Text key={line} className="text-sm text-muted-foreground">
+            {line}
+          </Text>
+        ))}
       </CardContent>
     </Card>
   );
