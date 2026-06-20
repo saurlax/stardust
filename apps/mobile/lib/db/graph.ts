@@ -55,6 +55,7 @@ export const buildMemoryTree = (
       title: options.memoryTypeLabel?.(type) ?? type,
       linksTo: ["root"],
       size: 7.5,
+      accent: type === "open_loop" ? "open_loop" : "type",
     });
   }
 
@@ -64,6 +65,7 @@ export const buildMemoryTree = (
       title: truncateLabel(reflection.title, 18),
       linksTo: ["root"],
       size: 8 - index * 0.15,
+      accent: "reflection",
     });
   });
 
@@ -84,6 +86,7 @@ export const buildMemoryTree = (
       title: truncateLabel(entity.name, 18),
       linksTo: relationLinks.length ? relationLinks : ["root"],
       size: 6.8 - Math.min(index, 12) * 0.08,
+      accent: "entity",
     });
   });
 
@@ -112,6 +115,7 @@ export const buildMemoryTree = (
         title: truncateLabel(options.relationTypeLabel?.(relation.type) ?? relation.type, 18),
         linksTo: linksTo.length ? linksTo : ["root"],
         size: 4.6 + Math.min(relation.weight, 6) * 0.18 - Math.min(index, 18) * 0.04,
+        accent: "relation",
       });
     });
 
@@ -127,6 +131,12 @@ export const buildMemoryTree = (
       title: truncateLabel(memory.content, 20),
       linksTo: related ? [parentId, `memory-${related.id}`] : [parentId],
       size: 5.2 + Math.min(memory.importance, 5) * 0.35,
+      accent:
+        memory.candidateKind === "open_loop"
+          ? "open_loop"
+          : memory.sourceKind === "iot"
+            ? "iot"
+            : "memory",
     });
   });
 

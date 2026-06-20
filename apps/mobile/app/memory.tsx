@@ -61,6 +61,15 @@ const getStoredMemoryTypeLabel = (memory: StoredMemory) =>
 const matchesMemoryType = (memory: StoredMemory, type: string) =>
   type === "open_loop" ? memory.candidateKind === "open_loop" : memory.type === type;
 
+const graphLegendItems = [
+  { key: "memory", color: "#0A0A0A" },
+  { key: "iot", color: "#0E7490" },
+  { key: "reflection", color: "#7C3AED" },
+  { key: "entity", color: "#15803D" },
+  { key: "relation", color: "#BE123C" },
+  { key: "open_loop", color: "#B45309" },
+] as const;
+
 function FilterButton({
   active,
   label,
@@ -416,6 +425,25 @@ export default function MemoryScreen() {
           <View className="gap-2">
             <Text className="text-xl font-semibold">{t("memory.graphTitle")}</Text>
             <Text className="text-sm text-muted-foreground">{t("memory.graphSubtitle")}</Text>
+          </View>
+          <View className="flex-row flex-wrap gap-2">
+            {graphLegendItems.map((item) => (
+              <View
+                key={item.key}
+                className="flex-row items-center gap-1.5 rounded-md border border-border px-2 py-1"
+              >
+                <View
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{
+                    backgroundColor:
+                      colorScheme === "dark" && item.key === "memory" ? "#FAFAFA" : item.color,
+                  }}
+                />
+                <Text className="text-xs text-muted-foreground">
+                  {t(`memory.graphLegend.${item.key}`)}
+                </Text>
+              </View>
+            ))}
           </View>
 
           {errorMessage ? (

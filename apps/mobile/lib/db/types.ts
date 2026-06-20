@@ -83,6 +83,7 @@ export type StoredMemory = {
   sourceTitle?: string;
   sourceContent?: string;
   sourceCreatedAt?: string;
+  sourceKind?: EpisodeSource;
   createdAt: string;
   updatedAt?: string;
   candidateId?: string;

@@ -294,6 +294,14 @@ const translations = {
       retry: "Retry",
       visibleMemories: "visible memories",
       resetView: "Reset view",
+      graphLegend: {
+        memory: "Memory",
+        iot: "Device",
+        reflection: "Reflection",
+        entity: "Entity",
+        relation: "Relation",
+        open_loop: "Open loop",
+      },
       filter: {
         all: "All",
         open_loop: "Open loops",
@@ -653,6 +661,14 @@ const translations = {
       retry: "重试",
       visibleMemories: "条可见记忆",
       resetView: "重置视图",
+      graphLegend: {
+        memory: "记忆",
+        iot: "设备",
+        reflection: "反思",
+        entity: "实体",
+        relation: "关系",
+        open_loop: "未解问题",
+      },
       filter: {
         all: "全部",
         open_loop: "未解问题",

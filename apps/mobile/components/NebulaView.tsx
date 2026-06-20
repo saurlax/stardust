@@ -7,6 +7,7 @@ import { Platform, StyleSheet, Text, useColorScheme, View, type LayoutChangeEven
 type RenderNode = {
   id: string;
   title?: string;
+  accent?: "root" | "type" | "memory" | "reflection" | "entity" | "relation" | "open_loop" | "iot";
   x?: number;
   y?: number;
   z?: number;
@@ -24,6 +25,7 @@ export type NebulaTree = {
 type LayoutNode = {
   id: string;
   title?: string;
+  accent?: RenderNode["accent"];
   x: number;
   y: number;
   z: number;
@@ -207,6 +209,7 @@ const buildLayoutNodes = (tree: NebulaTree): LayoutNode[] => {
     return {
       id: node.id,
       title: node.title,
+      accent: node.accent,
       x: clamp(node.x ?? p.x, -0.75, 0.75),
       y: clamp(node.y ?? p.y, -0.65, 0.65),
       z: clamp(node.z ?? p.z, -0.35, 0.35),
@@ -353,6 +356,16 @@ export function NebulaView({
   const selectedPointCore = isDark ? "#67E8F9" : "#0E7490";
   const pointGlow = isDark ? "rgba(250,250,250,0.22)" : "rgba(10,10,10,0.14)";
   const selectedPointGlow = isDark ? "rgba(103,232,249,0.34)" : "rgba(14,116,144,0.24)";
+  const accentColors: Record<NonNullable<RenderNode["accent"]>, string> = {
+    root: pointCore,
+    type: isDark ? "#CBD5E1" : "#475569",
+    memory: pointCore,
+    reflection: isDark ? "#C4B5FD" : "#7C3AED",
+    entity: isDark ? "#86EFAC" : "#15803D",
+    relation: isDark ? "#FDA4AF" : "#BE123C",
+    open_loop: isDark ? "#FCD34D" : "#B45309",
+    iot: isDark ? "#67E8F9" : "#0E7490",
+  };
   const panStart = useRef({ tx: 0, ty: 0 });
   const pinchStart = useRef(1);
   const flushViewport = useCallback((nextViewport: typeof viewport) => {
@@ -527,6 +540,7 @@ export function NebulaView({
           const p = projected.get(node.id);
           if (!p) return null;
           const selected = selectedNodeId === node.id;
+          const nodeCore = accentColors[node.accent ?? "memory"];
           return [
             <Circle
               key={`${node.id}-g`}
@@ -541,7 +555,7 @@ export function NebulaView({
               cx={p.x}
               cy={p.y}
               r={p.size * (selected ? 1.2 : 1)}
-              color={selected ? selectedPointCore : pointCore}
+              color={selected ? selectedPointCore : nodeCore}
               opacity={p.alpha}
             />,
           ];

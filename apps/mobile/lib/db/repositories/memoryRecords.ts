@@ -21,6 +21,7 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
     source_title: string | null;
     source_content: string | null;
     source_created_at: string | null;
+    source_kind: StoredMemory["sourceKind"] | null;
     created_at: string;
     updated_at: string;
   }>(`
@@ -38,6 +39,7 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
       memory_atoms.updated_at AS updated_at,
       episodes.title AS source_title,
       episodes.content AS source_content,
+      episodes.source AS source_kind,
       episodes.created_at AS source_created_at
     FROM memory_atoms
     LEFT JOIN episodes ON episodes.episode_id = memory_atoms.episode_id
@@ -59,6 +61,7 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
     sourceTitle: row.source_title ?? undefined,
     sourceContent: row.source_content ?? undefined,
     sourceCreatedAt: row.source_created_at ?? undefined,
+    sourceKind: row.source_kind ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
