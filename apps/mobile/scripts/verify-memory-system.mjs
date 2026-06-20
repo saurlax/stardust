@@ -9,6 +9,7 @@ const repoRoot = path.join(mobileRoot, "..", "..");
 const read = (...parts) => fs.readFileSync(path.join(...parts), "utf8");
 const schema = read(mobileRoot, "lib", "db", "schema.ts");
 const devices = read(mobileRoot, "lib", "db", "repositories", "devices.ts");
+const memoryRecords = read(mobileRoot, "lib", "db", "repositories", "memoryRecords.ts");
 const ble = read(mobileRoot, "lib", "devices", "ble.ts");
 const config = read(mobileRoot, "lib", "config.ts");
 const chatScreen = read(mobileRoot, "app", "index.tsx");
@@ -58,6 +59,18 @@ for (const column of ["memory_context_json", "request_episode_id", "tool_cards_j
 }
 assertIncludes(chatScreen, "await createEpisode(db", "Chat input episodes must be persisted before AI candidate creation.");
 assertIncludes(chatScreen, "await saveChatSessionSnapshot(db", "Chat messages must be persisted before AI candidate creation.");
+
+for (const functionName of [
+  "updateReflectionContent",
+  "archiveReflection",
+  "updateStoredMemoryContent",
+  "dismissStoredMemory",
+]) {
+  const match = memoryRecords.match(new RegExp(`export async function ${functionName}[\\s\\S]*?\\n}`));
+  if (!match?.[0]?.includes("runInTransaction(db")) {
+    throw new Error(`${functionName} must keep record changes and FTS updates in one transaction.`);
+  }
+}
 
 assertIncludes(schema, "episode_id TEXT", "Reflections must preserve source episodes.");
 assertIncludes(schema, "export const DATABASE_VERSION = 13", "Database version must reflect the current schema.");

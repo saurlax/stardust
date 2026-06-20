@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 import { insertMemoryFts, insertReflectionFts } from "@/lib/db/fts";
 import { isFtsAvailable } from "@/lib/db/schema";
+import { runInTransaction } from "@/lib/db/transactions";
 import type { EntityRecord, ReflectionRecord, RelationRecord, StoredMemory } from "@/lib/db/types";
 
 const nowIso = () => new Date().toISOString();
@@ -117,38 +118,42 @@ export async function updateReflectionContent(
   if (!nextTitle || !nextContent) return;
   const updatedAt = nowIso();
 
-  await db.runAsync(
-    `
-      UPDATE reflections
-      SET title = ?, content = ?, updated_at = ?
-      WHERE reflection_id = ? AND status = 'active'
-    `,
-    nextTitle,
-    nextContent,
-    updatedAt,
-    reflectionId,
-  );
-  await insertReflectionFts(db, {
-    id: reflectionId,
-    title: nextTitle,
-    content: nextContent,
+  await runInTransaction(db, async () => {
+    await db.runAsync(
+      `
+        UPDATE reflections
+        SET title = ?, content = ?, updated_at = ?
+        WHERE reflection_id = ? AND status = 'active'
+      `,
+      nextTitle,
+      nextContent,
+      updatedAt,
+      reflectionId,
+    );
+    await insertReflectionFts(db, {
+      id: reflectionId,
+      title: nextTitle,
+      content: nextContent,
+    });
   });
 }
 
 export async function archiveReflection(db: SQLiteDatabase, reflectionId: string) {
   const updatedAt = nowIso();
-  await db.runAsync(
-    `
-      UPDATE reflections
-      SET status = 'archived', updated_at = ?
-      WHERE reflection_id = ?
-    `,
-    updatedAt,
-    reflectionId,
-  );
-  if (await isFtsAvailable(db)) {
-    await db.runAsync("DELETE FROM reflections_fts WHERE reflection_id = ?", reflectionId);
-  }
+  await runInTransaction(db, async () => {
+    await db.runAsync(
+      `
+        UPDATE reflections
+        SET status = 'archived', updated_at = ?
+        WHERE reflection_id = ?
+      `,
+      updatedAt,
+      reflectionId,
+    );
+    if (await isFtsAvailable(db)) {
+      await db.runAsync("DELETE FROM reflections_fts WHERE reflection_id = ?", reflectionId);
+    }
+  });
 }
 
 export async function listEntities(db: SQLiteDatabase): Promise<EntityRecord[]> {
@@ -224,26 +229,30 @@ export async function updateStoredMemoryContent(
   const trimmed = content.trim();
   if (!trimmed) return;
   const updatedAt = nowIso();
-  await db.runAsync(
-    "UPDATE memory_atoms SET content = ?, updated_at = ? WHERE memory_id = ?",
-    trimmed,
-    updatedAt,
-    memoryId,
-  );
-  const row = await db.getFirstAsync<{ type: string; content: string }>(
-    "SELECT type, content FROM memory_atoms WHERE memory_id = ?",
-    memoryId,
-  );
-  if (row) await insertMemoryFts(db, { id: memoryId, type: row.type, content: row.content });
+  await runInTransaction(db, async () => {
+    await db.runAsync(
+      "UPDATE memory_atoms SET content = ?, updated_at = ? WHERE memory_id = ?",
+      trimmed,
+      updatedAt,
+      memoryId,
+    );
+    const row = await db.getFirstAsync<{ type: string; content: string }>(
+      "SELECT type, content FROM memory_atoms WHERE memory_id = ?",
+      memoryId,
+    );
+    if (row) await insertMemoryFts(db, { id: memoryId, type: row.type, content: row.content });
+  });
 }
 
 export async function dismissStoredMemory(db: SQLiteDatabase, memoryId: string) {
-  await db.runAsync(
-    "UPDATE memory_atoms SET status = 'archived', updated_at = ? WHERE memory_id = ?",
-    nowIso(),
-    memoryId,
-  );
-  if (await isFtsAvailable(db)) {
-    await db.runAsync("DELETE FROM memory_atoms_fts WHERE memory_id = ?", memoryId);
-  }
+  await runInTransaction(db, async () => {
+    await db.runAsync(
+      "UPDATE memory_atoms SET status = 'archived', updated_at = ? WHERE memory_id = ?",
+      nowIso(),
+      memoryId,
+    );
+    if (await isFtsAvailable(db)) {
+      await db.runAsync("DELETE FROM memory_atoms_fts WHERE memory_id = ?", memoryId);
+    }
+  });
 }
