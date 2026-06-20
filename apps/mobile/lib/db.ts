@@ -71,6 +71,7 @@ export type MemoryCandidate = {
   sourceTitle?: string;
   sourceContent?: string;
   sourceCreatedAt?: string;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt?: string;
 };
@@ -196,6 +197,8 @@ const nowIso = () => new Date().toISOString();
 const SELF_ENTITY_ID = "entity-self";
 const createId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+const createEntityId = (type: string, name: string, fallbackId: string) =>
+  `entity-${type}-${name.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-").replace(/^-+|-+$/g, "") || fallbackId}`;
 
 export const createSessionId = () => createId("session");
 
@@ -700,6 +703,18 @@ const candidateToToolCard = (candidate: MemoryCandidate): MessageToolCard => ({
   payload: {
     content: candidate.content,
     memoryType: candidate.type,
+    relationTarget:
+      typeof candidate.metadata?.relationTarget === "string"
+        ? candidate.metadata.relationTarget
+        : undefined,
+    relationTargetType:
+      typeof candidate.metadata?.relationTargetType === "string"
+        ? candidate.metadata.relationTargetType
+        : undefined,
+    relationType:
+      typeof candidate.metadata?.relationType === "string"
+        ? candidate.metadata.relationType
+        : undefined,
   },
 });
 
@@ -741,7 +756,7 @@ export async function createCandidatesFromToolCards(
         card.title,
         content,
         card.status ?? "pending",
-        safeJson({ toolType: card.type }),
+        safeJson({ toolType: card.type, ...card.payload }),
         card.createdAt ?? createdAt,
         createdAt,
       );
@@ -839,8 +854,21 @@ export async function updateCandidateStatus(
 
     if (candidate.kind === "entity") {
       const entityName = candidate.title.trim() || content;
-      const entityId = `entity-${candidate.type}-${entityName.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-").replace(/^-+|-+$/g, "") || candidateId}`;
+      const entityType = candidate.type || "topic";
+      const entityId = createEntityId(entityType, entityName, candidateId);
       const relationId = `relation-self-${entityId}`;
+      const relationTarget =
+        typeof candidate.metadata?.relationTarget === "string"
+          ? candidate.metadata.relationTarget.trim()
+          : "";
+      const relationTargetType =
+        typeof candidate.metadata?.relationTargetType === "string"
+          ? candidate.metadata.relationTargetType.trim() || "topic"
+          : "topic";
+      const relationType =
+        typeof candidate.metadata?.relationType === "string"
+          ? candidate.metadata.relationType.trim() || "related"
+          : "related";
       await db.runAsync(
         `
           INSERT INTO entities (entity_id, name, type, created_at, updated_at)
@@ -860,7 +888,7 @@ export async function updateCandidateStatus(
         `,
         entityId,
         entityName,
-        candidate.type || "topic",
+        entityType,
         updatedAt,
         updatedAt,
       );
@@ -881,6 +909,39 @@ export async function updateCandidateStatus(
         updatedAt,
         updatedAt,
       );
+
+      if (relationTarget && relationTarget.toLowerCase() !== entityName.toLowerCase()) {
+        const targetEntityId = createEntityId(relationTargetType, relationTarget, candidateId);
+        await db.runAsync(
+          `
+            INSERT INTO entities (entity_id, name, type, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(name, type) DO UPDATE SET updated_at = excluded.updated_at
+          `,
+          targetEntityId,
+          relationTarget,
+          relationTargetType,
+          updatedAt,
+          updatedAt,
+        );
+        await db.runAsync(
+          `
+            INSERT INTO relations (
+              relation_id, source_entity_id, target_entity_id, type, weight, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, 1, ?, ?)
+            ON CONFLICT(relation_id) DO UPDATE SET
+              weight = relations.weight + 1,
+              updated_at = excluded.updated_at
+          `,
+          `relation-${entityId}-${targetEntityId}-${relationType.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-") || "related"}`,
+          entityId,
+          targetEntityId,
+          relationType,
+          updatedAt,
+          updatedAt,
+        );
+      }
     }
   });
 }
@@ -930,6 +991,7 @@ export async function getMemoryCandidate(
     source_title: string | null;
     source_content: string | null;
     source_created_at: string | null;
+    metadata_json: string | null;
     created_at: string;
     updated_at: string;
   }>(
@@ -944,6 +1006,7 @@ export async function getMemoryCandidate(
         memory_candidates.title AS title,
         memory_candidates.content AS content,
         memory_candidates.status AS status,
+        memory_candidates.metadata_json AS metadata_json,
         memory_candidates.created_at AS created_at,
         memory_candidates.updated_at AS updated_at,
         episodes.title AS source_title,
@@ -971,6 +1034,7 @@ const toCandidate = (row: {
   source_title?: string | null;
   source_content?: string | null;
   source_created_at?: string | null;
+  metadata_json?: string | null;
   created_at: string;
   updated_at?: string | null;
 }): MemoryCandidate => ({
@@ -986,6 +1050,7 @@ const toCandidate = (row: {
   sourceTitle: row.source_title ?? undefined,
   sourceContent: row.source_content ?? undefined,
   sourceCreatedAt: row.source_created_at ?? undefined,
+  metadata: parseJson(row.metadata_json),
   createdAt: row.created_at,
   updatedAt: row.updated_at ?? undefined,
 });
@@ -1006,6 +1071,7 @@ export async function listMemoryCandidates(
         memory_candidates.title AS title,
         memory_candidates.content AS content,
         memory_candidates.status AS status,
+        memory_candidates.metadata_json AS metadata_json,
         memory_candidates.created_at AS created_at,
         memory_candidates.updated_at AS updated_at,
         episodes.title AS source_title,

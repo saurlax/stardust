@@ -46,6 +46,9 @@ type ToolCardDefinition = {
   payload: {
     content: string;
     memoryType?: string;
+    relationTarget?: string;
+    relationTargetType?: string;
+    relationType?: string;
   };
 };
 
@@ -59,6 +62,7 @@ Available tools:
    Use when the user shares a meaningful recent activity, moment, or observation that should be kept as a lightweight episode.
 3. link_entity
    Use when a person, project, place, topic, or object should become part of the user's relationship graph.
+   When the user states a relationship between two entities, include relationTarget and relationType.
 4. suggest_reflection
    Use when several signals imply a higher-level pattern about the user. Be careful and non-judgmental.
 5. mark_open_loop
@@ -136,6 +140,12 @@ const toolDefinitions = [
             type: "string",
             enum: ["person", "project", "place", "topic", "object"],
           },
+          relationTarget: { type: "string" },
+          relationTargetType: {
+            type: "string",
+            enum: ["person", "project", "place", "topic", "object"],
+          },
+          relationType: { type: "string" },
         },
         required: ["title", "content", "memoryType"],
       },
@@ -272,6 +282,9 @@ const normalizeToolCards = (cards: ToolCardDefinition[]): MessageToolCard[] =>
     payload: {
       content: card.payload.content,
       memoryType: card.payload.memoryType,
+      relationTarget: card.payload.relationTarget,
+      relationTargetType: card.payload.relationTargetType,
+      relationType: card.payload.relationType,
     },
     status: "pending",
   }));
@@ -447,6 +460,9 @@ const sendLocalChatRequest = async ({
           title?: string;
           content?: string;
           memoryType?: string;
+          relationTarget?: string;
+          relationTargetType?: string;
+          relationType?: string;
         };
 
         const cardContent = args.content?.trim();
@@ -460,6 +476,9 @@ const sendLocalChatRequest = async ({
             payload: {
               content: cardContent,
               memoryType: args.memoryType?.trim(),
+              relationTarget: args.relationTarget?.trim(),
+              relationTargetType: args.relationTargetType?.trim(),
+              relationType: args.relationType?.trim(),
             },
           },
         ];

@@ -18,6 +18,9 @@ export type ToolCardType =
 export type ToolCardPayload = {
   content: string;
   memoryType?: string;
+  relationTarget?: string;
+  relationTargetType?: string;
+  relationType?: string;
 };
 
 export type MessageToolCard = {
