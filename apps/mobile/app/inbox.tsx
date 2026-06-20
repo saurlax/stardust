@@ -409,10 +409,10 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
 
 function DeviceEventCard({
   event,
-  onRefresh,
+  onPromoted,
 }: {
   event: DeviceEventRecord;
-  onRefresh: () => void;
+  onPromoted: () => void;
 }) {
   const db = useSQLiteContext();
   const metadataLines = Object.entries(event.metadata ?? {})
@@ -465,7 +465,7 @@ function DeviceEventCard({
               variant="outline"
               size="sm"
               onPress={() => {
-                void promoteDeviceEventToCandidate(db, event).then(onRefresh);
+                void promoteDeviceEventToCandidate(db, event).then(onPromoted);
               }}
             >
               <Ionicons name="sparkles-outline" size={14} />
@@ -619,7 +619,14 @@ export default function InboxScreen() {
               </View>
             </ScrollView>
             {visibleDeviceEvents.map((event) => (
-              <DeviceEventCard key={event.id} event={event} onRefresh={refresh} />
+              <DeviceEventCard
+                key={event.id}
+                event={event}
+                onPromoted={() => {
+                  refresh();
+                  setTab("pending");
+                }}
+              />
             ))}
           </View>
         ) : null}
