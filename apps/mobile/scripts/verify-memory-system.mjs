@@ -88,6 +88,9 @@ assertIncludes(chatMessages, "item.nodeId", "Chat memory context must use graph 
 assertIncludes(chatMessages, 'item.source === "relation"', "Chat memory context must handle relation graph results.");
 assertIncludes(journalScreen, "setErrorMessage(t(\"journal.loadFailed\"))", "Episode timeline load failures must be visible.");
 assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be visible.");
+assertIncludes(journalScreen, "sourceCounts", "Episode timeline source filters must expose counts.");
+assertIncludes(journalScreen, "sourceCounts[source]", "Episode timeline source filter labels must display counts.");
+assertIncludes(journalScreen, "entries.filter((entry) => entry.source === source).length", "Episode timeline source counts must be source-specific.");
 assertIncludes(journalScreen, "entityEntryPrefix", "Journal search must label entity graph results.");
 assertIncludes(journalScreen, "relationEntryPrefix", "Journal search must label relation graph results.");
 assertIncludes(journalScreen, "`entity-${result.id}`", "Journal search must open entity graph results.");

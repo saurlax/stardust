@@ -46,15 +46,17 @@ const getErrorMessage = (error: unknown) => {
 function SourceFilterButton({
   active,
   source,
+  count,
   onPress,
 }: {
   active: boolean;
   source: SourceFilter;
+  count: number;
   onPress: () => void;
 }) {
   return (
     <Button variant={active ? "default" : "outline"} size="sm" onPress={onPress}>
-      <Text>{sourceLabel(source)}</Text>
+      <Text>{`${sourceLabel(source)} ${count}`}</Text>
     </Button>
   );
 }
@@ -241,6 +243,31 @@ export default function JournalScreen() {
             .filter((day) => day.entries.length),
     [days, sourceFilter],
   );
+  const sourceCounts = useMemo(
+    () => {
+      const entries = days.flatMap((day) => day.entries);
+      return sourceFilters.reduce<Record<SourceFilter, number>>(
+        (counts, source) => {
+          counts[source] =
+            source === "all"
+              ? entries.length
+              : entries.filter((entry) => entry.source === source).length;
+          return counts;
+        },
+        {
+          all: 0,
+          chat: 0,
+          share: 0,
+          image: 0,
+          calendar: 0,
+          iot: 0,
+          journal: 0,
+          memory: 0,
+        },
+      );
+    },
+    [days],
+  );
   const selectedEntry = useMemo(
     () =>
       selectedEpisodeId
@@ -414,6 +441,7 @@ export default function JournalScreen() {
                   key={source}
                   active={sourceFilter === source}
                   source={source}
+                  count={sourceCounts[source]}
                   onPress={() => setSourceFilter(source)}
                 />
               ))}
