@@ -26,6 +26,7 @@ import { t } from "@/lib/i18n";
 const emptySnapshot: PersonalSnapshot = {
   acceptedMemories: 0,
   pendingCards: 0,
+  openLoopCount: 0,
   journalEntries: 0,
   episodeCount: 0,
   reflectionCount: 0,
@@ -104,6 +105,13 @@ export default function PersonalScreen() {
             <CardDescription>{t("personal.pendingCards")}</CardDescription>
             <Text className="text-2xl font-semibold">{snapshot.pendingCards}</Text>
           </Card>
+          <Card className="flex-1 gap-2 px-4 py-4">
+            <CardDescription>{t("personal.openLoops")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.openLoopCount}</Text>
+          </Card>
+        </View>
+
+        <View className="flex-row gap-3">
           <Card className="flex-1 gap-2 px-4 py-4">
             <CardDescription>{t("personal.episodeCount")}</CardDescription>
             <Text className="text-2xl font-semibold">{snapshot.episodeCount}</Text>

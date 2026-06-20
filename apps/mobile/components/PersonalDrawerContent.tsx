@@ -26,6 +26,7 @@ import { t } from "@/lib/i18n";
 const emptySnapshot: PersonalSnapshot = {
   acceptedMemories: 0,
   pendingCards: 0,
+  openLoopCount: 0,
   journalEntries: 0,
   episodeCount: 0,
   reflectionCount: 0,
@@ -107,6 +108,11 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
             <Text className="text-2xl font-semibold">{snapshot.pendingCards}</Text>
           </Card>
         </View>
+
+        <Card className="gap-2 px-3 py-3">
+          <CardDescription>{t("personal.openLoops")}</CardDescription>
+          <Text className="text-2xl font-semibold">{snapshot.openLoopCount}</Text>
+        </Card>
 
         <Card className="gap-2 px-3 py-3">
           <CardDescription>{t("personal.episodeCount")}</CardDescription>

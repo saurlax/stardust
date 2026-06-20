@@ -6,6 +6,7 @@ export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalS
   const [
     memoryRow,
     pendingRow,
+    openLoopRow,
     episodeRow,
     journalRow,
     reflectionRow,
@@ -21,6 +22,12 @@ export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalS
       db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM memory_candidates WHERE status = 'pending'",
       ),
+      db.getFirstAsync<{ count: number }>(`
+        SELECT COUNT(*) AS count
+        FROM memory_atoms
+        JOIN memory_candidates ON memory_candidates.candidate_id = memory_atoms.candidate_id
+        WHERE memory_atoms.status = 'active' AND memory_candidates.kind = 'open_loop'
+      `),
       db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM episodes"),
       db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM episodes WHERE source = 'journal'",
@@ -44,6 +51,7 @@ export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalS
   return {
     acceptedMemories: memoryRow?.count ?? 0,
     pendingCards: pendingRow?.count ?? 0,
+    openLoopCount: openLoopRow?.count ?? 0,
     journalEntries: journalRow?.count ?? 0,
     episodeCount: episodeRow?.count ?? 0,
     reflectionCount: reflectionRow?.count ?? 0,
