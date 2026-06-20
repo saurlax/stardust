@@ -92,6 +92,18 @@ function CandidateCard({
           <Text className="text-sm leading-5">{candidate.content}</Text>
         )}
 
+        {candidate.sourceContent ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.source")}
+            </Text>
+            <Text className="text-xs leading-4 text-muted-foreground">
+              {candidate.sourceTitle ? `${candidate.sourceTitle} · ` : ""}
+              {candidate.sourceContent}
+            </Text>
+          </View>
+        ) : null}
+
         <View className="flex-row flex-wrap gap-2">
           {editing ? (
             <>
@@ -157,6 +169,17 @@ function MemoryCard({ memory }: { memory: StoredMemory }) {
           {memory.type} · {new Date(memory.createdAt).toLocaleDateString()}
         </CardDescription>
         <Text className="text-sm leading-5">{memory.content}</Text>
+        {memory.sourceContent ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.source")}
+            </Text>
+            <Text className="text-xs leading-4 text-muted-foreground">
+              {memory.sourceTitle ? `${memory.sourceTitle} · ` : ""}
+              {memory.sourceContent}
+            </Text>
+          </View>
+        ) : null}
       </CardContent>
     </Card>
   );

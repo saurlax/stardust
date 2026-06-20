@@ -68,6 +68,9 @@ export type MemoryCandidate = {
   title: string;
   content: string;
   status: CandidateStatus;
+  sourceTitle?: string;
+  sourceContent?: string;
+  sourceCreatedAt?: string;
   createdAt: string;
   updatedAt?: string;
 };
@@ -80,6 +83,9 @@ export type StoredMemory = {
   type: string;
   content: string;
   importance: number;
+  sourceTitle?: string;
+  sourceContent?: string;
+  sourceCreatedAt?: string;
   createdAt: string;
   updatedAt?: string;
   candidateId?: string;
@@ -582,10 +588,17 @@ export async function createEpisode(
 
   await db.runAsync(
     `
-      INSERT OR IGNORE INTO episodes (
+      INSERT INTO episodes (
         episode_id, source, title, content, media_uri, metadata_json, created_at, updated_at
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(episode_id) DO UPDATE SET
+        source = excluded.source,
+        title = excluded.title,
+        content = excluded.content,
+        media_uri = excluded.media_uri,
+        metadata_json = excluded.metadata_json,
+        updated_at = excluded.updated_at
     `,
     episode.id,
     episode.source,
@@ -823,13 +836,30 @@ export async function getMemoryCandidate(
     title: string;
     content: string;
     status: CandidateStatus;
+    source_title: string | null;
+    source_content: string | null;
+    source_created_at: string | null;
     created_at: string;
     updated_at: string;
   }>(
     `
-      SELECT candidate_id, session_id, message_id, episode_id, kind, type, title,
-        content, status, created_at, updated_at
+      SELECT
+        memory_candidates.candidate_id AS candidate_id,
+        memory_candidates.session_id AS session_id,
+        memory_candidates.message_id AS message_id,
+        memory_candidates.episode_id AS episode_id,
+        memory_candidates.kind AS kind,
+        memory_candidates.type AS type,
+        memory_candidates.title AS title,
+        memory_candidates.content AS content,
+        memory_candidates.status AS status,
+        memory_candidates.created_at AS created_at,
+        memory_candidates.updated_at AS updated_at,
+        episodes.title AS source_title,
+        episodes.content AS source_content,
+        episodes.created_at AS source_created_at
       FROM memory_candidates
+      LEFT JOIN episodes ON episodes.episode_id = memory_candidates.episode_id
       WHERE candidate_id = ?
     `,
     candidateId,
@@ -847,6 +877,9 @@ const toCandidate = (row: {
   title: string;
   content: string;
   status: CandidateStatus;
+  source_title?: string | null;
+  source_content?: string | null;
+  source_created_at?: string | null;
   created_at: string;
   updated_at?: string | null;
 }): MemoryCandidate => ({
@@ -859,6 +892,9 @@ const toCandidate = (row: {
   title: row.title,
   content: row.content,
   status: row.status,
+  sourceTitle: row.source_title ?? undefined,
+  sourceContent: row.source_content ?? undefined,
+  sourceCreatedAt: row.source_created_at ?? undefined,
   createdAt: row.created_at,
   updatedAt: row.updated_at ?? undefined,
 });
@@ -869,11 +905,25 @@ export async function listMemoryCandidates(
 ): Promise<MemoryCandidate[]> {
   const rows = await db.getAllAsync<any>(
     `
-      SELECT candidate_id, session_id, message_id, episode_id, kind, type, title,
-        content, status, created_at, updated_at
+      SELECT
+        memory_candidates.candidate_id AS candidate_id,
+        memory_candidates.session_id AS session_id,
+        memory_candidates.message_id AS message_id,
+        memory_candidates.episode_id AS episode_id,
+        memory_candidates.kind AS kind,
+        memory_candidates.type AS type,
+        memory_candidates.title AS title,
+        memory_candidates.content AS content,
+        memory_candidates.status AS status,
+        memory_candidates.created_at AS created_at,
+        memory_candidates.updated_at AS updated_at,
+        episodes.title AS source_title,
+        episodes.content AS source_content,
+        episodes.created_at AS source_created_at
       FROM memory_candidates
+      LEFT JOIN episodes ON episodes.episode_id = memory_candidates.episode_id
       ${status ? "WHERE status = ?" : ""}
-      ORDER BY created_at DESC
+      ORDER BY memory_candidates.created_at DESC
     `,
     ...(status ? [status] : []),
   );
@@ -890,14 +940,30 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
     type: string;
     content: string;
     importance: number;
+    source_title: string | null;
+    source_content: string | null;
+    source_created_at: string | null;
     created_at: string;
     updated_at: string;
   }>(`
-    SELECT memory_id, candidate_id, episode_id, session_id, message_id, type,
-      content, importance, created_at, updated_at
+    SELECT
+      memory_atoms.memory_id AS memory_id,
+      memory_atoms.candidate_id AS candidate_id,
+      memory_atoms.episode_id AS episode_id,
+      memory_atoms.session_id AS session_id,
+      memory_atoms.message_id AS message_id,
+      memory_atoms.type AS type,
+      memory_atoms.content AS content,
+      memory_atoms.importance AS importance,
+      memory_atoms.created_at AS created_at,
+      memory_atoms.updated_at AS updated_at,
+      episodes.title AS source_title,
+      episodes.content AS source_content,
+      episodes.created_at AS source_created_at
     FROM memory_atoms
+    LEFT JOIN episodes ON episodes.episode_id = memory_atoms.episode_id
     WHERE status = 'active'
-    ORDER BY created_at DESC
+    ORDER BY memory_atoms.created_at DESC
   `);
 
   return rows.map((row) => ({
@@ -909,6 +975,9 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
     type: row.type,
     content: row.content,
     importance: row.importance,
+    sourceTitle: row.source_title ?? undefined,
+    sourceContent: row.source_content ?? undefined,
+    sourceCreatedAt: row.source_created_at ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));

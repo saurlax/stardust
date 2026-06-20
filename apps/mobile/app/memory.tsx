@@ -68,7 +68,20 @@ function MemoryEditor({
             className="min-h-24 rounded-md bg-background"
           />
         ) : (
-          <CardTitle className="text-sm leading-5">{memory.content}</CardTitle>
+          <View className="gap-2">
+            <CardTitle className="text-sm leading-5">{memory.content}</CardTitle>
+            {memory.sourceContent ? (
+              <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+                <Text className="text-xs font-semibold uppercase text-muted-foreground">
+                  {t("memory.source")}
+                </Text>
+                <Text className="text-xs leading-4 text-muted-foreground">
+                  {memory.sourceTitle ? `${memory.sourceTitle} · ` : ""}
+                  {memory.sourceContent}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         )}
       </CardHeader>
       <CardContent className="flex-row flex-wrap gap-2">

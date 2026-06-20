@@ -105,6 +105,7 @@ const translations = {
       emptyReflections: "No confirmed reflections yet.",
       emptyDevices: "No screen-off devices paired yet.",
       deviceEvents: "Device events",
+      source: "Source",
       neverSeen: "Never seen",
     },
     personal: {
@@ -142,6 +143,7 @@ const translations = {
       reflectionCount: "Reflections",
       entityCount: "Entities",
       reflectionsTitle: "Current reflection",
+      source: "Source",
       filter: {
         all: "All",
         preference: "Preference",
@@ -283,6 +285,7 @@ const translations = {
       emptyReflections: "还没有已确认反思。",
       emptyDevices: "还没有配对屏幕外设备。",
       deviceEvents: "设备事件",
+      source: "来源",
       neverSeen: "尚未连接",
     },
     personal: {
@@ -320,6 +323,7 @@ const translations = {
       reflectionCount: "反思",
       entityCount: "实体",
       reflectionsTitle: "当前反思",
+      source: "来源",
       filter: {
         all: "全部",
         preference: "偏好",
