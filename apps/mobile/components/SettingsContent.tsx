@@ -25,6 +25,7 @@ import {
   watchStardustBleStatus,
   type StardustBleStatus,
 } from "@/lib/devices/ble";
+import { getDeviceCapabilitySummary, supportsDeviceCommand } from "@/lib/devices/capabilities";
 import { t } from "@/lib/i18n";
 
 type SettingsFieldProps = React.ComponentProps<typeof Input> & {
@@ -59,7 +60,7 @@ const getDeviceDetailLines = (device: DeviceRecord) =>
     device.firmwareVersion ? `${t("settings.firmware")}: ${device.firmwareVersion}` : undefined,
     device.protocolVersion ? `${t("settings.protocol")}: ${device.protocolVersion}` : undefined,
     device.capabilities?.length
-      ? `${t("settings.capabilities")}: ${device.capabilities.join(", ")}`
+      ? `${t("settings.capabilities")}: ${getDeviceCapabilitySummary(device.capabilities)}`
       : undefined,
     `${t("settings.deviceEventCount")}: ${device.eventCount}`,
     device.pendingReviewCount
@@ -101,12 +102,30 @@ const getSubscribeLabel = (device: DeviceRecord) => {
   if (device.status === "disconnected") return t("settings.reconnectDevice");
   return t("settings.subscribeDevice");
 };
-const supportsDeviceCommand = (
+
+const getCommandLabel = (
   device: DeviceRecord,
   command: "capture" | "sync" | "sleep",
 ) => {
-  if (!device.capabilities?.length) return true;
-  return device.capabilities.includes(`command-${command}`);
+  if (supportsDeviceCommand(device, command)) {
+    switch (command) {
+      case "capture":
+        return t("settings.captureDevice");
+      case "sync":
+        return t("settings.syncDevice");
+      case "sleep":
+        return t("settings.sleepDevice");
+    }
+  }
+
+  switch (command) {
+    case "capture":
+      return t("settings.captureDeviceUnavailable");
+    case "sync":
+      return t("settings.syncDeviceUnavailable");
+    case "sleep":
+      return t("settings.sleepDeviceUnavailable");
+  }
 };
 
 const openDeviceInbox = () => {
@@ -421,7 +440,7 @@ export function SettingsContent() {
                         disabled={!supportsDeviceCommand(device, "capture")}
                         onPress={() => void onCaptureDevice(device)}
                       >
-                        <Text>{t("settings.captureDevice")}</Text>
+                        <Text>{getCommandLabel(device, "capture")}</Text>
                       </Button>
                       <Button
                         variant="outline"
@@ -429,7 +448,7 @@ export function SettingsContent() {
                         disabled={!supportsDeviceCommand(device, "sync")}
                         onPress={() => void onSyncDevice(device)}
                       >
-                        <Text>{t("settings.syncDevice")}</Text>
+                        <Text>{getCommandLabel(device, "sync")}</Text>
                       </Button>
                       <Button
                         variant="outline"
@@ -437,7 +456,7 @@ export function SettingsContent() {
                         disabled={!supportsDeviceCommand(device, "sleep")}
                         onPress={() => void onSleepDevice(device)}
                       >
-                        <Text>{t("settings.sleepDevice")}</Text>
+                        <Text>{getCommandLabel(device, "sleep")}</Text>
                       </Button>
                       <Button
                         variant="outline"

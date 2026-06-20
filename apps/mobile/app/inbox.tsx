@@ -30,6 +30,7 @@ import {
   type ReflectionRecord,
   type StoredMemory,
 } from "@/lib/db";
+import { getDeviceCapabilitySummary } from "@/lib/devices/capabilities";
 import { t } from "@/lib/i18n";
 
 type Tab = "pending" | "saved" | "reflections" | "devices";
@@ -435,7 +436,7 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
     device.firmwareVersion ? `${t("inbox.firmware")}: ${device.firmwareVersion}` : undefined,
     device.protocolVersion ? `${t("inbox.protocol")}: ${device.protocolVersion}` : undefined,
     device.capabilities?.length
-      ? `${t("inbox.capabilities")}: ${device.capabilities.join(", ")}`
+      ? `${t("inbox.capabilities")}: ${getDeviceCapabilitySummary(device.capabilities)}`
       : undefined,
     `${t("inbox.deviceEventCount")}: ${device.eventCount}`,
     device.pendingReviewCount ? `${t("inbox.pendingReviews")}: ${device.pendingReviewCount}` : undefined,
