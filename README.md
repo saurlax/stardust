@@ -12,6 +12,7 @@
 <p align="center">
   <a href="#缘起">缘起</a> ·
   <a href="#星尘之路">星尘之路</a> ·
+  <a href="#当前形态">当前形态</a> ·
   <a href="#开始使用">开始使用</a> ·
   <a href="#贡献">贡献</a> ·
   <a href="#协议">协议</a>
@@ -95,6 +96,17 @@ Stardust 不是笔记工具，也不是聊天机器人。
 | 智能笔记       | 笔记是死的，而星尘是活的   |
 | 记忆助手       | 记忆只是起点，理解才是终点 |
 
+## 当前形态
+
+Stardust 目前是一个 local-first 的融合记忆原型：
+
+- **屏幕内捕获**：聊天、分享、图片、日历和日志都会先进入本地 `episodes`。
+- **记忆收件箱**：AI 只提出候选记忆、反思和实体线索，用户确认后才会进入长期记忆。
+- **记忆星图**：已确认记忆、反思和实体通过 Skia + force layout 形成可探索的本地图谱。
+- **屏幕外捕获**：`iot` 子项目面向 Seeed Studio XIAO ESP32S3 Sense，作为 BLE 外设 `Stardust Sense` 上报轻量事件和捕获指令。
+
+Cloud 模式、云同步和大文件无线传输仍是未来计划；当前不作为可用功能提供。
+
 ## 开始使用
 
 ### 环境要求
@@ -138,7 +150,15 @@ cp apps/api/.env.example apps/api/.env
 
 聊天记录、捕获内容、候选记忆和已确认记忆都会优先保存在设备本地。
 
-Cloud 模式将在未来添加。
+### 屏幕外设备
+
+BLE 设备集成依赖 `react-native-ble-plx`，需要原生开发构建，不能在 Expo Go 或 Web 中使用：
+
+```bash
+pnpm --filter ./apps/mobile run android
+```
+
+XIAO ESP32S3 Sense 固件在 `iot/iot.ino`。烧录后设备会以 `Stardust Sense` 名称广播，移动端可在设置页扫描、订阅事件并发送捕获命令。
 
 ## 项目结构
 
@@ -163,6 +183,7 @@ pnpm dev                 # 同时启动移动端与 API
 pnpm dev:mobile          # 仅启动移动端
 pnpm dev:api             # 仅启动 API
 pnpm lint                # 代码检查
+pnpm typecheck           # TypeScript 类型检查
 ```
 
 ### 提交规范
@@ -181,12 +202,13 @@ pnpm lint                # 代码检查
 - NativeWind
 - React Native Reusables
 - Skia
+- d3-force
+- react-native-ble-plx
 
 **API**
 
 - Go
 - Fiber v3
-- PostgreSQL
 
 ## 贡献
 

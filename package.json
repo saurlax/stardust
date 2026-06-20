@@ -11,6 +11,7 @@
     "dev:mobile": "pnpm --filter ./apps/mobile run dev",
     "dev:api": "pnpm --filter ./apps/api run dev",
     "lint": "pnpm --filter ./apps/mobile run lint",
+    "typecheck": "pnpm --filter ./apps/mobile run typecheck",
     "prepare": "husky"
   },
   "devDependencies": {
