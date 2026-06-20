@@ -87,6 +87,15 @@ const getCandidateTitle = (candidate: MemoryCandidate) => {
   return candidate.title;
 };
 
+const getManifestMediaLines = (metadata?: Record<string, unknown>) => {
+  const media = metadata?.media;
+  if (!media || typeof media !== "object" || Array.isArray(media)) return [];
+  return Object.entries(media as Record<string, unknown>).map(([key, value]) => {
+    const label = key === "microSD" ? "microSD" : key;
+    return `${label}: ${typeof value === "string" ? value : JSON.stringify(value)}`;
+  });
+};
+
 function TabButton({
   active,
   label,
@@ -518,7 +527,10 @@ function DeviceEventCard({
 }) {
   const db = useSQLiteContext();
   const candidateStatusLabel = getCandidateStatusLabel(event.candidateStatus);
+  const manifestMediaLines =
+    event.eventType === "manifest" ? getManifestMediaLines(event.metadata) : [];
   const metadataLines = Object.entries(event.metadata ?? {})
+    .filter(([key]) => key !== "media")
     .slice(0, 5)
     .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`);
 
@@ -532,6 +544,18 @@ function DeviceEventCard({
           {new Date(event.createdAt).toLocaleString()}
         </CardDescription>
         <Text className="text-sm leading-5">{event.content}</Text>
+        {manifestMediaLines.length ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.deviceManifestMedia")}
+            </Text>
+            {manifestMediaLines.map((line) => (
+              <Text key={line} className="text-xs leading-4 text-muted-foreground">
+                {line}
+              </Text>
+            ))}
+          </View>
+        ) : null}
         {metadataLines.length ? (
           <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
             <Text className="text-xs font-semibold uppercase text-muted-foreground">

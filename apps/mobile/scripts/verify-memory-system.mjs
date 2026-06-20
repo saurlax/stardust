@@ -231,6 +231,9 @@ assertIncludes(inboxScreen, "getCandidateKindLabel(candidate.kind)", "Pending ca
 assertIncludes(inboxScreen, "getCandidateTitle(candidate)", "Pending candidates must use user-facing titles.");
 assertIncludes(inboxScreen, 'candidate.metadata?.source === "device_event"', "Device candidates must format titles from metadata.");
 assertIncludes(inboxScreen, "getDeviceEventTypeLabel(event.eventType)", "Device events must use user-facing event labels.");
+assertIncludes(inboxScreen, "getManifestMediaLines(event.metadata)", "Device manifest media placeholders must be summarized.");
+assertIncludes(inboxScreen, 'key !== "media"', "Device manifest media should not be repeated as raw metadata.");
+assertIncludes(inboxScreen, "inbox.deviceManifestMedia", "Device manifest media summaries must have a localized heading.");
 assertIncludes(settings, "getDeviceKindLabel(device.kind)", "Settings must use user-facing device kind labels.");
 assertIncludes(memoryLabels, "getKnowledgeTypeLabel", "Knowledge search results need shared user-facing type labels.");
 assertIncludes(memoryLabels, "xiao-esp32s3-sense", "Device kind labels must cover Stardust Sense hardware.");
