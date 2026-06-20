@@ -168,6 +168,18 @@ const normalizeEventTimestamp = (value?: string) => {
   return Number.isFinite(parsed) ? new Date(parsed).toISOString() : undefined;
 };
 
+const stableHash = (value: string) => {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+};
+
+const scopedDeviceEventId = (deviceId: string, eventId?: string) =>
+  eventId ? `${deviceId}:${eventId}` : undefined;
+
 export const scanStardustDevices = async (db: SQLiteDatabase) => {
   const ble = await getBleManager();
   const found = new Map<string, { id: string; name: string }>();
@@ -242,7 +254,7 @@ export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: st
     try {
       const parsed = JSON.parse(decodeBase64(manifest.value)) as Record<string, unknown>;
       await createDeviceEvent(db, {
-        id: `manifest-${readyDevice.id}-${Date.now()}`,
+        id: `manifest-${readyDevice.id}-${stableHash(manifest.value)}`,
         deviceId: readyDevice.id,
         eventType: "manifest",
         content: "Stardust Sense manifest synchronized",
@@ -267,7 +279,7 @@ export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: st
           metadata?: Record<string, unknown>;
         };
         void createDeviceEvent(db, {
-          id: event.id,
+          id: scopedDeviceEventId(readyDevice.id, event.id),
           deviceId: readyDevice.id,
           eventType: event.type ?? "capture",
           content: event.content ?? "Screen-off capture",

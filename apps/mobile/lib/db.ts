@@ -1623,11 +1623,13 @@ export async function createDeviceEvent(
     metadata?: Record<string, unknown>;
     createdAt?: string;
   },
-) {
+): Promise<boolean> {
   const createdAt = input.createdAt ?? nowIso();
   const eventId = input.id ?? createId("device-event");
+  let inserted = false;
+
   await runInTransaction(db, async () => {
-    await db.runAsync(
+    const result = await db.runAsync(
       `
         INSERT OR IGNORE INTO device_events (
           device_event_id, device_id, event_type, content, metadata_json, created_at
@@ -1641,6 +1643,9 @@ export async function createDeviceEvent(
       safeJson(input.metadata),
       createdAt,
     );
+    inserted = result.changes > 0;
+    if (!inserted) return;
+
     await createEpisode(db, {
       id: `episode-${eventId}`,
       source: "iot",
@@ -1650,6 +1655,8 @@ export async function createDeviceEvent(
       createdAt,
     });
   });
+
+  return inserted;
 }
 
 export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventRecord[]> {
