@@ -185,6 +185,7 @@ export type JournalEntry = {
   title?: string;
   note: string;
   source: EpisodeSource | "memory";
+  mediaUri?: string;
   nodeId?: string;
 };
 

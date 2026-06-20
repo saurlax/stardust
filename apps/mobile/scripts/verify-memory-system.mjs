@@ -107,9 +107,12 @@ assertIncludes(journalScreen, "sourceCounts", "Episode timeline source filters m
 assertIncludes(journalScreen, "sourceCounts[source]", "Episode timeline source filter labels must display counts.");
 assertIncludes(journalScreen, "entries.filter((entry) => entry.source === source).length", "Episode timeline source counts must be source-specific.");
 assertIncludes(timeline, "title: episode.title", "Episode timeline entries must preserve episode titles.");
+assertIncludes(timeline, "mediaUri: episode.mediaUri", "Episode timeline entries must preserve media URIs.");
 assertIncludes(timeline, 'title: memory.candidateKind === "open_loop"', "Memory timeline entries must preserve memory type labels.");
 assertIncludes(timeline, "nodeId: `memory-${memory.id}`", "Memory timeline entries must carry graph node ids.");
 assertIncludes(journalScreen, "function entryTitle", "Journal timeline must render user-facing entry titles.");
+assertIncludes(journalScreen, "function EpisodeMediaPreview", "Journal timeline must render media previews.");
+assertIncludes(journalScreen, "source={{ uri: entry.mediaUri }}", "Journal media previews must use episode media URIs.");
 assertIncludes(journalScreen, "getEpisodeTitleLabel(entry.source, entry.title)", "IoT timeline titles must use shared device event labels.");
 assertIncludes(journalScreen, 'entry.source === "memory" && entry.nodeId', "Memory timeline entries must expose graph navigation.");
 assertIncludes(journalScreen, "params: { nodeId: entry.nodeId }", "Memory timeline navigation must target the selected graph node.");

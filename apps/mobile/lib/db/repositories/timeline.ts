@@ -13,6 +13,7 @@ export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]>
       title: episode.title,
       note: episode.content,
       source: episode.source,
+      mediaUri: episode.mediaUri,
     })),
     ...memories.map((memory) => ({
       id: `timeline-${memory.id}`,

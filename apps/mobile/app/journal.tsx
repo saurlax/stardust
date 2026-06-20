@@ -3,7 +3,7 @@ import { router, useFocusEffect, useLocalSearchParams, type Href } from "expo-ro
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, useColorScheme, View } from "react-native";
+import { Image, ScrollView, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,19 @@ function entryTitle(entry: JournalDay["entries"][number]) {
   if (!entry.title) return undefined;
   if (entry.source === "memory") return getMemoryTypeLabel(entry.title);
   return getEpisodeTitleLabel(entry.source, entry.title);
+}
+
+function EpisodeMediaPreview({ entry }: { entry: JournalDay["entries"][number] }) {
+  if (!entry.mediaUri) return null;
+
+  return (
+    <Image
+      source={{ uri: entry.mediaUri }}
+      resizeMode="cover"
+      accessibilityLabel={entryTitle(entry) ?? t("journal.mediaPreview")}
+      className="mt-1 h-36 w-full rounded-md bg-muted"
+    />
+  );
 }
 
 const getErrorMessage = (error: unknown) => {
@@ -351,6 +364,7 @@ export default function JournalScreen() {
               {entryTitle(selectedEntry) ? (
                 <Text className="text-sm font-semibold">{entryTitle(selectedEntry)}</Text>
               ) : null}
+              <EpisodeMediaPreview entry={selectedEntry} />
               <Text className="text-sm leading-5">{selectedEntry.note}</Text>
             </CardContent>
           </Card>
@@ -507,6 +521,7 @@ export default function JournalScreen() {
                       {entryTitle(entry) ? (
                         <Text className="text-sm font-semibold">{entryTitle(entry)}</Text>
                       ) : null}
+                      <EpisodeMediaPreview entry={entry} />
                       <Text className="text-sm leading-5">{entry.note}</Text>
                       {entry.source === "memory" && entry.nodeId ? (
                         <Button
