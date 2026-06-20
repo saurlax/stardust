@@ -8,6 +8,7 @@ const SERVICE_UUID = "7b3f4a10-9d62-4a7d-a0d9-2ffb9239c4d1";
 const STATUS_CHARACTERISTIC_UUID = "7b3f4a11-9d62-4a7d-a0d9-2ffb9239c4d1";
 const EVENT_CHARACTERISTIC_UUID = "7b3f4a12-9d62-4a7d-a0d9-2ffb9239c4d1";
 const COMMAND_CHARACTERISTIC_UUID = "7b3f4a13-9d62-4a7d-a0d9-2ffb9239c4d1";
+const MANIFEST_CHARACTERISTIC_UUID = "7b3f4a14-9d62-4a7d-a0d9-2ffb9239c4d1";
 
 type BlePlxModule = typeof import("react-native-ble-plx");
 type BleManagerInstance = InstanceType<BlePlxModule["BleManager"]>;
@@ -231,6 +232,24 @@ export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: st
       });
     } catch {
       // Ignore malformed status payloads.
+    }
+  }
+
+  const manifest = await readyDevice
+    .readCharacteristicForService(SERVICE_UUID, MANIFEST_CHARACTERISTIC_UUID)
+    .catch(() => null);
+  if (manifest?.value) {
+    try {
+      const parsed = JSON.parse(decodeBase64(manifest.value)) as Record<string, unknown>;
+      await createDeviceEvent(db, {
+        id: `manifest-${readyDevice.id}-${Date.now()}`,
+        deviceId: readyDevice.id,
+        eventType: "manifest",
+        content: "Stardust Sense manifest synchronized",
+        metadata: parsed,
+      });
+    } catch {
+      // Ignore malformed manifests.
     }
   }
 
