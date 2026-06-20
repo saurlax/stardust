@@ -27,7 +27,19 @@ import {
 import { t } from "@/lib/i18n";
 import { THEME } from "@/lib/theme";
 
-const filters = ["all", "preference", "project", "relationship", "concern", "goal"] as const;
+const filters = [
+  "all",
+  "preference",
+  "fact",
+  "relationship",
+  "project",
+  "concern",
+  "goal",
+  "routine",
+  "memory",
+  "task",
+  "opinion",
+] as const;
 type Filter = (typeof filters)[number];
 
 function FilterButton({
