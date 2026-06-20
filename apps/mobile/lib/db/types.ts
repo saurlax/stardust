@@ -182,6 +182,7 @@ export type JournalEntry = {
   title?: string;
   note: string;
   source: EpisodeSource | "memory";
+  nodeId?: string;
 };
 
 export type JournalDay = {

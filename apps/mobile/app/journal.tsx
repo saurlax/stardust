@@ -509,6 +509,21 @@ export default function JournalScreen() {
                         <Text className="text-sm font-semibold">{entryTitle(entry)}</Text>
                       ) : null}
                       <Text className="text-sm leading-5">{entry.note}</Text>
+                      {entry.source === "memory" && entry.nodeId ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-1 self-start"
+                          onPress={() =>
+                            router.push({
+                              pathname: "/memory",
+                              params: { nodeId: entry.nodeId },
+                            } as Href)
+                          }
+                        >
+                          <Text>{t("journal.openMemoryGraph")}</Text>
+                        </Button>
+                      ) : null}
                     </CardContent>
                   </Card>
                 ))}

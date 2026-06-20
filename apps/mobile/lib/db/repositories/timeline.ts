@@ -20,6 +20,7 @@ export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]>
       title: memory.candidateKind === "open_loop" ? "open_loop" : memory.type,
       note: memory.content,
       source: "memory" as const,
+      nodeId: `memory-${memory.id}`,
     })),
   ].sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
 
