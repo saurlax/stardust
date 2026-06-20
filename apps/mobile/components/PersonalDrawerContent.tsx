@@ -22,7 +22,7 @@ import {
   type StoredMemory,
 } from "@/lib/db";
 import { t } from "@/lib/i18n";
-import { getMemoryTypeLabel } from "@/lib/memoryLabels";
+import { getDeviceEventTypeLabel, getMemoryTypeLabel } from "@/lib/memoryLabels";
 
 const emptySnapshot: PersonalSnapshot = {
   acceptedMemories: 0,
@@ -39,6 +39,12 @@ const emptySnapshot: PersonalSnapshot = {
 const navigateFromDrawer = (navigation: DrawerContentComponentProps["navigation"], href: Href) => {
   navigation.closeDrawer();
   router.push(href);
+};
+
+const getEpisodeTitle = (episode: Episode) => {
+  if (!episode.title) return undefined;
+  if (episode.source === "iot") return getDeviceEventTypeLabel(episode.title);
+  return episode.title;
 };
 
 export function PersonalDrawerContent({ navigation }: DrawerContentComponentProps) {
@@ -188,6 +194,11 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
                 <Text className="text-xs uppercase text-muted-foreground">
                   {t(`journal.source.${episode.source}`)}
                 </Text>
+                {getEpisodeTitle(episode) ? (
+                  <Text className="text-sm font-semibold leading-5">
+                    {getEpisodeTitle(episode)}
+                  </Text>
+                ) : null}
                 <Text className="text-sm leading-5">{episode.content}</Text>
               </View>
             ))

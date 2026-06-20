@@ -22,7 +22,7 @@ import {
   type StoredMemory,
 } from "@/lib/db";
 import { t } from "@/lib/i18n";
-import { getMemoryTypeLabel } from "@/lib/memoryLabels";
+import { getDeviceEventTypeLabel, getMemoryTypeLabel } from "@/lib/memoryLabels";
 
 const emptySnapshot: PersonalSnapshot = {
   acceptedMemories: 0,
@@ -34,6 +34,12 @@ const emptySnapshot: PersonalSnapshot = {
   entityCount: 0,
   relationCount: 0,
   deviceCount: 0,
+};
+
+const getEpisodeTitle = (episode: Episode) => {
+  if (!episode.title) return undefined;
+  if (episode.source === "iot") return getDeviceEventTypeLabel(episode.title);
+  return episode.title;
 };
 
 export default function PersonalScreen() {
@@ -187,6 +193,11 @@ export default function PersonalScreen() {
                   <Text className="text-xs uppercase tracking-wide text-muted-foreground">
                     {t(`journal.source.${episode.source}`)}
                   </Text>
+                  {getEpisodeTitle(episode) ? (
+                    <Text className="text-sm font-semibold leading-5">
+                      {getEpisodeTitle(episode)}
+                    </Text>
+                  ) : null}
                   <Text className="text-sm leading-5">{episode.content}</Text>
                 </View>
               ))
