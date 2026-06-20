@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
+import { router, type Href } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -60,6 +61,17 @@ function MemoryContextSummary({ message }: { message: ChatMessage }) {
   const context = message.memoryContext ?? [];
   if (!message.memoryContextCount) return null;
 
+  const openContextItem = (item: NonNullable<ChatMessage["memoryContext"]>[number]) => {
+    if (item.source === "episode") {
+      router.push({
+        pathname: "/journal",
+        params: { episodeId: item.id },
+      } as Href);
+      return;
+    }
+    router.push("/memory" as Href);
+  };
+
   return (
     <View className="mt-2 gap-2 rounded-md bg-muted/60 px-2.5 py-1.5">
       <Button
@@ -80,12 +92,21 @@ function MemoryContextSummary({ message }: { message: ChatMessage }) {
         <View className="gap-1.5">
           {context.map((item) => (
             <View key={`${item.source}-${item.id}`} className="gap-0.5 border-t border-border/60 pt-1.5">
-              <Text className="text-[10px] font-semibold uppercase text-muted-foreground">
-                {item.source} · {item.type ?? t("chat.memoryContextUnknown")} · {item.createdAt.slice(0, 10)}
-              </Text>
-              <Text className="text-xs leading-4 text-muted-foreground">
-                {item.content.length > 120 ? `${item.content.slice(0, 120)}...` : item.content}
-              </Text>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto items-start justify-start px-0 py-0"
+                onPress={() => openContextItem(item)}
+              >
+                <View className="gap-0.5">
+                  <Text className="text-[10px] font-semibold uppercase text-muted-foreground">
+                    {item.source} · {item.type ?? t("chat.memoryContextUnknown")} · {item.createdAt.slice(0, 10)}
+                  </Text>
+                  <Text className="text-xs leading-4 text-muted-foreground">
+                    {item.content.length > 120 ? `${item.content.slice(0, 120)}...` : item.content}
+                  </Text>
+                </View>
+              </Button>
             </View>
           ))}
         </View>
