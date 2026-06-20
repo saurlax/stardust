@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -142,6 +142,8 @@ export default function JournalScreen() {
   const selectedEpisodeId = typeof params.episodeId === "string" ? params.episodeId : undefined;
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
+  const scrollRef = useRef<ScrollView>(null);
+  const entryOffsetsRef = useRef(new Map<string, number>());
   const [days, setDays] = useState<JournalDay[]>([]);
   const [journals, setJournals] = useState<JournalRecord[]>([]);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
@@ -215,6 +217,18 @@ export default function JournalScreen() {
     [days, sourceFilter],
   );
 
+  useEffect(() => {
+    if (!selectedEpisodeId) return;
+
+    const timeout = setTimeout(() => {
+      const offset = entryOffsetsRef.current.get(selectedEpisodeId);
+      if (offset === undefined) return;
+      scrollRef.current?.scrollTo({ y: Math.max(offset - 120, 0), animated: true });
+    }, 80);
+
+    return () => clearTimeout(timeout);
+  }, [selectedEpisodeId, visibleDays]);
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <Drawer.Screen
@@ -224,6 +238,7 @@ export default function JournalScreen() {
       />
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{ gap: 12, padding: 18, paddingBottom: 28 }}
         showsVerticalScrollIndicator={false}
       >
@@ -311,6 +326,9 @@ export default function JournalScreen() {
                 {day.entries.map((entry) => (
                   <Card
                     key={entry.id}
+                    onLayout={(event) => {
+                      entryOffsetsRef.current.set(entry.id, event.nativeEvent.layout.y);
+                    }}
                     className={`min-h-[72px] justify-center gap-1 py-4 ${
                       entry.id === selectedEpisodeId ? "border-primary bg-primary/5" : ""
                     }`}
