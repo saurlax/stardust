@@ -388,6 +388,11 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
     }`,
     device.batteryLevel === undefined ? undefined : `${t("inbox.battery")}: ${device.batteryLevel}%`,
     device.firmwareVersion ? `${t("inbox.firmware")}: ${device.firmwareVersion}` : undefined,
+    `${t("inbox.deviceEventCount")}: ${device.eventCount}`,
+    device.pendingReviewCount ? `${t("inbox.pendingReviews")}: ${device.pendingReviewCount}` : undefined,
+    device.lastEventAt
+      ? `${t("inbox.lastEvent")}: ${new Date(device.lastEventAt).toLocaleString()}`
+      : undefined,
   ].filter(Boolean);
 
   return (

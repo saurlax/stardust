@@ -57,6 +57,13 @@ const getDeviceDetailLines = (device: DeviceRecord) =>
     }`,
     device.batteryLevel === undefined ? undefined : `${t("settings.battery")}: ${device.batteryLevel}%`,
     device.firmwareVersion ? `${t("settings.firmware")}: ${device.firmwareVersion}` : undefined,
+    `${t("settings.deviceEventCount")}: ${device.eventCount}`,
+    device.pendingReviewCount
+      ? `${t("settings.pendingReviews")}: ${device.pendingReviewCount}`
+      : undefined,
+    device.lastEventAt
+      ? `${t("settings.lastEvent")}: ${new Date(device.lastEventAt).toLocaleString()}`
+      : undefined,
   ].filter(Boolean);
 
 const getBleStatusLabel = (status: StardustBleStatus) => {

@@ -109,6 +109,9 @@ export type DeviceRecord = {
   lastSeenAt?: string;
   batteryLevel?: number;
   firmwareVersion?: string;
+  eventCount: number;
+  pendingReviewCount: number;
+  lastEventAt?: string;
 };
 
 export type EntityRecord = {

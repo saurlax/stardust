@@ -21,10 +21,26 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
     last_seen_at: string | null;
     battery_level: number | null;
     firmware_version: string | null;
+    event_count: number;
+    pending_review_count: number;
+    last_event_at: string | null;
   }>(`
-    SELECT device_id, name, kind, status, last_seen_at, battery_level, firmware_version
+    SELECT
+      devices.device_id AS device_id,
+      devices.name AS name,
+      devices.kind AS kind,
+      devices.status AS status,
+      devices.last_seen_at AS last_seen_at,
+      devices.battery_level AS battery_level,
+      devices.firmware_version AS firmware_version,
+      COUNT(device_events.device_event_id) AS event_count,
+      SUM(CASE WHEN memory_candidates.status = 'pending' THEN 1 ELSE 0 END) AS pending_review_count,
+      MAX(device_events.created_at) AS last_event_at
     FROM devices
-    ORDER BY COALESCE(last_seen_at, updated_at) DESC
+    LEFT JOIN device_events ON device_events.device_id = devices.device_id
+    LEFT JOIN memory_candidates ON memory_candidates.candidate_id = 'candidate-' || device_events.device_event_id
+    GROUP BY devices.device_id
+    ORDER BY COALESCE(devices.last_seen_at, devices.updated_at) DESC
   `);
   return rows.map((row) => ({
     id: row.device_id,
@@ -34,6 +50,9 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
     lastSeenAt: row.last_seen_at ?? undefined,
     batteryLevel: row.battery_level ?? undefined,
     firmwareVersion: row.firmware_version ?? undefined,
+    eventCount: row.event_count ?? 0,
+    pendingReviewCount: row.pending_review_count ?? 0,
+    lastEventAt: row.last_event_at ?? undefined,
   }));
 }
 
