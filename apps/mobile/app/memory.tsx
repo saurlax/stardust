@@ -602,6 +602,18 @@ export default function MemoryScreen() {
               </CardHeader>
               <CardContent className="gap-2">
                 <Text className="text-sm leading-5">{reflections[0].content}</Text>
+                {reflections[0].sourceContent ? (
+                  <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+                    <Text className="text-xs font-semibold uppercase text-muted-foreground">
+                      {t("memory.source")}
+                    </Text>
+                    <Text className="text-xs leading-4 text-muted-foreground">
+                      {getSourcePrefix(reflections[0].sourceKind, reflections[0].sourceTitle)}
+                      {reflections[0].sourceContent}
+                    </Text>
+                    <OpenSourceButton episodeId={reflections[0].episodeId} />
+                  </View>
+                ) : null}
               </CardContent>
             </Card>
           ) : null}
