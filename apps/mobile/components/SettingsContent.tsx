@@ -142,18 +142,18 @@ export function SettingsContent() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      getStardustBleStatus()
-        .then(async (nextBleStatus) => {
-          if (nextBleStatus === "poweredOn") {
-            await restoreStardustDeviceSubscriptions(db);
-          }
-          const nextDevices = await listDevices(db);
-          return { nextBleStatus, nextDevices };
-        })
-        .then(({ nextDevices, nextBleStatus }) => {
+      Promise.all([listDevices(db), getStardustBleStatus()])
+        .then(([nextDevices, nextBleStatus]) => {
           if (!active) return;
           setDevices(nextDevices);
           setBleStatus(nextBleStatus);
+          if (nextBleStatus !== "poweredOn") return;
+          void restoreStardustDeviceSubscriptions(db)
+            .then(() => listDevices(db))
+            .then((restoredDevices) => {
+              if (active) setDevices(restoredDevices);
+            })
+            .catch(() => undefined);
         })
         .catch(() => {
           if (!active) return;
