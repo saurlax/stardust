@@ -19,6 +19,7 @@ export type StardustBleStatus =
   | "unsupported"
   | "unauthorized"
   | "unavailable";
+type BleState = Awaited<ReturnType<BleManagerInstance["state"]>>;
 
 let manager: BleManagerInstance | null = null;
 const connectedDevices = new Map<string, DeviceInstance>();
@@ -170,26 +171,47 @@ const getBleManager = async () => {
   }
 };
 
+const mapBleState = (state: BleState): StardustBleStatus => {
+  switch (state) {
+    case "PoweredOn":
+      return "poweredOn";
+    case "PoweredOff":
+      return "poweredOff";
+    case "Unsupported":
+      return "unsupported";
+    case "Unauthorized":
+      return "unauthorized";
+    default:
+      return "unavailable";
+  }
+};
+
 export const getStardustBleStatus = async (): Promise<StardustBleStatus> => {
   if (Platform.OS === "web") return "unsupported";
 
   try {
     const ble = await getBleManager();
-    const state = await ble.state();
-    switch (state) {
-      case "PoweredOn":
-        return "poweredOn";
-      case "PoweredOff":
-        return "poweredOff";
-      case "Unsupported":
-        return "unsupported";
-      case "Unauthorized":
-        return "unauthorized";
-      default:
-        return "unavailable";
-    }
+    return mapBleState(await ble.state());
   } catch {
     return "unavailable";
+  }
+};
+
+export const watchStardustBleStatus = async (
+  listener: (status: StardustBleStatus) => void,
+): Promise<{ remove: () => void }> => {
+  if (Platform.OS === "web") {
+    listener("unsupported");
+    return { remove: () => undefined };
+  }
+
+  try {
+    const ble = await getBleManager();
+    const subscription = ble.onStateChange((state) => listener(mapBleState(state)), true);
+    return { remove: () => subscription.remove() };
+  } catch {
+    listener("unavailable");
+    return { remove: () => undefined };
   }
 };
 

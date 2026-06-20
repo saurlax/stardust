@@ -21,6 +21,7 @@ import {
   scanStardustDevices,
   sendStardustDeviceCommand,
   subscribeToStardustDevice,
+  watchStardustBleStatus,
   type StardustBleStatus,
 } from "@/lib/devices/ble";
 import { t } from "@/lib/i18n";
@@ -114,6 +115,26 @@ export function SettingsContent() {
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    let subscription: { remove: () => void } | undefined;
+
+    void watchStardustBleStatus((nextStatus) => {
+      if (active) setBleStatus(nextStatus);
+    }).then((nextSubscription) => {
+      if (active) {
+        subscription = nextSubscription;
+      } else {
+        nextSubscription.remove();
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription?.remove();
     };
   }, []);
 
