@@ -328,6 +328,7 @@ export default function MemoryScreen() {
             : getMemoryTypeLabel(memory.type),
         description: t("memory.memoryNodeDescription"),
         content: memory.content,
+        sourceTitle: memory.sourceTitle,
         source: memory.sourceContent,
         sourceEpisodeId: memory.episodeId,
       };
@@ -339,6 +340,7 @@ export default function MemoryScreen() {
         title: reflection.title,
         description: t("memory.reflectionNodeDescription"),
         content: reflection.content,
+        sourceTitle: reflection.sourceTitle,
         source: reflection.sourceContent,
         sourceEpisodeId: reflection.episodeId,
       };
@@ -361,6 +363,7 @@ export default function MemoryScreen() {
         title: entity.name,
         description: `${t("memory.entityNodeDescription")} · ${getEntityTypeLabel(entity.type)}`,
         content: relationLines.length ? relationLines.join("\n") : t("memory.entityNodeEmpty"),
+        sourceTitle: relationSource?.sourceTitle,
         source: relationSource?.sourceContent,
         sourceEpisodeId: relationSource?.episodeId,
       };
@@ -374,6 +377,7 @@ export default function MemoryScreen() {
         content: `${relation.sourceEntityName ?? relation.sourceEntityId} · ${getRelationTypeLabel(relation.type)} · ${
           relation.targetEntityName ?? relation.targetEntityId
         }\n${t("memory.relationWeight")} ${relation.weight}`,
+        sourceTitle: relation.sourceTitle,
         source: relation.sourceContent,
         sourceEpisodeId: relation.episodeId,
       };
@@ -498,6 +502,9 @@ export default function MemoryScreen() {
                       {t("memory.source")}
                     </Text>
                     <Text className="text-xs leading-4 text-muted-foreground">
+                      {"sourceTitle" in selectedNode && selectedNode.sourceTitle
+                        ? `${selectedNode.sourceTitle} · `
+                        : ""}
                       {selectedNode.source}
                     </Text>
                     <OpenSourceButton

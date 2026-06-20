@@ -84,7 +84,9 @@ for (const prefix of ["type-", "memory-", "reflection-", "entity-", "relation-"]
 }
 assertIncludes(memoryScreen, "function OpenSourceButton", "Memory graph details must expose source episode navigation.");
 assertIncludes(memoryScreen, "<OpenSourceButton episodeId={memory.episodeId} />", "Saved memory cards must link to source episodes.");
+assertIncludes(memoryScreen, "sourceTitle: memory.sourceTitle", "Selected memory details must retain source titles.");
 assertIncludes(memoryScreen, "relationSource?.episodeId", "Entity graph details must link relation source episodes.");
+assertIncludes(memoryScreen, "relationSource?.sourceTitle", "Entity graph details must retain relation source titles.");
 assertIncludes(memoryScreen, "`relation-${item.id}`", "Memory graph must expose selected relation details.");
 assertIncludes(memoryScreen, "memory.relationNodeDescription", "Selected relation details must be labeled.");
 assertIncludes(memoryScreen, "setErrorMessage(t(\"memory.loadFailed\"))", "Memory graph load failures must be visible.");
