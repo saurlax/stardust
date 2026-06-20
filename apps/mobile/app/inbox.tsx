@@ -33,6 +33,8 @@ import {
 import { t } from "@/lib/i18n";
 
 type Tab = "pending" | "saved" | "reflections" | "devices";
+const pendingKindFilters = ["all", "memory", "journal", "reflection", "entity", "open_loop"] as const;
+type PendingKindFilter = (typeof pendingKindFilters)[number];
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message) return error.message;
@@ -547,6 +549,7 @@ export default function InboxScreen() {
     typeof params.candidateId === "string" ? params.candidateId : undefined,
   );
   const [candidates, setCandidates] = useState<MemoryCandidate[]>([]);
+  const [pendingKindFilter, setPendingKindFilter] = useState<PendingKindFilter>("all");
   const [memories, setMemories] = useState<StoredMemory[]>([]);
   const [reflections, setReflections] = useState<ReflectionRecord[]>([]);
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
@@ -624,6 +627,7 @@ export default function InboxScreen() {
     }
     if (typeof params.candidateId === "string") {
       setTargetCandidateId(params.candidateId);
+      setPendingKindFilter("all");
     }
   }, [params.candidateId, params.tab]);
 
@@ -655,6 +659,13 @@ export default function InboxScreen() {
         ? deviceEvents
         : deviceEvents.filter((event) => event.deviceId === selectedDeviceId),
     [deviceEvents, selectedDeviceId],
+  );
+  const visibleCandidates = useMemo(
+    () =>
+      pendingKindFilter === "all"
+        ? candidates
+        : candidates.filter((candidate) => candidate.kind === pendingKindFilter),
+    [candidates, pendingKindFilter],
   );
 
   return (
@@ -712,7 +723,24 @@ export default function InboxScreen() {
           </Card>
         ) : null}
 
-        {tab === "pending" && candidates.map((candidate) => (
+        {tab === "pending" && candidates.length ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View className="flex-row gap-2 pr-4">
+              {pendingKindFilters.map((kind) => (
+                <Button
+                  key={kind}
+                  variant={pendingKindFilter === kind ? "default" : "outline"}
+                  size="sm"
+                  onPress={() => setPendingKindFilter(kind)}
+                >
+                  <Text>{t(`inbox.pendingFilter.${kind}`)}</Text>
+                </Button>
+              ))}
+            </View>
+          </ScrollView>
+        ) : null}
+
+        {tab === "pending" && visibleCandidates.map((candidate) => (
           <View
             key={candidate.id}
             onLayout={(event) => {
@@ -772,10 +800,12 @@ export default function InboxScreen() {
                 onPromoted={() => {
                   refresh();
                   setTab("pending");
+                  setPendingKindFilter("all");
                   setTargetCandidateId(`candidate-${event.id}`);
                 }}
                 onOpenReview={() => {
                   setTab("pending");
+                  setPendingKindFilter("all");
                   setTargetCandidateId(event.candidateId);
                 }}
                 onError={handleInboxError}
@@ -789,7 +819,7 @@ export default function InboxScreen() {
             <Text variant="muted">{emptyText}</Text>
             <OpenDeviceSettingsButton />
           </Card>
-        ) : ((tab === "pending" && !candidates.length) ||
+        ) : ((tab === "pending" && !visibleCandidates.length) ||
           (tab === "saved" && !memories.length) ||
           (tab === "reflections" && !reflections.length)) ? (
           <Card className="min-h-24 items-center justify-center px-4">

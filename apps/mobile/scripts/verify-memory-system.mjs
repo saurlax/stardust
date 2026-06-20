@@ -93,6 +93,9 @@ assertIncludes(journalScreen, "`entity-${result.id}`", "Journal search must open
 assertIncludes(journalScreen, "result.nodeId", "Journal search must use graph node ids when available.");
 assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");
 assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty state must open Settings.");
+assertIncludes(inboxScreen, "pendingKindFilters", "Pending inbox must expose candidate kind filters.");
+assertIncludes(inboxScreen, "visibleCandidates", "Pending inbox must filter candidates before rendering.");
+assertIncludes(inboxScreen, "inbox.pendingFilter", "Pending inbox filters must use localized labels.");
 assertIncludes(candidates, "createEpisodeInCurrentTransaction(db", "Accepted journal candidates must create episodes inside the candidate transaction.");
 if (readExportedFunction(candidates, "updateCandidateStatus").includes("createEpisode(db")) {
   throw new Error("Accepted candidates must not open nested episode transactions.");
