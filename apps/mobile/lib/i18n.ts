@@ -164,6 +164,11 @@ const translations = {
         in_review: "In review",
         operational: "Operational",
       },
+      candidateStatus: {
+        pending: "Pending",
+        accepted: "Saved",
+        dismissed: "Dismissed",
+      },
       openReview: "Open review",
       openMemoryGraph: "Open memory graph",
       openTimeline: "Open timeline",
@@ -482,6 +487,11 @@ const translations = {
         promotable: "可转记忆",
         in_review: "审核中",
         operational: "运行事件",
+      },
+      candidateStatus: {
+        pending: "待确认",
+        accepted: "已保存",
+        dismissed: "已忽略",
       },
       openReview: "打开审核",
       openMemoryGraph: "打开记忆星图",

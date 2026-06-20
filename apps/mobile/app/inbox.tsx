@@ -44,6 +44,19 @@ const getErrorMessage = (error: unknown) => {
   return t("inbox.actionFailed");
 };
 
+const getCandidateStatusLabel = (status?: DeviceEventRecord["candidateStatus"]) => {
+  switch (status) {
+    case "accepted":
+      return t("inbox.candidateStatus.accepted");
+    case "dismissed":
+      return t("inbox.candidateStatus.dismissed");
+    case "pending":
+      return t("inbox.candidateStatus.pending");
+    default:
+      return undefined;
+  }
+};
+
 function TabButton({
   active,
   label,
@@ -474,6 +487,7 @@ function DeviceEventCard({
   onError: (error: unknown) => void;
 }) {
   const db = useSQLiteContext();
+  const candidateStatusLabel = getCandidateStatusLabel(event.candidateStatus);
   const metadataLines = Object.entries(event.metadata ?? {})
     .slice(0, 5)
     .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`);
@@ -502,7 +516,7 @@ function DeviceEventCard({
         ) : null}
         {event.candidateStatus ? (
           <Text className="text-xs font-semibold text-muted-foreground">
-            {t("inbox.deviceEventInReview")} · {event.candidateStatus}
+            {t("inbox.deviceEventInReview")} · {candidateStatusLabel}
           </Text>
         ) : !event.promotable ? (
           <Text className="text-xs font-semibold text-muted-foreground">

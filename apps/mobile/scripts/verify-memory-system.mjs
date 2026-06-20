@@ -113,6 +113,7 @@ assertIncludes(inboxScreen, "deviceEventFilter", "Device inbox must apply device
 assertIncludes(inboxScreen, "deviceEventFilterCounts", "Device inbox filters must expose event counts.");
 assertIncludes(inboxScreen, "deviceEventFilterCounts[filter]", "Device inbox filter labels must display counts.");
 assertIncludes(inboxScreen, "event.promotable && !event.candidateStatus", "Device inbox must separate promotable capture events.");
+assertIncludes(inboxScreen, "getCandidateStatusLabel", "Device event review states must use localized labels.");
 assertIncludes(inboxScreen, 'event.candidateStatus === "accepted" && event.candidateId', "Accepted device event reviews must link to saved memory.");
 assertIncludes(inboxScreen, "nodeId: `memory-${event.candidateId}`", "Accepted device event reviews must open memory graph nodes.");
 assertIncludes(candidates, "createEpisodeInCurrentTransaction(db", "Accepted journal candidates must create episodes inside the candidate transaction.");
