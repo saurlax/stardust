@@ -178,6 +178,7 @@ const translations = {
       relationWeight: "weight",
       nodeEmpty: "No details yet.",
       openSource: "Open source",
+      visibleMemories: "visible memories",
       filter: {
         all: "All",
         preference: "Preference",
@@ -413,6 +414,7 @@ const translations = {
       relationWeight: "强度",
       nodeEmpty: "暂无详情。",
       openSource: "打开来源",
+      visibleMemories: "条可见记忆",
       filter: {
         all: "全部",
         preference: "偏好",

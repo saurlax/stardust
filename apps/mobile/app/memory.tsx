@@ -296,6 +296,11 @@ export default function MemoryScreen() {
               ))}
             </View>
           </ScrollView>
+          <Text className="px-0.5 text-xs text-muted-foreground">
+            {filter === "all"
+              ? `${memories.length} ${t("memory.visibleMemories")}`
+              : `${visibleMemories.length} ${t("memory.visibleMemories")} · ${t(`memory.filter.${filter}`)}`}
+          </Text>
 
           <View className="flex-row gap-2">
             <Card className="flex-1 px-3 py-3">
