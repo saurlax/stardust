@@ -237,6 +237,17 @@ const stableHash = (value: string) => {
 const scopedDeviceEventId = (deviceId: string, eventId?: string) =>
   eventId ? `${deviceId}:${eventId}` : undefined;
 
+const manifestEventId = (deviceId: string, manifestValue: string, manifest: Record<string, unknown>) => {
+  const bootId = typeof manifest.bootId === "string" ? manifest.bootId : undefined;
+  const eventCount =
+    typeof manifest.eventCount === "number" && Number.isFinite(manifest.eventCount)
+      ? String(manifest.eventCount)
+      : undefined;
+  return bootId && eventCount
+    ? `manifest-${deviceId}-${bootId}-${eventCount}`
+    : `manifest-${deviceId}-${stableHash(manifestValue)}`;
+};
+
 export const scanStardustDevices = async (db: SQLiteDatabase) => {
   const ble = await getBleManager();
   const found = new Map<string, { id: string; name: string }>();
@@ -320,7 +331,7 @@ const activateStardustDevice = async (
     try {
       const parsed = JSON.parse(decodeBase64(manifest.value)) as Record<string, unknown>;
       await createDeviceEvent(db, {
-        id: `manifest-${readyDevice.id}-${stableHash(manifest.value)}`,
+        id: manifestEventId(readyDevice.id, manifest.value, parsed),
         deviceId: readyDevice.id,
         eventType: "manifest",
         content: "Stardust Sense manifest synchronized",

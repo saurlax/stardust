@@ -113,6 +113,9 @@ assertIncludes(ble, "sendStardustDeviceCommand", "Mobile BLE commands are missin
 assertIncludes(ble, "/^\\d+$/.test", "BLE device uptime timestamps must not be parsed as wall-clock dates.");
 assertIncludes(ble, "syncAfterActivate", "BLE activation must allow command sends without duplicate sync commands.");
 assertIncludes(ble, "activateStardustDevice(db, ble, readyDevice, { syncAfterActivate: false })", "BLE commands must restore subscriptions before writing commands.");
+assertIncludes(ble, "manifestEventId", "BLE manifest events need stable ids that ignore uptime-only changes.");
+assertIncludes(ble, "manifest.bootId", "BLE manifest ids must use firmware boot ids when available.");
+assertIncludes(ble, "manifest.eventCount", "BLE manifest ids must use firmware event counts when available.");
 for (const name of [
   "SERVICE_UUID",
   "STATUS_CHARACTERISTIC_UUID",
