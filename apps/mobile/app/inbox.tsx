@@ -96,6 +96,14 @@ const getManifestMediaLines = (metadata?: Record<string, unknown>) => {
   });
 };
 
+const getManifestCaptureSourceLines = (metadata?: Record<string, unknown>) => {
+  const captureSources = metadata?.captureSources;
+  if (!Array.isArray(captureSources)) return [];
+  return captureSources
+    .filter((source): source is string => typeof source === "string")
+    .map((source) => getDeviceEventTypeLabel(source));
+};
+
 function TabButton({
   active,
   label,
@@ -529,8 +537,10 @@ function DeviceEventCard({
   const candidateStatusLabel = getCandidateStatusLabel(event.candidateStatus);
   const manifestMediaLines =
     event.eventType === "manifest" ? getManifestMediaLines(event.metadata) : [];
+  const manifestCaptureSourceLines =
+    event.eventType === "manifest" ? getManifestCaptureSourceLines(event.metadata) : [];
   const metadataLines = Object.entries(event.metadata ?? {})
-    .filter(([key]) => key !== "media")
+    .filter(([key]) => key !== "media" && key !== "captureSources")
     .slice(0, 5)
     .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`);
 
@@ -550,6 +560,18 @@ function DeviceEventCard({
               {t("inbox.deviceManifestMedia")}
             </Text>
             {manifestMediaLines.map((line) => (
+              <Text key={line} className="text-xs leading-4 text-muted-foreground">
+                {line}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+        {manifestCaptureSourceLines.length ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.deviceManifestCaptureSources")}
+            </Text>
+            {manifestCaptureSourceLines.map((line) => (
               <Text key={line} className="text-xs leading-4 text-muted-foreground">
                 {line}
               </Text>
