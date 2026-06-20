@@ -763,7 +763,8 @@ export async function updateCandidateStatus(
     }
 
     if (candidate.kind === "entity") {
-      const entityId = `entity-${candidate.type}-${content.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-").replace(/^-+|-+$/g, "") || candidateId}`;
+      const entityName = candidate.title.trim() || content;
+      const entityId = `entity-${candidate.type}-${entityName.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-").replace(/^-+|-+$/g, "") || candidateId}`;
       await db.runAsync(
         `
           INSERT INTO entities (entity_id, name, type, created_at, updated_at)
@@ -771,7 +772,7 @@ export async function updateCandidateStatus(
           ON CONFLICT(name, type) DO UPDATE SET updated_at = excluded.updated_at
         `,
         entityId,
-        content,
+        entityName,
         candidate.type || "topic",
         updatedAt,
         updatedAt,
