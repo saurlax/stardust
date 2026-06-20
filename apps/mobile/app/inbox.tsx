@@ -1,0 +1,306 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
+import { Drawer } from "expo-router/drawer";
+import { useSQLiteContext } from "expo-sqlite";
+import { useCallback, useMemo, useState } from "react";
+import { ScrollView, useColorScheme, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  listDevices,
+  listMemoryCandidates,
+  listReflections,
+  listStoredMemories,
+  toToolCardsFromCandidates,
+  updateCandidateStatus,
+  type DeviceRecord,
+  type MemoryCandidate,
+  type ReflectionRecord,
+  type StoredMemory,
+} from "@/lib/db";
+import { t } from "@/lib/i18n";
+
+type Tab = "pending" | "saved" | "reflections" | "devices";
+
+function TabButton({
+  active,
+  label,
+  icon,
+  onPress,
+}: {
+  active: boolean;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+}) {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const color = active
+    ? colorScheme === "dark"
+      ? "#0A0A0A"
+      : "#FAFAFA"
+    : colorScheme === "dark"
+      ? "#FAFAFA"
+      : "#0A0A0A";
+
+  return (
+    <Button
+      variant={active ? "default" : "outline"}
+      size="sm"
+      className="flex-1"
+      onPress={onPress}
+    >
+      <Ionicons name={icon} size={14} color={color} />
+      <Text>{label}</Text>
+    </Button>
+  );
+}
+
+function CandidateCard({
+  candidate,
+  onRefresh,
+}: {
+  candidate: MemoryCandidate;
+  onRefresh: () => void;
+}) {
+  const db = useSQLiteContext();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(candidate.content);
+  const card = toToolCardsFromCandidates([candidate])[0];
+
+  return (
+    <Card className="gap-3 py-4">
+      <CardHeader className="gap-1">
+        <CardDescription>
+          {candidate.kind} · {candidate.type}
+        </CardDescription>
+        <CardTitle className="text-base leading-5">{candidate.title}</CardTitle>
+      </CardHeader>
+      <CardContent className="gap-3">
+        {editing ? (
+          <Textarea
+            value={draft}
+            onChangeText={setDraft}
+            className="min-h-24 rounded-md bg-background"
+          />
+        ) : (
+          <Text className="text-sm leading-5">{candidate.content}</Text>
+        )}
+
+        <View className="flex-row flex-wrap gap-2">
+          {editing ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={() => {
+                  setEditing(false);
+                  setDraft(candidate.content);
+                }}
+              >
+                <Text>{t("inbox.cancel")}</Text>
+              </Button>
+              <Button
+                size="sm"
+                onPress={() => {
+                  void updateCandidateStatus(db, candidate.id, "accepted", draft).then(onRefresh);
+                }}
+              >
+                <Text>{t("inbox.accept")}</Text>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={() => {
+                  void updateCandidateStatus(db, candidate.id, "dismissed").then(onRefresh);
+                }}
+              >
+                <Text>{t("inbox.dismiss")}</Text>
+              </Button>
+              <Button variant="outline" size="sm" onPress={() => setEditing(true)}>
+                <Text>{t("inbox.edit")}</Text>
+              </Button>
+              <Button
+                size="sm"
+                onPress={() => {
+                  void updateCandidateStatus(
+                    db,
+                    candidate.id,
+                    "accepted",
+                    card.payload.content,
+                  ).then(onRefresh);
+                }}
+              >
+                <Text>{t("inbox.accept")}</Text>
+              </Button>
+            </>
+          )}
+        </View>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MemoryCard({ memory }: { memory: StoredMemory }) {
+  return (
+    <Card className="gap-2 py-4">
+      <CardContent className="gap-2">
+        <CardDescription>
+          {memory.type} · {new Date(memory.createdAt).toLocaleDateString()}
+        </CardDescription>
+        <Text className="text-sm leading-5">{memory.content}</Text>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReflectionCard({ reflection }: { reflection: ReflectionRecord }) {
+  return (
+    <Card className="gap-2 py-4">
+      <CardHeader className="gap-1">
+        <CardDescription>{new Date(reflection.createdAt).toLocaleDateString()}</CardDescription>
+        <CardTitle className="text-base">{reflection.title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Text className="text-sm leading-5">{reflection.content}</Text>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DeviceCard({ device }: { device: DeviceRecord }) {
+  return (
+    <Card className="gap-2 py-4">
+      <CardContent className="gap-2">
+        <CardDescription>
+          {device.kind} · {device.status}
+        </CardDescription>
+        <Text className="text-base font-semibold">{device.name}</Text>
+        <Text className="text-sm text-muted-foreground">
+          {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : t("inbox.neverSeen")}
+        </Text>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function InboxScreen() {
+  const db = useSQLiteContext();
+  const [tab, setTab] = useState<Tab>("pending");
+  const [candidates, setCandidates] = useState<MemoryCandidate[]>([]);
+  const [memories, setMemories] = useState<StoredMemory[]>([]);
+  const [reflections, setReflections] = useState<ReflectionRecord[]>([]);
+  const [devices, setDevices] = useState<DeviceRecord[]>([]);
+
+  const refresh = useCallback(() => {
+    let active = true;
+    Promise.all([
+      listMemoryCandidates(db, "pending"),
+      listStoredMemories(db),
+      listReflections(db),
+      listDevices(db),
+    ])
+      .then(([nextCandidates, nextMemories, nextReflections, nextDevices]) => {
+        if (!active) return;
+        setCandidates(nextCandidates);
+        setMemories(nextMemories);
+        setReflections(nextReflections);
+        setDevices(nextDevices);
+      })
+      .catch(() => {
+        if (!active) return;
+        setCandidates([]);
+        setMemories([]);
+        setReflections([]);
+        setDevices([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [db]);
+
+  useFocusEffect(refresh);
+
+  const emptyText = useMemo(() => {
+    switch (tab) {
+      case "saved":
+        return t("inbox.emptySaved");
+      case "reflections":
+        return t("inbox.emptyReflections");
+      case "devices":
+        return t("inbox.emptyDevices");
+      default:
+        return t("inbox.emptyPending");
+    }
+  }, [tab]);
+
+  return (
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+      <Drawer.Screen options={{ title: t("inbox.title") }} />
+      <ScrollView
+        contentContainerStyle={{ gap: 12, padding: 16, paddingBottom: 28 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="gap-1 px-0.5">
+          <Text className="text-xl font-semibold">{t("inbox.headerTitle")}</Text>
+          <Text className="text-sm text-muted-foreground">{t("inbox.subtitle")}</Text>
+        </View>
+
+        <View className="flex-row flex-wrap gap-2">
+          <TabButton
+            active={tab === "pending"}
+            label={t("inbox.pending")}
+            icon="sparkles-outline"
+            onPress={() => setTab("pending")}
+          />
+          <TabButton
+            active={tab === "saved"}
+            label={t("inbox.saved")}
+            icon="archive-outline"
+            onPress={() => setTab("saved")}
+          />
+        </View>
+        <View className="flex-row flex-wrap gap-2">
+          <TabButton
+            active={tab === "reflections"}
+            label={t("inbox.reflections")}
+            icon="prism-outline"
+            onPress={() => setTab("reflections")}
+          />
+          <TabButton
+            active={tab === "devices"}
+            label={t("inbox.devices")}
+            icon="bluetooth-outline"
+            onPress={() => setTab("devices")}
+          />
+        </View>
+
+        {tab === "pending" && candidates.map((candidate) => (
+          <CandidateCard key={candidate.id} candidate={candidate} onRefresh={refresh} />
+        ))}
+        {tab === "saved" && memories.map((memory) => <MemoryCard key={memory.id} memory={memory} />)}
+        {tab === "reflections" &&
+          reflections.map((reflection) => (
+            <ReflectionCard key={reflection.id} reflection={reflection} />
+          ))}
+        {tab === "devices" && devices.map((device) => <DeviceCard key={device.id} device={device} />)}
+
+        {((tab === "pending" && !candidates.length) ||
+          (tab === "saved" && !memories.length) ||
+          (tab === "reflections" && !reflections.length) ||
+          (tab === "devices" && !devices.length)) ? (
+          <Card className="min-h-24 items-center justify-center px-4">
+            <Text variant="muted">{emptyText}</Text>
+          </Card>
+        ) : null}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, type Href } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
@@ -13,6 +13,7 @@ import {
   buildMemoryTree,
   getPersonalSnapshot,
   listJournalRecords,
+  listReflections,
   listStoredMemories,
   type JournalRecord,
   type PersonalSnapshot,
@@ -24,6 +25,9 @@ const emptySnapshot: PersonalSnapshot = {
   acceptedMemories: 0,
   pendingCards: 0,
   journalEntries: 0,
+  episodeCount: 0,
+  reflectionCount: 0,
+  deviceCount: 0,
 };
 
 export default function PersonalScreen() {
@@ -39,11 +43,16 @@ export default function PersonalScreen() {
     useCallback(() => {
       let active = true;
 
-      Promise.all([getPersonalSnapshot(db), listStoredMemories(db), listJournalRecords(db)])
-        .then(([nextSnapshot, memories, journals]) => {
+      Promise.all([
+        getPersonalSnapshot(db),
+        listStoredMemories(db),
+        listJournalRecords(db),
+        listReflections(db),
+      ])
+        .then(([nextSnapshot, memories, journals, reflections]) => {
           if (!active) return;
           setSnapshot(nextSnapshot);
-          setMemoryTree(buildMemoryTree(memories));
+          setMemoryTree(buildMemoryTree(memories, reflections));
           setRecentMemories(memories.slice(0, 3));
           setRecentJournals(journals.slice(0, 3));
         })
@@ -90,8 +99,8 @@ export default function PersonalScreen() {
             <Text className="text-2xl font-semibold">{snapshot.pendingCards}</Text>
           </Card>
           <Card className="flex-1 gap-2 px-4 py-4">
-            <CardDescription>{t("personal.journalCount")}</CardDescription>
-            <Text className="text-2xl font-semibold">{snapshot.journalEntries}</Text>
+            <CardDescription>{t("personal.episodeCount")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.episodeCount}</Text>
           </Card>
         </View>
 
@@ -144,6 +153,15 @@ export default function PersonalScreen() {
         </View>
 
         <View className="gap-3">
+          <Pressable accessibilityRole="button" onPress={() => router.push("/inbox" as Href)} className="rounded-xl">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("personal.inboxTitle")}</CardTitle>
+                <CardDescription>{t("personal.inboxDescription")}</CardDescription>
+              </CardHeader>
+            </Card>
+          </Pressable>
+
           <Pressable accessibilityRole="button" onPress={() => router.push("/memory")} className="rounded-xl">
             <Card className="h-56 overflow-hidden p-0">
               <NebulaView style={StyleSheet.absoluteFillObject} tree={memoryTree} showLabels={false} />

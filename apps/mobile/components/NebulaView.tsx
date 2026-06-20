@@ -1,4 +1,5 @@
 import { Canvas, Circle, Line, vec } from "@shopify/react-native-skia";
+import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation } from "d3-force";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Platform, StyleSheet, Text, useColorScheme, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from "react-native";
@@ -31,6 +32,19 @@ type LayoutNode = {
   speed: number;
   phase: number;
   parentIds: string[];
+};
+
+type ForceNode = {
+  id: string;
+  x?: number;
+  y?: number;
+  fx?: number | null;
+  fy?: number | null;
+};
+
+type ForceLink = {
+  source: string;
+  target: string;
 };
 
 const defaultTree: NebulaTree = {
@@ -141,6 +155,49 @@ const buildLayoutNodes = (tree: NebulaTree): LayoutNode[] => {
       z: Math.sin(angle) * 0.05,
     });
     placed.add(node.id);
+  }
+
+  const forceNodes: ForceNode[] = tree.nodes.map((node) => {
+    const p = pos.get(node.id) ?? { x: 0, y: 0 };
+    return {
+      id: node.id,
+      x: p.x * 520,
+      y: p.y * 520,
+      fx: node.id === root?.id ? 0 : null,
+      fy: node.id === root?.id ? -8 : null,
+    };
+  });
+  const forceLinks: ForceLink[] = [];
+  for (const node of tree.nodes) {
+    for (const parentId of parentMap.get(node.id) ?? []) {
+      forceLinks.push({ source: parentId, target: node.id });
+    }
+  }
+  forceSimulation(forceNodes)
+    .force(
+      "link",
+      forceLink<ForceNode, ForceLink>(forceLinks)
+        .id((node) => node.id)
+        .distance((link) => {
+          const target = link.target as string | ForceNode;
+          const targetId = typeof target === "string" ? target : target.id;
+          const depth = depthMap.get(targetId) ?? 1;
+          return 76 + depth * 18;
+        })
+        .strength(0.48),
+    )
+    .force("charge", forceManyBody().strength(-170).distanceMax(360))
+    .force("collide", forceCollide<ForceNode>().radius(28).strength(0.82))
+    .force("center", forceCenter(0, 0).strength(0.08))
+    .stop()
+    .tick(Math.min(180, 70 + tree.nodes.length * 2));
+
+  for (const forceNode of forceNodes) {
+    pos.set(forceNode.id, {
+      x: clamp((forceNode.x ?? 0) / 520, -0.78, 0.78),
+      y: clamp((forceNode.y ?? 0) / 520, -0.68, 0.68),
+      z: pos.get(forceNode.id)?.z ?? 0,
+    });
   }
 
   return tree.nodes.map((node, index) => {

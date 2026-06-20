@@ -110,7 +110,7 @@ export default function JournalScreen() {
   const [results, setResults] = useState<
     {
       id: string;
-      source: "memory" | "journal";
+      source: "memory" | "episode" | "reflection";
       type?: string;
       content: string;
       createdAt: string;
@@ -199,7 +199,9 @@ export default function JournalScreen() {
                   <CardDescription>
                     {result.source === "memory"
                       ? t("journal.memoryEntryPrefix")
-                      : t("journal.journalsTitle")}
+                      : result.source === "reflection"
+                        ? t("journal.reflectionEntryPrefix")
+                        : t("journal.episodeEntryPrefix")}
                     {result.type ? ` · ${result.type}` : ""}
                   </CardDescription>
                   <Text className="text-sm leading-5">{result.content}</Text>

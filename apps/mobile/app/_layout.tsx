@@ -73,6 +73,7 @@ export default function RootLayout() {
                   }}
                 >
                   <Drawer.Screen name="index" options={{ headerShown: false }} />
+                  <Drawer.Screen name="inbox" options={detailScreenOptions} />
                   <Drawer.Screen
                     name="settings"
                     options={{

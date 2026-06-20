@@ -13,6 +13,7 @@ import {
   buildMemoryTree,
   getPersonalSnapshot,
   listJournalRecords,
+  listReflections,
   listStoredMemories,
   type JournalRecord,
   type PersonalSnapshot,
@@ -24,6 +25,9 @@ const emptySnapshot: PersonalSnapshot = {
   acceptedMemories: 0,
   pendingCards: 0,
   journalEntries: 0,
+  episodeCount: 0,
+  reflectionCount: 0,
+  deviceCount: 0,
 };
 
 const navigateFromDrawer = (navigation: DrawerContentComponentProps["navigation"], href: Href) => {
@@ -44,11 +48,16 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
     useCallback(() => {
       let active = true;
 
-      Promise.all([getPersonalSnapshot(db), listStoredMemories(db), listJournalRecords(db)])
-        .then(([nextSnapshot, memories, journals]) => {
+      Promise.all([
+        getPersonalSnapshot(db),
+        listStoredMemories(db),
+        listJournalRecords(db),
+        listReflections(db),
+      ])
+        .then(([nextSnapshot, memories, journals, reflections]) => {
           if (!active) return;
           setSnapshot(nextSnapshot);
-          setMemoryTree(buildMemoryTree(memories));
+          setMemoryTree(buildMemoryTree(memories, reflections));
           setRecentMemories(memories.slice(0, 3));
           setRecentJournals(journals.slice(0, 3));
         })
@@ -94,8 +103,8 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
         </View>
 
         <Card className="gap-2 px-3 py-3">
-          <CardDescription>{t("personal.journalCount")}</CardDescription>
-          <Text className="text-2xl font-semibold">{snapshot.journalEntries}</Text>
+          <CardDescription>{t("personal.episodeCount")}</CardDescription>
+          <Text className="text-2xl font-semibold">{snapshot.episodeCount}</Text>
         </Card>
 
         <Card className="gap-2 px-4 py-4">
@@ -143,6 +152,19 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
         </Card>
 
         <View className="gap-3">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigateFromDrawer(navigation, "/inbox" as Href)}
+            className="rounded-xl"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("personal.inboxTitle")}</CardTitle>
+                <CardDescription>{t("personal.inboxDescription")}</CardDescription>
+              </CardHeader>
+            </Card>
+          </Pressable>
+
           <Pressable
             accessibilityRole="button"
             onPress={() => navigateFromDrawer(navigation, "/memory")}

@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardAvoidingView, Platform, ScrollView, useColorScheme, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { Toast, type ToastTone } from "@/components/ui/toast";
 import { useConfig } from "@/context/config";
-import { testCloudConnection, testLocalConnection } from "@/lib/api";
-import type { AiConfig, RuntimeMode } from "@/lib/config";
+import { testLocalConnection } from "@/lib/api";
+import type { AiConfig } from "@/lib/config";
 import { getCachedAiConfig, getConfigValidationError } from "@/lib/config";
+import { listDevices, type DeviceRecord } from "@/lib/db";
+import { scanStardustDevices, subscribeToStardustDevice } from "@/lib/devices/ble";
 import { t } from "@/lib/i18n";
 
 type SettingsFieldProps = React.ComponentProps<typeof Input> & {
@@ -23,34 +28,11 @@ type ToastState =
 
 function SettingsField({ label, id, ...props }: SettingsFieldProps) {
   const fieldId = id ?? label;
-
   return (
     <View className="gap-2">
       <Label htmlFor={fieldId}>{label}</Label>
       <Input id={fieldId} {...props} />
     </View>
-  );
-}
-
-function ModeTab({
-  active,
-  label,
-  onPress,
-}: {
-  active: boolean;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Button
-      accessibilityRole="tab"
-      accessibilityState={{ selected: active }}
-      variant={active ? "default" : "ghost"}
-      className="flex-1 rounded-full"
-      onPress={onPress}
-    >
-      <Text>{label}</Text>
-    </Button>
   );
 }
 
@@ -60,10 +42,15 @@ const getErrorMessage = (error: unknown) => {
 };
 
 export function SettingsContent() {
+  const db = useSQLiteContext();
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const { config, ready, updateConfig } = useConfig();
   const [form, setForm] = useState<AiConfig>(getCachedAiConfig());
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [devices, setDevices] = useState<DeviceRecord[]>([]);
   const [toast, setToast] = useState<ToastState>({
     visible: false,
     message: "",
@@ -81,6 +68,22 @@ export function SettingsContent() {
     };
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      listDevices(db)
+        .then((nextDevices) => {
+          if (active) setDevices(nextDevices);
+        })
+        .catch(() => {
+          if (active) setDevices([]);
+        });
+      return () => {
+        active = false;
+      };
+    }, [db]),
+  );
+
   const validationMessage = useMemo(() => {
     const key = getConfigValidationError(form);
     return key ? t(key) : null;
@@ -88,17 +91,11 @@ export function SettingsContent() {
 
   const showToast = (message: string, tone: ToastTone) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-
     setToast({ visible: true, message, tone });
-
     toastTimerRef.current = setTimeout(() => {
       setToast((current) => ({ ...current, visible: false }));
       toastTimerRef.current = null;
-    }, 2200);
-  };
-
-  const updateMode = (runtimeMode: RuntimeMode) => {
-    setForm((current) => ({ ...current, runtimeMode }));
+    }, 2400);
   };
 
   const updateLocalField = <K extends keyof AiConfig["local"]>(
@@ -111,22 +108,11 @@ export function SettingsContent() {
     }));
   };
 
-  const updateCloudField = <K extends keyof AiConfig["cloud"]>(
-    key: K,
-    value: AiConfig["cloud"][K],
-  ) => {
-    setForm((current) => ({
-      ...current,
-      cloud: { ...current.cloud, [key]: value },
-    }));
-  };
-
   const onSave = async () => {
     if (validationMessage) {
       showToast(validationMessage, "error");
       return;
     }
-
     setSaving(true);
     try {
       await updateConfig(form);
@@ -141,21 +127,40 @@ export function SettingsContent() {
       showToast(validationMessage, "error");
       return;
     }
-
     setTesting(true);
-
     try {
-      if (form.runtimeMode === "local") {
-        await testLocalConnection(form.local);
-      } else {
-        await testCloudConnection(form.cloud);
-      }
-
+      await testLocalConnection(form.local);
       showToast(t("settings.testPassed"), "success");
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     } finally {
       setTesting(false);
+    }
+  };
+
+  const onScanDevices = async () => {
+    setScanning(true);
+    try {
+      const found = await scanStardustDevices(db);
+      showToast(
+        found.length ? t("settings.deviceScanFound") : t("settings.deviceScanEmpty"),
+        found.length ? "success" : "error",
+      );
+      setDevices(await listDevices(db));
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const onSubscribeDevice = async (device: DeviceRecord) => {
+    try {
+      await subscribeToStardustDevice(db, device.id);
+      showToast(t("settings.deviceSubscribed"), "success");
+      setDevices(await listDevices(db));
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
     }
   };
 
@@ -177,65 +182,74 @@ export function SettingsContent() {
 
           <Card className="gap-4 p-4">
             <CardHeader className="px-0">
-              <CardTitle>{t("settings.modeLabel")}</CardTitle>
-              <CardDescription>
-                {form.runtimeMode === "local"
-                  ? t("settings.localDescription")
-                  : t("settings.cloudDescription")}
-              </CardDescription>
+              <CardTitle>{t("settings.localTitle")}</CardTitle>
+              <CardDescription>{t("settings.localDescription")}</CardDescription>
             </CardHeader>
-
             <CardContent className="gap-4 px-0">
-              <View className="flex-row rounded-full bg-muted p-1">
-                <ModeTab
-                  active={form.runtimeMode === "local"}
-                  label={t("settings.localTab")}
-                  onPress={() => updateMode("local")}
-                />
-                <ModeTab
-                  active={form.runtimeMode === "cloud"}
-                  label={t("settings.cloudTab")}
-                  onPress={() => updateMode("cloud")}
-                />
-              </View>
+              <SettingsField
+                label={t("settings.localBaseURL")}
+                value={form.local.baseURL}
+                onChangeText={(value) => updateLocalField("baseURL", value)}
+                placeholder={t("settings.localBaseURLPlaceholder")}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <SettingsField
+                label={t("settings.localApiKey")}
+                value={form.local.apiKey}
+                onChangeText={(value) => updateLocalField("apiKey", value)}
+                placeholder={t("settings.localApiKeyPlaceholder")}
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry
+              />
+              <SettingsField
+                label={t("settings.localModel")}
+                value={form.local.model}
+                onChangeText={(value) => updateLocalField("model", value)}
+                placeholder={t("settings.localModelPlaceholder")}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </CardContent>
+          </Card>
 
-              {form.runtimeMode === "local" ? (
-                <View className="gap-4">
-                  <SettingsField
-                    label={t("settings.localBaseURL")}
-                    value={form.local.baseURL}
-                    onChangeText={(value) => updateLocalField("baseURL", value)}
-                    placeholder={t("settings.localBaseURLPlaceholder")}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                  <SettingsField
-                    label={t("settings.localApiKey")}
-                    value={form.local.apiKey}
-                    onChangeText={(value) => updateLocalField("apiKey", value)}
-                    placeholder={t("settings.localApiKeyPlaceholder")}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    secureTextEntry
-                  />
-                  <SettingsField
-                    label={t("settings.localModel")}
-                    value={form.local.model}
-                    onChangeText={(value) => updateLocalField("model", value)}
-                    placeholder={t("settings.localModelPlaceholder")}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
+          <Card className="gap-4 p-4">
+            <CardHeader className="px-0">
+              <View className="flex-row items-center gap-2">
+                <Ionicons name="bluetooth-outline" size={18} color={iconColor} />
+                <CardTitle>{t("settings.devicesTitle")}</CardTitle>
+              </View>
+              <CardDescription>{t("settings.devicesDescription")}</CardDescription>
+            </CardHeader>
+            <CardContent className="gap-3 px-0">
+              <Button
+                variant="outline"
+                onPress={() => void onScanDevices()}
+                disabled={scanning}
+                className="w-full"
+              >
+                <Text>{scanning ? t("settings.scanningDevices") : t("settings.scanDevices")}</Text>
+              </Button>
+
+              {devices.length ? (
+                devices.map((device) => (
+                  <View key={device.id} className="gap-2 rounded-md border border-border p-3">
+                    <Text className="text-sm font-semibold">{device.name}</Text>
+                    <Text className="text-xs text-muted-foreground">
+                      {device.kind} · {device.status}
+                    </Text>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onPress={() => void onSubscribeDevice(device)}
+                    >
+                      <Text>{t("settings.subscribeDevice")}</Text>
+                    </Button>
+                  </View>
+                ))
               ) : (
-                <SettingsField
-                  label={t("settings.apiBaseURL")}
-                  value={form.cloud.apiBaseURL}
-                  onChangeText={(value) => updateCloudField("apiBaseURL", value)}
-                  placeholder={t("settings.apiBaseURLPlaceholder")}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+                <Text className="text-sm text-muted-foreground">{t("settings.noDevices")}</Text>
               )}
             </CardContent>
           </Card>
