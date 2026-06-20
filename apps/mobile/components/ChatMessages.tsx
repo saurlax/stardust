@@ -56,6 +56,11 @@ const getRelationSummary = (card: MessageToolCard) =>
     ? `${card.payload.relationType ?? t("chat.cardRelationDefault")} · ${card.payload.relationTarget}`
     : undefined;
 
+const getContextTypeLabel = (type?: string) => {
+  if (type === "open_loop") return t("chat.memoryContextOpenLoop");
+  return type ?? t("chat.memoryContextUnknown");
+};
+
 function MemoryContextSummary({ message }: { message: ChatMessage }) {
   const [expanded, setExpanded] = useState(false);
   const context = message.memoryContext ?? [];
@@ -113,7 +118,7 @@ function MemoryContextSummary({ message }: { message: ChatMessage }) {
               >
                 <View className="gap-0.5">
                   <Text className="text-[10px] font-semibold uppercase text-muted-foreground">
-                    {item.source} · {item.type ?? t("chat.memoryContextUnknown")} · {item.createdAt.slice(0, 10)}
+                    {item.source} · {getContextTypeLabel(item.type)} · {item.createdAt.slice(0, 10)}
                   </Text>
                   <Text className="text-xs leading-4 text-muted-foreground">
                     {item.content.length > 120 ? `${item.content.slice(0, 120)}...` : item.content}

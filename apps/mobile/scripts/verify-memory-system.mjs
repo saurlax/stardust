@@ -86,6 +86,8 @@ assertIncludes(chatScreen, "savedToolCards = []", "Assistant replies must surviv
 assertIncludes(chatScreen, "Relationship graph", "Chat context must include retrieved relationship graph knowledge.");
 assertIncludes(chatMessages, "item.nodeId", "Chat memory context must use graph node ids when available.");
 assertIncludes(chatMessages, 'item.source === "relation"', "Chat memory context must handle relation graph results.");
+assertIncludes(chatMessages, "getContextTypeLabel", "Chat memory context must label special memory types.");
+assertIncludes(chatMessages, 'type === "open_loop"', "Chat memory context must label open loops.");
 assertIncludes(journalScreen, "setErrorMessage(t(\"journal.loadFailed\"))", "Episode timeline load failures must be visible.");
 assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be visible.");
 assertIncludes(journalScreen, "sourceCounts", "Episode timeline source filters must expose counts.");
