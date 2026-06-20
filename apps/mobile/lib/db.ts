@@ -1,10 +1,10 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
 import type { NebulaTree } from "@/components/NebulaView";
-import type { ChatMessage, MessageToolCard, ToolCardType } from "@/lib/chat/types";
+import type { ChatMessage, MessageMemoryContext, MessageToolCard, ToolCardType } from "@/lib/chat/types";
 
 export const DATABASE_NAME = "stardust.db";
-const DATABASE_VERSION = 10;
+const DATABASE_VERSION = 11;
 
 export type EpisodeSource = "chat" | "share" | "image" | "calendar" | "iot" | "journal";
 export type CandidateKind =
@@ -44,6 +44,7 @@ type ChatMessageRow = {
   request_image_uri: string | null;
   request_image_mime_type: string | null;
   request_episode_id: string | null;
+  memory_context_json: string | null;
   tool_cards_json: string | null;
   created_at: string;
 };
@@ -234,6 +235,19 @@ const parseToolCards = (value?: string | null): MessageToolCard[] | undefined =>
 const serializeToolCards = (value?: MessageToolCard[]) =>
   value?.length ? JSON.stringify(value) : null;
 
+const parseMemoryContext = (value?: string | null): MessageMemoryContext[] | undefined => {
+  if (!value) return undefined;
+  try {
+    const parsed = JSON.parse(value) as MessageMemoryContext[];
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const serializeMemoryContext = (value?: MessageMemoryContext[]) =>
+  value?.length ? JSON.stringify(value) : null;
+
 async function syncCandidateToolCardSnapshot(
   db: SQLiteDatabase,
   candidate: MemoryCandidate,
@@ -345,6 +359,7 @@ async function createCurrentTables(db: SQLiteDatabase) {
       request_image_uri TEXT,
       request_image_mime_type TEXT,
       request_episode_id TEXT,
+      memory_context_json TEXT,
       tool_cards_json TEXT,
       sequence_index INTEGER NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -522,7 +537,7 @@ export async function loadLatestChatSession(db: SQLiteDatabase) {
     `
       SELECT message_id, role, content, status, image_uri, image_mime_type, error_text,
         request_prompt, request_image_uri, request_image_mime_type, request_episode_id,
-        tool_cards_json, created_at
+        memory_context_json, tool_cards_json, created_at
       FROM chat_messages
       WHERE session_id = ?
       ORDER BY sequence_index ASC
@@ -530,25 +545,30 @@ export async function loadLatestChatSession(db: SQLiteDatabase) {
     session.session_id,
   );
 
-  const messages: ChatMessage[] = rows.map((row) => ({
-    id: row.message_id,
-    role: row.role,
-    content: row.content,
-    status: row.status,
-    imageUri: row.image_uri ?? undefined,
-    imageMimeType: row.image_mime_type ?? undefined,
-    error: row.error_text ?? undefined,
-    createdAt: row.created_at,
-    request: row.request_prompt
-      ? {
-          prompt: row.request_prompt,
-          imageUri: row.request_image_uri ?? undefined,
-          imageMimeType: row.request_image_mime_type ?? undefined,
-          episodeId: row.request_episode_id ?? undefined,
-        }
-      : undefined,
-    toolCards: parseToolCards(row.tool_cards_json),
-  }));
+  const messages: ChatMessage[] = rows.map((row) => {
+    const memoryContext = parseMemoryContext(row.memory_context_json);
+    return {
+      id: row.message_id,
+      role: row.role,
+      content: row.content,
+      status: row.status,
+      imageUri: row.image_uri ?? undefined,
+      imageMimeType: row.image_mime_type ?? undefined,
+      error: row.error_text ?? undefined,
+      createdAt: row.created_at,
+      request: row.request_prompt
+        ? {
+            prompt: row.request_prompt,
+            imageUri: row.request_image_uri ?? undefined,
+            imageMimeType: row.request_image_mime_type ?? undefined,
+            episodeId: row.request_episode_id ?? undefined,
+          }
+        : undefined,
+      memoryContext,
+      memoryContextCount: memoryContext?.length,
+      toolCards: parseToolCards(row.tool_cards_json),
+    };
+  });
 
   return { sessionId: session.session_id, remoteChatId: session.remote_chat_id, messages };
 }
@@ -587,9 +607,9 @@ export async function saveChatSessionSnapshot(
             session_id, message_id, role, content, status, image_uri, image_mime_type,
             error_text, request_prompt, request_image_uri, request_image_mime_type,
             request_episode_id,
-            tool_cards_json, sequence_index, created_at, updated_at
+            memory_context_json, tool_cards_json, sequence_index, created_at, updated_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         sessionId,
         message.id,
@@ -603,6 +623,7 @@ export async function saveChatSessionSnapshot(
         message.request?.imageUri ?? null,
         message.request?.imageMimeType ?? null,
         message.request?.episodeId ?? null,
+        serializeMemoryContext(message.memoryContext),
         serializeToolCards(message.toolCards),
         index,
         message.createdAt ?? nowIso(),
