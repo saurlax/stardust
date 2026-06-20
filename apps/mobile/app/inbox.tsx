@@ -96,6 +96,23 @@ function OpenEpisodeButton({ episodeId }: { episodeId?: string }) {
   );
 }
 
+function OpenDeviceSettingsButton() {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="mt-2 self-center"
+      onPress={() => router.push("/settings")}
+    >
+      <Ionicons name="settings-outline" size={14} color={iconColor} />
+      <Text>{t("inbox.openDeviceSettings")}</Text>
+    </Button>
+  );
+}
+
 function CandidateCard({
   candidate,
   highlighted,
@@ -766,10 +783,14 @@ export default function InboxScreen() {
           </View>
         ) : null}
 
-        {((tab === "pending" && !candidates.length) ||
+        {tab === "devices" && !devices.length && !deviceEvents.length ? (
+          <Card className="min-h-28 items-center justify-center gap-2 px-4 py-4">
+            <Text variant="muted">{emptyText}</Text>
+            <OpenDeviceSettingsButton />
+          </Card>
+        ) : ((tab === "pending" && !candidates.length) ||
           (tab === "saved" && !memories.length) ||
-          (tab === "reflections" && !reflections.length) ||
-          (tab === "devices" && !devices.length && !deviceEvents.length)) ? (
+          (tab === "reflections" && !reflections.length)) ? (
           <Card className="min-h-24 items-center justify-center px-4">
             <Text variant="muted">{emptyText}</Text>
           </Card>

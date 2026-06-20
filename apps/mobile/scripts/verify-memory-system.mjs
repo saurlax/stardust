@@ -20,6 +20,7 @@ const config = read(mobileRoot, "lib", "config.ts");
 const chatScreen = read(mobileRoot, "app", "index.tsx");
 const chatRuntime = read(mobileRoot, "lib", "chat", "runtime.ts");
 const journalScreen = read(mobileRoot, "app", "journal.tsx");
+const inboxScreen = read(mobileRoot, "app", "inbox.tsx");
 const settings = read(mobileRoot, "components", "SettingsContent.tsx");
 const iotSketch = read(repoRoot, "iot", "iot.ino");
 
@@ -80,6 +81,8 @@ assertIncludes(chatScreen, "void updateCandidateStatus(db, cardId, status, nextC
 assertIncludes(chatScreen, "savedToolCards = []", "Assistant replies must survive candidate persistence failures without showing unsaved cards.");
 assertIncludes(journalScreen, "setErrorMessage(t(\"journal.loadFailed\"))", "Episode timeline load failures must be visible.");
 assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be visible.");
+assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");
+assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty state must open Settings.");
 assertIncludes(candidates, "createEpisodeInCurrentTransaction(db", "Accepted journal candidates must create episodes inside the candidate transaction.");
 if (readExportedFunction(candidates, "updateCandidateStatus").includes("createEpisode(db")) {
   throw new Error("Accepted candidates must not open nested episode transactions.");
