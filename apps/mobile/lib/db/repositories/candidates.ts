@@ -207,6 +207,7 @@ export async function updateCandidateStatus(
     await syncCandidateToolCardSnapshot(db, candidate, status, content, updatedAt);
 
     if (status !== "accepted") return;
+    if (candidate.status === "accepted") return;
 
     if (candidate.kind === "memory" || candidate.kind === "open_loop") {
       const type = candidate.kind === "open_loop" ? "concern" : candidate.type || "memory";

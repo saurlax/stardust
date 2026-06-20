@@ -87,6 +87,7 @@ assertIncludes(candidates, "createEpisodeInCurrentTransaction(db", "Accepted jou
 if (readExportedFunction(candidates, "updateCandidateStatus").includes("createEpisode(db")) {
   throw new Error("Accepted candidates must not open nested episode transactions.");
 }
+assertIncludes(candidates, 'if (candidate.status === "accepted") return;', "Accepted candidates must not be materialized twice.");
 if (chatRuntime.includes('role: "tool"')) {
   throw new Error("Local candidate review results must not be replayed as OpenAI tool messages.");
 }
