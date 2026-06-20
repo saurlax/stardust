@@ -118,7 +118,7 @@ assertIncludes(inboxScreen, "emptyFilteredDeviceEvents", "Device inbox must expl
 assertIncludes(inboxScreen, "emptyDeviceEvents", "Device inbox must explain paired devices with no events.");
 assertIncludes(inboxScreen, "getCandidateStatusLabel", "Device event review states must use localized labels.");
 assertIncludes(inboxScreen, 'event.candidateStatus === "accepted" && event.candidateId', "Accepted device event reviews must link to saved memory.");
-assertIncludes(inboxScreen, "nodeId: `memory-${event.candidateId}`", "Accepted device event reviews must open memory graph nodes.");
+assertIncludes(inboxScreen, "nodeId: `memory-memory-${event.candidateId}`", "Accepted device event reviews must open materialized memory graph nodes.");
 assertIncludes(candidates, "createEpisodeInCurrentTransaction(db", "Accepted journal candidates must create episodes inside the candidate transaction.");
 if (readExportedFunction(candidates, "updateCandidateStatus").includes("createEpisode(db")) {
   throw new Error("Accepted candidates must not open nested episode transactions.");

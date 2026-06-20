@@ -577,7 +577,7 @@ function DeviceEventCard({
               onPress={() =>
                 router.push({
                   pathname: "/memory",
-                  params: { nodeId: `memory-${event.candidateId}` },
+                  params: { nodeId: `memory-memory-${event.candidateId}` },
                 } as Href)
               }
             >
