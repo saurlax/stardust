@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
-export const DATABASE_VERSION = 16;
+export const DATABASE_VERSION = 17;
 
 let ftsAvailable: boolean | undefined;
 
@@ -53,7 +53,7 @@ async function createCurrentTables(db: SQLiteDatabase) {
 
     CREATE TABLE IF NOT EXISTS episodes (
       episode_id TEXT PRIMARY KEY NOT NULL,
-      source TEXT NOT NULL,
+      source TEXT NOT NULL CHECK(source IN ('chat', 'share', 'image', 'calendar', 'iot', 'journal')),
       title TEXT,
       content TEXT NOT NULL,
       media_uri TEXT,
@@ -67,11 +67,11 @@ async function createCurrentTables(db: SQLiteDatabase) {
       session_id TEXT,
       message_id TEXT,
       episode_id TEXT,
-      kind TEXT NOT NULL,
+      kind TEXT NOT NULL CHECK(kind IN ('memory', 'journal', 'reflection', 'entity', 'open_loop')),
       type TEXT NOT NULL,
       title TEXT NOT NULL,
       content TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'accepted', 'dismissed')),
       metadata_json TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -89,7 +89,7 @@ async function createCurrentTables(db: SQLiteDatabase) {
       type TEXT NOT NULL,
       content TEXT NOT NULL,
       importance INTEGER NOT NULL DEFAULT 3,
-      status TEXT NOT NULL DEFAULT 'active',
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'archived')),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (candidate_id) REFERENCES memory_candidates(candidate_id) ON DELETE SET NULL,
@@ -104,7 +104,7 @@ async function createCurrentTables(db: SQLiteDatabase) {
       episode_id TEXT,
       title TEXT NOT NULL,
       content TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'active',
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'archived')),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (candidate_id) REFERENCES memory_candidates(candidate_id) ON DELETE SET NULL,
@@ -140,7 +140,7 @@ async function createCurrentTables(db: SQLiteDatabase) {
       device_id TEXT PRIMARY KEY NOT NULL,
       name TEXT NOT NULL,
       kind TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'known',
+      status TEXT NOT NULL DEFAULT 'known' CHECK(status IN ('known', 'connected', 'disconnected')),
       last_seen_at TEXT,
       battery_level INTEGER,
       firmware_version TEXT,

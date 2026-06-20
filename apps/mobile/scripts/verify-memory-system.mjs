@@ -134,7 +134,16 @@ for (const functionName of [
 }
 
 assertIncludes(schema, "episode_id TEXT", "Reflections must preserve source episodes.");
-assertIncludes(schema, "export const DATABASE_VERSION = 16", "Database version must reflect the current schema.");
+assertIncludes(schema, "export const DATABASE_VERSION = 17", "Database version must reflect the current schema.");
+for (const check of [
+  "CHECK(source IN ('chat', 'share', 'image', 'calendar', 'iot', 'journal'))",
+  "CHECK(kind IN ('memory', 'journal', 'reflection', 'entity', 'open_loop'))",
+  "CHECK(status IN ('pending', 'accepted', 'dismissed'))",
+  "CHECK(status IN ('active', 'archived'))",
+  "CHECK(status IN ('known', 'connected', 'disconnected'))",
+]) {
+  assertIncludes(schema, check, `Missing schema enum check: ${check}`);
+}
 assertIncludes(schema, "candidate_id TEXT", "Relations must preserve source candidates.");
 assertIncludes(schema, "episode_id TEXT", "Relations must preserve source episodes.");
 assertIncludes(candidates, "candidate_id, episode_id, source_entity_id", "Entity candidate acceptance must write relation provenance.");
