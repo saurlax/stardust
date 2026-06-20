@@ -27,6 +27,7 @@ import {
 import { t } from "@/lib/i18n";
 import {
   getEntityTypeLabel,
+  getEpisodeTitleLabel,
   getMemoryTypeLabel,
   getRelationTypeLabel,
 } from "@/lib/memoryLabels";
@@ -60,6 +61,14 @@ const getStoredMemoryTypeLabel = (memory: StoredMemory) =>
 
 const matchesMemoryType = (memory: StoredMemory, type: string) =>
   type === "open_loop" ? memory.candidateKind === "open_loop" : memory.type === type;
+
+const getSourcePrefix = (
+  sourceKind?: StoredMemory["sourceKind"] | ReflectionRecord["sourceKind"] | RelationRecord["sourceKind"],
+  sourceTitle?: string,
+) => {
+  const label = getEpisodeTitleLabel(sourceKind, sourceTitle);
+  return label ? `${label} · ` : "";
+};
 
 const graphLegendItems = [
   { key: "memory", color: "#0A0A0A" },
@@ -145,7 +154,7 @@ function MemoryEditor({
                   {t("memory.source")}
                 </Text>
                 <Text className="text-xs leading-4 text-muted-foreground">
-                  {memory.sourceTitle ? `${memory.sourceTitle} · ` : ""}
+                  {getSourcePrefix(memory.sourceKind, memory.sourceTitle)}
                   {memory.sourceContent}
                 </Text>
                 <OpenSourceButton episodeId={memory.episodeId} />
@@ -338,6 +347,7 @@ export default function MemoryScreen() {
         description: t("memory.memoryNodeDescription"),
         content: memory.content,
         sourceTitle: memory.sourceTitle,
+        sourceKind: memory.sourceKind,
         source: memory.sourceContent,
         sourceEpisodeId: memory.episodeId,
       };
@@ -350,6 +360,7 @@ export default function MemoryScreen() {
         description: t("memory.reflectionNodeDescription"),
         content: reflection.content,
         sourceTitle: reflection.sourceTitle,
+        sourceKind: reflection.sourceKind,
         source: reflection.sourceContent,
         sourceEpisodeId: reflection.episodeId,
       };
@@ -373,6 +384,7 @@ export default function MemoryScreen() {
         description: `${t("memory.entityNodeDescription")} · ${getEntityTypeLabel(entity.type)}`,
         content: relationLines.length ? relationLines.join("\n") : t("memory.entityNodeEmpty"),
         sourceTitle: relationSource?.sourceTitle,
+        sourceKind: relationSource?.sourceKind,
         source: relationSource?.sourceContent,
         sourceEpisodeId: relationSource?.episodeId,
       };
@@ -387,6 +399,7 @@ export default function MemoryScreen() {
           relation.targetEntityName ?? relation.targetEntityId
         }\n${t("memory.relationWeight")} ${relation.weight}`,
         sourceTitle: relation.sourceTitle,
+        sourceKind: relation.sourceKind,
         source: relation.sourceContent,
         sourceEpisodeId: relation.episodeId,
       };
@@ -530,8 +543,8 @@ export default function MemoryScreen() {
                       {t("memory.source")}
                     </Text>
                     <Text className="text-xs leading-4 text-muted-foreground">
-                      {"sourceTitle" in selectedNode && selectedNode.sourceTitle
-                        ? `${selectedNode.sourceTitle} · `
+                      {"sourceTitle" in selectedNode
+                        ? getSourcePrefix(selectedNode.sourceKind, selectedNode.sourceTitle)
                         : ""}
                       {selectedNode.source}
                     </Text>

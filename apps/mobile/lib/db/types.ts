@@ -99,6 +99,7 @@ export type ReflectionRecord = {
   sourceTitle?: string;
   sourceContent?: string;
   sourceCreatedAt?: string;
+  sourceKind?: EpisodeSource;
   createdAt: string;
   updatedAt?: string;
 };
@@ -137,6 +138,7 @@ export type RelationRecord = {
   sourceTitle?: string;
   sourceContent?: string;
   sourceCreatedAt?: string;
+  sourceKind?: EpisodeSource;
   type: string;
   weight: number;
   createdAt: string;

@@ -1,3 +1,4 @@
+import type { EpisodeSource } from "@/lib/db/types";
 import { t } from "@/lib/i18n";
 
 const humanize = (value?: string) =>
@@ -76,6 +77,11 @@ export const getKnowledgeTypeLabel = (source: string, type?: string) => {
   if (source === "episode") return sourceTypeKeys[type] ? t(sourceTypeKeys[type]) : humanize(type);
   if (source === "reflection") return t("journal.reflectionEntryPrefix");
   return humanize(type);
+};
+
+export const getEpisodeTitleLabel = (source?: EpisodeSource, title?: string) => {
+  if (!title) return undefined;
+  return source === "iot" ? getDeviceEventTypeLabel(title) : title;
 };
 
 export const getEntityTypeLabel = (type: string) => humanize(type);

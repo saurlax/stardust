@@ -78,6 +78,7 @@ export async function listReflections(db: SQLiteDatabase): Promise<ReflectionRec
     source_title: string | null;
     source_content: string | null;
     source_created_at: string | null;
+    source_kind: ReflectionRecord["sourceKind"] | null;
     created_at: string;
     updated_at: string;
   }>(`
@@ -92,6 +93,7 @@ export async function listReflections(db: SQLiteDatabase): Promise<ReflectionRec
       reflections.updated_at AS updated_at,
       episodes.title AS source_title,
       episodes.content AS source_content,
+      episodes.source AS source_kind,
       episodes.created_at AS source_created_at
     FROM reflections
     LEFT JOIN episodes ON episodes.episode_id = reflections.episode_id
@@ -109,6 +111,7 @@ export async function listReflections(db: SQLiteDatabase): Promise<ReflectionRec
     sourceTitle: row.source_title ?? undefined,
     sourceContent: row.source_content ?? undefined,
     sourceCreatedAt: row.source_created_at ?? undefined,
+    sourceKind: row.source_kind ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
@@ -198,6 +201,7 @@ export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[
     source_title: string | null;
     source_content: string | null;
     source_created_at: string | null;
+    source_kind: RelationRecord["sourceKind"] | null;
     type: string;
     weight: number;
     created_at: string;
@@ -213,6 +217,7 @@ export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[
       target_entities.name AS target_entity_name,
       episodes.title AS source_title,
       episodes.content AS source_content,
+      episodes.source AS source_kind,
       episodes.created_at AS source_created_at,
       relations.type AS type,
       relations.weight AS weight,
@@ -237,6 +242,7 @@ export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[
     sourceTitle: row.source_title ?? undefined,
     sourceContent: row.source_content ?? undefined,
     sourceCreatedAt: row.source_created_at ?? undefined,
+    sourceKind: row.source_kind ?? undefined,
     type: row.type,
     weight: row.weight,
     createdAt: row.created_at,

@@ -13,7 +13,7 @@ import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMonthDay, formatTime, t } from "@/lib/i18n";
 import {
-  getDeviceEventTypeLabel,
+  getEpisodeTitleLabel,
   getKnowledgeTypeLabel,
   getMemoryTypeLabel,
 } from "@/lib/memoryLabels";
@@ -45,9 +45,8 @@ function sourceLabel(source: SourceFilter) {
 
 function entryTitle(entry: JournalDay["entries"][number]) {
   if (!entry.title) return undefined;
-  if (entry.source === "iot") return getDeviceEventTypeLabel(entry.title);
   if (entry.source === "memory") return getMemoryTypeLabel(entry.title);
-  return entry.title;
+  return getEpisodeTitleLabel(entry.source, entry.title);
 }
 
 const getErrorMessage = (error: unknown) => {

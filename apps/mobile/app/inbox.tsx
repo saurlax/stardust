@@ -36,6 +36,7 @@ import {
   getCandidateKindLabel,
   getDeviceEventTypeLabel,
   getDeviceKindLabel,
+  getEpisodeTitleLabel,
   getMemoryTypeLabel,
 } from "@/lib/memoryLabels";
 
@@ -85,6 +86,11 @@ const getCandidateTitle = (candidate: MemoryCandidate) => {
   }
 
   return candidate.title;
+};
+
+const getSourcePrefix = (sourceKind?: StoredMemory["sourceKind"], sourceTitle?: string) => {
+  const label = getEpisodeTitleLabel(sourceKind, sourceTitle);
+  return label ? `${label} · ` : "";
 };
 
 const getDeviceCandidateContextLines = (candidate: MemoryCandidate) => {
@@ -389,7 +395,7 @@ function MemoryCard({
               {t("inbox.source")}
             </Text>
             <Text className="text-xs leading-4 text-muted-foreground">
-              {memory.sourceTitle ? `${memory.sourceTitle} · ` : ""}
+              {getSourcePrefix(memory.sourceKind, memory.sourceTitle)}
               {memory.sourceContent}
             </Text>
             <OpenEpisodeButton episodeId={memory.episodeId} />
@@ -484,7 +490,7 @@ function ReflectionCard({
               {t("inbox.source")}
             </Text>
             <Text className="text-xs leading-4 text-muted-foreground">
-              {reflection.sourceTitle ? `${reflection.sourceTitle} · ` : ""}
+              {getSourcePrefix(reflection.sourceKind, reflection.sourceTitle)}
               {reflection.sourceContent}
             </Text>
             <OpenEpisodeButton episodeId={reflection.episodeId} />

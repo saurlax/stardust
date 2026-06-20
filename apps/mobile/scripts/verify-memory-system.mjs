@@ -110,7 +110,7 @@ assertIncludes(timeline, "title: episode.title", "Episode timeline entries must 
 assertIncludes(timeline, 'title: memory.candidateKind === "open_loop"', "Memory timeline entries must preserve memory type labels.");
 assertIncludes(timeline, "nodeId: `memory-${memory.id}`", "Memory timeline entries must carry graph node ids.");
 assertIncludes(journalScreen, "function entryTitle", "Journal timeline must render user-facing entry titles.");
-assertIncludes(journalScreen, "getDeviceEventTypeLabel(entry.title)", "IoT timeline titles must use device event labels.");
+assertIncludes(journalScreen, "getEpisodeTitleLabel(entry.source, entry.title)", "IoT timeline titles must use shared device event labels.");
 assertIncludes(journalScreen, 'entry.source === "memory" && entry.nodeId', "Memory timeline entries must expose graph navigation.");
 assertIncludes(journalScreen, "params: { nodeId: entry.nodeId }", "Memory timeline navigation must target the selected graph node.");
 assertIncludes(journalScreen, "entityEntryPrefix", "Journal search must label entity graph results.");
@@ -120,8 +120,8 @@ assertIncludes(journalScreen, "`entity-${result.id}`", "Journal search must open
 assertIncludes(journalScreen, "result.nodeId", "Journal search must use graph node ids when available.");
 assertIncludes(personalScreen, "getEpisodeTitle(episode)", "Personal page must show recent episode titles.");
 assertIncludes(personalDrawer, "getEpisodeTitle(episode)", "Personal drawer must show recent episode titles.");
-assertIncludes(personalScreen, "getDeviceEventTypeLabel(episode.title)", "Personal page must label IoT episode titles.");
-assertIncludes(personalDrawer, "getDeviceEventTypeLabel(episode.title)", "Personal drawer must label IoT episode titles.");
+assertIncludes(personalScreen, "getEpisodeTitleLabel(episode.source, episode.title)", "Personal page must label IoT episode titles.");
+assertIncludes(personalDrawer, "getEpisodeTitleLabel(episode.source, episode.title)", "Personal drawer must label IoT episode titles.");
 assertIncludes(personalScreen, 'pathname: "/memory"', "Personal page recent memories must open the memory graph.");
 assertIncludes(personalScreen, 'params: { episodeId: episode.id }', "Personal page recent captures must open source episodes.");
 assertIncludes(personalDrawer, 'pathname: "/memory"', "Personal drawer recent memories must open the memory graph.");
@@ -263,6 +263,10 @@ assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal sn
 assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snapshot must expose confirmed open loops.");
 assertIncludes(memoryRecords, "memory_candidates.kind AS candidate_kind", "Stored memories must retain their source candidate kind.");
 assertIncludes(memoryRecords, "episodes.source AS source_kind", "Stored memories must retain source episode kinds.");
+assertIncludes(memoryLabels, "getEpisodeTitleLabel", "Episode source titles must use shared user-facing labels.");
+assertIncludes(inboxScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Inbox saved memory sources must use user-facing episode titles.");
+assertIncludes(inboxScreen, "getSourcePrefix(reflection.sourceKind, reflection.sourceTitle)", "Inbox reflection sources must use user-facing episode titles.");
+assertIncludes(memoryScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Memory management sources must use user-facing episode titles.");
 assertIncludes(memoryScreen, '"open_loop"', "Memory screen must expose an open-loop filter.");
 assertIncludes(memoryScreen, "candidateKind === \"open_loop\"", "Memory screen must identify confirmed open loops.");
 assertIncludes(memoryScreen, "graphLegendItems", "Memory screen must explain graph node accents.");

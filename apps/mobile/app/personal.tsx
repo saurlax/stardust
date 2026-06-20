@@ -22,7 +22,7 @@ import {
   type StoredMemory,
 } from "@/lib/db";
 import { t } from "@/lib/i18n";
-import { getDeviceEventTypeLabel, getMemoryTypeLabel } from "@/lib/memoryLabels";
+import { getEpisodeTitleLabel, getMemoryTypeLabel } from "@/lib/memoryLabels";
 
 const emptySnapshot: PersonalSnapshot = {
   acceptedMemories: 0,
@@ -37,9 +37,7 @@ const emptySnapshot: PersonalSnapshot = {
 };
 
 const getEpisodeTitle = (episode: Episode) => {
-  if (!episode.title) return undefined;
-  if (episode.source === "iot") return getDeviceEventTypeLabel(episode.title);
-  return episode.title;
+  return getEpisodeTitleLabel(episode.source, episode.title);
 };
 
 export default function PersonalScreen() {
