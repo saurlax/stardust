@@ -16,6 +16,7 @@ import type { AiConfig } from "@/lib/config";
 import { getCachedAiConfig, getConfigValidationError } from "@/lib/config";
 import { listDevices, type DeviceRecord } from "@/lib/db";
 import {
+  disconnectStardustDevice,
   scanStardustDevices,
   sendStardustDeviceCommand,
   subscribeToStardustDevice,
@@ -181,6 +182,27 @@ export function SettingsContent() {
     try {
       await sendStardustDeviceCommand(db, device.id, "capture");
       showToast(t("settings.deviceCaptureSent"), "success");
+      setDevices(await listDevices(db));
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    }
+  };
+
+  const onSleepDevice = async (device: DeviceRecord) => {
+    try {
+      await sendStardustDeviceCommand(db, device.id, "sleep");
+      showToast(t("settings.deviceSleepSent"), "success");
+      setDevices(await listDevices(db));
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    }
+  };
+
+  const onDisconnectDevice = async (device: DeviceRecord) => {
+    try {
+      await disconnectStardustDevice(db, device.id);
+      showToast(t("settings.deviceDisconnected"), "success");
+      setDevices(await listDevices(db));
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     }
@@ -280,6 +302,20 @@ export function SettingsContent() {
                         onPress={() => void onCaptureDevice(device)}
                       >
                         <Text>{t("settings.captureDevice")}</Text>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onPress={() => void onSleepDevice(device)}
+                      >
+                        <Text>{t("settings.sleepDevice")}</Text>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onPress={() => void onDisconnectDevice(device)}
+                      >
+                        <Text>{t("settings.disconnectDevice")}</Text>
                       </Button>
                     </View>
                   </View>

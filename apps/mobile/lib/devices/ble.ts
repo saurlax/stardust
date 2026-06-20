@@ -12,8 +12,10 @@ const MANIFEST_CHARACTERISTIC_UUID = "7b3f4a14-9d62-4a7d-a0d9-2ffb9239c4d1";
 
 type BlePlxModule = typeof import("react-native-ble-plx");
 type BleManagerInstance = InstanceType<BlePlxModule["BleManager"]>;
+type DeviceInstance = Awaited<ReturnType<BleManagerInstance["connectToDevice"]>>;
 
 let manager: BleManagerInstance | null = null;
+const connectedDevices = new Map<string, DeviceInstance>();
 
 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -217,8 +219,10 @@ export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: st
   const device = await ble.connectToDevice(deviceId, { timeout: 10000 });
   const readyDevice = await device.discoverAllServicesAndCharacteristics();
   ble.onDeviceDisconnected(readyDevice.id, () => {
+    connectedDevices.delete(readyDevice.id);
     void updateDeviceStatus(db, readyDevice.id, "disconnected");
   });
+  connectedDevices.set(readyDevice.id, readyDevice);
   await upsertDevice(db, {
     id: readyDevice.id,
     name: readyDevice.name ?? STARDUST_DEVICE_NAME,
@@ -308,8 +312,9 @@ export const sendStardustDeviceCommand = async (
   command: "capture" | "sync" | "sleep",
 ) => {
   const ble = await getBleManager();
-  const device = await ble.connectToDevice(deviceId, { timeout: 10000 });
+  const device = connectedDevices.get(deviceId) ?? (await ble.connectToDevice(deviceId, { timeout: 10000 }));
   const readyDevice = await device.discoverAllServicesAndCharacteristics();
+  connectedDevices.set(readyDevice.id, readyDevice);
   await upsertDevice(db, {
     id: readyDevice.id,
     name: readyDevice.name ?? STARDUST_DEVICE_NAME,
@@ -320,4 +325,13 @@ export const sendStardustDeviceCommand = async (
     COMMAND_CHARACTERISTIC_UUID,
     encodeBase64(JSON.stringify({ type: command })),
   );
+};
+
+export const disconnectStardustDevice = async (db: SQLiteDatabase, deviceId: string) => {
+  const ble = await getBleManager();
+  await ble.cancelDeviceConnection(deviceId).catch(async () => {
+    await connectedDevices.get(deviceId)?.cancelConnection().catch(() => undefined);
+  });
+  connectedDevices.delete(deviceId);
+  await updateDeviceStatus(db, deviceId, "disconnected");
 };
