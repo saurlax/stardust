@@ -19,6 +19,14 @@ const assertIncludes = (source, value, message) => {
   }
 };
 
+const readQuotedConst = (source, name) => {
+  const match = source.match(new RegExp(`${name}\\s*=\\s*"([^"]+)"`));
+  if (!match?.[1]) {
+    throw new Error(`Missing constant: ${name}`);
+  }
+  return match[1];
+};
+
 const requiredTables = [
   "episodes",
   "memory_candidates",
@@ -59,6 +67,19 @@ assertIncludes(devices, "'memory', 'memory'", "Promoted device events must becom
 
 assertIncludes(ble, "Stardust Sense", "BLE device name must match Stardust Sense.");
 assertIncludes(ble, "sendStardustDeviceCommand", "Mobile BLE commands are missing.");
+for (const name of [
+  "SERVICE_UUID",
+  "STATUS_CHARACTERISTIC_UUID",
+  "EVENT_CHARACTERISTIC_UUID",
+  "COMMAND_CHARACTERISTIC_UUID",
+  "MANIFEST_CHARACTERISTIC_UUID",
+]) {
+  const mobileValue = readQuotedConst(ble, name);
+  const firmwareValue = readQuotedConst(iotSketch, name);
+  if (mobileValue !== firmwareValue) {
+    throw new Error(`BLE UUID mismatch for ${name}: ${mobileValue} !== ${firmwareValue}`);
+  }
+}
 for (const command of ['"capture"', '"sync"', '"sleep"']) {
   assertIncludes(ble, command, `BLE command is missing: ${command}`);
   assertIncludes(iotSketch, command.slice(1, -1), `IoT sketch does not handle command: ${command}`);
