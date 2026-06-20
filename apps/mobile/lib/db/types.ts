@@ -153,6 +153,8 @@ export type PersonalSnapshot = {
   journalEntries: number;
   episodeCount: number;
   reflectionCount: number;
+  entityCount: number;
+  relationCount: number;
   deviceCount: number;
   recentMemory?: StoredMemory;
 };

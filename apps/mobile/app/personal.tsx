@@ -29,6 +29,8 @@ const emptySnapshot: PersonalSnapshot = {
   journalEntries: 0,
   episodeCount: 0,
   reflectionCount: 0,
+  entityCount: 0,
+  relationCount: 0,
   deviceCount: 0,
 };
 
@@ -113,6 +115,17 @@ export default function PersonalScreen() {
             <CardDescription>{t("personal.reflectionCount")}</CardDescription>
             <Text className="text-2xl font-semibold">{snapshot.reflectionCount}</Text>
           </Card>
+          <Card className="flex-1 gap-2 px-4 py-4">
+            <CardDescription>{t("personal.entityCount")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.entityCount}</Text>
+          </Card>
+          <Card className="flex-1 gap-2 px-4 py-4">
+            <CardDescription>{t("personal.relationCount")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.relationCount}</Text>
+          </Card>
+        </View>
+
+        <View className="flex-row gap-3">
           <Card className="flex-1 gap-2 px-4 py-4">
             <CardDescription>{t("personal.journalCount")}</CardDescription>
             <Text className="text-2xl font-semibold">{snapshot.journalEntries}</Text>

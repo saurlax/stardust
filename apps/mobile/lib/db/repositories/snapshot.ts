@@ -3,7 +3,17 @@ import type { SQLiteDatabase } from "expo-sqlite";
 import type { PersonalSnapshot } from "@/lib/db/types";
 
 export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalSnapshot> {
-  const [memoryRow, pendingRow, episodeRow, journalRow, reflectionRow, deviceRow, recentMemory] =
+  const [
+    memoryRow,
+    pendingRow,
+    episodeRow,
+    journalRow,
+    reflectionRow,
+    entityRow,
+    relationRow,
+    deviceRow,
+    recentMemory,
+  ] =
     await Promise.all([
       db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM memory_atoms WHERE status = 'active'",
@@ -18,6 +28,8 @@ export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalS
       db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM reflections WHERE status = 'active'",
       ),
+      db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM entities"),
+      db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM relations"),
       db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM devices"),
       db.getFirstAsync<any>(`
         SELECT memory_id, candidate_id, episode_id, session_id, message_id, type,
@@ -35,6 +47,8 @@ export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalS
     journalEntries: journalRow?.count ?? 0,
     episodeCount: episodeRow?.count ?? 0,
     reflectionCount: reflectionRow?.count ?? 0,
+    entityCount: entityRow?.count ?? 0,
+    relationCount: relationRow?.count ?? 0,
     deviceCount: deviceRow?.count ?? 0,
     recentMemory: recentMemory
       ? {

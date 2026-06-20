@@ -13,6 +13,7 @@ const schema = read(mobileRoot, "lib", "db", "schema.ts");
 const candidates = read(mobileRoot, "lib", "db", "repositories", "candidates.ts");
 const devices = read(mobileRoot, "lib", "db", "repositories", "devices.ts");
 const episodes = read(mobileRoot, "lib", "db", "repositories", "episodes.ts");
+const snapshot = read(mobileRoot, "lib", "db", "repositories", "snapshot.ts");
 const memoryRecords = read(mobileRoot, "lib", "db", "repositories", "memoryRecords.ts");
 const ble = read(mobileRoot, "lib", "devices", "ble.ts");
 const config = read(mobileRoot, "lib", "config.ts");
@@ -116,6 +117,8 @@ assertIncludes(devices, "INSERT OR IGNORE INTO device_events", "Device events mu
 assertIncludes(devices, "promoteDeviceEventToCandidate", "Device events must be promotable to memory review.");
 assertIncludes(devices, "'memory', 'memory'", "Promoted device events must become pending memory candidates.");
 assertIncludes(devices, "promotableDeviceEventTypes", "Device event promotion must filter operational events.");
+assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM entities", "Personal snapshot must expose entity graph growth.");
+assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal snapshot must expose relation graph growth.");
 
 assertIncludes(ble, "Stardust Sense", "BLE device name must match Stardust Sense.");
 assertIncludes(ble, "sendStardustDeviceCommand", "Mobile BLE commands are missing.");
