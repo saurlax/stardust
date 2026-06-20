@@ -257,6 +257,27 @@ const commandCapabilities: Record<StardustDeviceCommand, string> = {
   sync: "command-sync",
   sleep: "command-sleep",
 };
+const createCommandAuditEvent = (
+  db: SQLiteDatabase,
+  deviceId: string,
+  command: StardustDeviceCommand,
+  status: "sent" | "failed",
+  error?: unknown,
+) =>
+  createDeviceEvent(db, {
+    deviceId,
+    eventType: "command",
+    content:
+      status === "sent"
+        ? `Stardust Sense ${command} command sent`
+        : `Stardust Sense ${command} command failed`,
+    metadata: {
+      command,
+      status,
+      source: "mobile_ble",
+      error: error instanceof Error ? error.message : undefined,
+    },
+  });
 const ensureDeviceCommandCapability = async (
   db: SQLiteDatabase,
   deviceId: string,
@@ -440,16 +461,22 @@ export const sendStardustDeviceCommand = async (
   deviceId: string,
   command: StardustDeviceCommand,
 ) => {
-  const ble = await getBleManager();
-  const device = connectedDevices.get(deviceId) ?? (await ble.connectToDevice(deviceId, { timeout: 10000 }));
-  const readyDevice = await device.discoverAllServicesAndCharacteristics();
-  await activateStardustDevice(db, ble, readyDevice, { syncAfterActivate: false });
-  await ensureDeviceCommandCapability(db, deviceId, command);
-  await readyDevice.writeCharacteristicWithResponseForService(
-    SERVICE_UUID,
-    COMMAND_CHARACTERISTIC_UUID,
-    encodeBase64(JSON.stringify({ type: command })),
-  );
+  try {
+    const ble = await getBleManager();
+    const device = connectedDevices.get(deviceId) ?? (await ble.connectToDevice(deviceId, { timeout: 10000 }));
+    const readyDevice = await device.discoverAllServicesAndCharacteristics();
+    await activateStardustDevice(db, ble, readyDevice, { syncAfterActivate: false });
+    await ensureDeviceCommandCapability(db, deviceId, command);
+    await readyDevice.writeCharacteristicWithResponseForService(
+      SERVICE_UUID,
+      COMMAND_CHARACTERISTIC_UUID,
+      encodeBase64(JSON.stringify({ type: command })),
+    );
+    await createCommandAuditEvent(db, deviceId, command, "sent");
+  } catch (error) {
+    await createCommandAuditEvent(db, deviceId, command, "failed", error);
+    throw error;
+  }
 };
 
 export const disconnectStardustDevice = async (db: SQLiteDatabase, deviceId: string) => {

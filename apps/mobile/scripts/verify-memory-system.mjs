@@ -152,6 +152,10 @@ assertIncludes(ble, "readCapabilities", "BLE sync must parse manifest capabiliti
 assertIncludes(ble, "protocolVersion", "BLE sync must persist protocol versions.");
 assertIncludes(ble, "ensureDeviceCommandCapability", "BLE commands must enforce advertised capabilities.");
 assertIncludes(ble, "commandCapabilities", "BLE commands must map commands to advertised capabilities.");
+assertIncludes(ble, "createCommandAuditEvent", "BLE commands must record local command audit events.");
+assertIncludes(ble, 'eventType: "command"', "BLE command audit events must be device events.");
+assertIncludes(ble, 'createCommandAuditEvent(db, deviceId, command, "sent")', "BLE command audit events must record successful sends.");
+assertIncludes(ble, 'createCommandAuditEvent(db, deviceId, command, "failed", error)', "BLE command audit events must record failed sends.");
 assertIncludes(settings, "settings.capabilities", "Settings must display device capabilities.");
 assertIncludes(settings, "supportsDeviceCommand", "Settings device commands must respect advertised capabilities.");
 assertIncludes(settings, "disabled={!supportsDeviceCommand(device, \"capture\")}", "Settings must disable unsupported capture commands.");
