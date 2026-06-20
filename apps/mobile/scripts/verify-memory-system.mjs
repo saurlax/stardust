@@ -13,6 +13,7 @@ const memoryRecords = read(mobileRoot, "lib", "db", "repositories", "memoryRecor
 const ble = read(mobileRoot, "lib", "devices", "ble.ts");
 const config = read(mobileRoot, "lib", "config.ts");
 const chatScreen = read(mobileRoot, "app", "index.tsx");
+const chatRuntime = read(mobileRoot, "lib", "chat", "runtime.ts");
 const iotSketch = read(repoRoot, "iot", "iot.ino");
 
 const assertIncludes = (source, value, message) => {
@@ -59,6 +60,9 @@ for (const column of ["memory_context_json", "request_episode_id", "tool_cards_j
 }
 assertIncludes(chatScreen, "await createEpisode(db", "Chat input episodes must be persisted before AI candidate creation.");
 assertIncludes(chatScreen, "await saveChatSessionSnapshot(db", "Chat messages must be persisted before AI candidate creation.");
+if (chatRuntime.includes('role: "tool"')) {
+  throw new Error("Local candidate review results must not be replayed as OpenAI tool messages.");
+}
 
 for (const functionName of [
   "updateReflectionContent",

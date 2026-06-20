@@ -32,11 +32,6 @@ type OpenAIMessage =
             | { type: "text"; text: string }
             | { type: "image_url"; image_url: { url: string } }
           >;
-    }
-  | {
-      role: "tool";
-      tool_call_id: string;
-      content: string;
     };
 
 type ToolCardDefinition = {
@@ -235,20 +230,6 @@ const toOpenAIMessages = async (
     if (message.role === "assistant") {
       if (message.content) {
         result.push({ role: "assistant", content: message.content });
-      }
-
-      for (const card of message.toolCards ?? []) {
-        if (card.status !== "accepted") continue;
-
-        result.push({
-          role: "tool",
-          tool_call_id: card.id,
-          content: JSON.stringify({
-            status: card.status,
-            type: card.type,
-            payload: card.payload,
-          }),
-        });
       }
 
       continue;
