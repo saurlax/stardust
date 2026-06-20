@@ -216,6 +216,13 @@ export default function JournalScreen() {
             .filter((day) => day.entries.length),
     [days, sourceFilter],
   );
+  const selectedEntry = useMemo(
+    () =>
+      selectedEpisodeId
+        ? days.flatMap((day) => day.entries).find((entry) => entry.id === selectedEpisodeId)
+        : undefined,
+    [days, selectedEpisodeId],
+  );
 
   useEffect(() => {
     if (!selectedEpisodeId) return;
@@ -246,6 +253,21 @@ export default function JournalScreen() {
           <Text className="text-xl font-semibold">{t("journal.headerTitle")}</Text>
           <Text className="mt-1 text-sm text-muted-foreground">{t("journal.subtitle")}</Text>
         </View>
+
+        {selectedEntry ? (
+          <Card className="gap-2 py-4">
+            <CardContent className="gap-2">
+              <View className="flex-row items-center gap-1.5">
+                <Ionicons name={sourceIcons[selectedEntry.source]} size={14} color={iconColor} />
+                <CardDescription>
+                  {t("journal.selectedSource")} · {sourceLabel(selectedEntry.source)} ·{" "}
+                  {formatMonthDay(new Date(selectedEntry.timestamp))}
+                </CardDescription>
+              </View>
+              <Text className="text-sm leading-5">{selectedEntry.note}</Text>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card className="gap-3 py-4">
           <CardHeader className="gap-1">
