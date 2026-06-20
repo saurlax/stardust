@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, useFocusEffect, type Href } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams, type Href } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -93,9 +93,11 @@ function OpenEpisodeButton({ episodeId }: { episodeId?: string }) {
 
 function CandidateCard({
   candidate,
+  highlighted,
   onRefresh,
 }: {
   candidate: MemoryCandidate;
+  highlighted?: boolean;
   onRefresh: () => void;
 }) {
   const db = useSQLiteContext();
@@ -107,7 +109,7 @@ function CandidateCard({
     : undefined;
 
   return (
-    <Card className="gap-3 py-4">
+    <Card className={`gap-3 py-4 ${highlighted ? "border-primary bg-primary/5" : ""}`}>
       <CardHeader className="gap-1">
         <CardDescription>
           {candidate.kind} · {candidate.type}
@@ -496,7 +498,13 @@ function DeviceEventCard({
 
 export default function InboxScreen() {
   const db = useSQLiteContext();
+  const params = useLocalSearchParams<{ tab?: string; candidateId?: string }>();
+  const scrollRef = useRef<ScrollView>(null);
+  const candidateOffsetsRef = useRef(new Map<string, number>());
   const [tab, setTab] = useState<Tab>("pending");
+  const [targetCandidateId, setTargetCandidateId] = useState<string | undefined>(
+    typeof params.candidateId === "string" ? params.candidateId : undefined,
+  );
   const [candidates, setCandidates] = useState<MemoryCandidate[]>([]);
   const [memories, setMemories] = useState<StoredMemory[]>([]);
   const [reflections, setReflections] = useState<ReflectionRecord[]>([]);
@@ -558,6 +566,25 @@ export default function InboxScreen() {
     }, [applyInboxData, clearInboxData, loadInboxData]),
   );
 
+  useEffect(() => {
+    if (params.tab === "pending" || params.tab === "saved" || params.tab === "reflections" || params.tab === "devices") {
+      setTab(params.tab);
+    }
+    if (typeof params.candidateId === "string") {
+      setTargetCandidateId(params.candidateId);
+    }
+  }, [params.candidateId, params.tab]);
+
+  useEffect(() => {
+    if (tab !== "pending" || !targetCandidateId || !candidates.length) return;
+    const timeout = setTimeout(() => {
+      const offset = candidateOffsetsRef.current.get(targetCandidateId);
+      if (offset === undefined) return;
+      scrollRef.current?.scrollTo({ y: Math.max(offset - 96, 0), animated: true });
+    }, 80);
+    return () => clearTimeout(timeout);
+  }, [candidates.length, tab, targetCandidateId]);
+
   const emptyText = useMemo(() => {
     switch (tab) {
       case "saved":
@@ -582,6 +609,7 @@ export default function InboxScreen() {
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <Drawer.Screen options={{ title: t("inbox.title") }} />
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{ gap: 12, padding: 16, paddingBottom: 28 }}
         showsVerticalScrollIndicator={false}
       >
@@ -620,7 +648,18 @@ export default function InboxScreen() {
         </View>
 
         {tab === "pending" && candidates.map((candidate) => (
-          <CandidateCard key={candidate.id} candidate={candidate} onRefresh={refresh} />
+          <View
+            key={candidate.id}
+            onLayout={(event) => {
+              candidateOffsetsRef.current.set(candidate.id, event.nativeEvent.layout.y);
+            }}
+          >
+            <CandidateCard
+              candidate={candidate}
+              highlighted={candidate.id === targetCandidateId}
+              onRefresh={refresh}
+            />
+          </View>
         ))}
         {tab === "saved" &&
           memories.map((memory) => (
@@ -662,8 +701,12 @@ export default function InboxScreen() {
                 onPromoted={() => {
                   refresh();
                   setTab("pending");
+                  setTargetCandidateId(`candidate-${event.id}`);
                 }}
-                onOpenReview={() => setTab("pending")}
+                onOpenReview={() => {
+                  setTab("pending");
+                  setTargetCandidateId(event.candidateId);
+                }}
               />
             ))}
           </View>
