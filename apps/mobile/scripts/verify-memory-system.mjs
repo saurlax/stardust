@@ -83,6 +83,9 @@ assertIncludes(chatScreen, "await saveChatSessionSnapshot(db", "Chat messages mu
 assertIncludes(chatScreen, "setChatError(getErrorMessage(error))", "Chat persistence failures must be visible.");
 assertIncludes(chatScreen, "void updateCandidateStatus(db, cardId, status, nextContent)", "Chat candidate review must persist before updating local cards.");
 assertIncludes(chatScreen, "savedToolCards = []", "Assistant replies must survive candidate persistence failures without showing unsaved cards.");
+assertIncludes(chatScreen, 'title: "Open loops"', "Chat context must separate confirmed open loops.");
+assertIncludes(chatScreen, 'memory.source === "memory" && memory.type === "open_loop"', "Chat context open-loop section must use confirmed open loops.");
+assertIncludes(chatScreen, 'memory.source === "memory" && memory.type !== "open_loop"', "Chat context saved memories must exclude open loops.");
 assertIncludes(chatScreen, "Relationship graph", "Chat context must include retrieved relationship graph knowledge.");
 assertIncludes(chatMessages, "item.nodeId", "Chat memory context must use graph node ids when available.");
 assertIncludes(chatMessages, 'item.source === "relation"', "Chat memory context must handle relation graph results.");

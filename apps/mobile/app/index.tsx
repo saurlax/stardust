@@ -59,8 +59,12 @@ const buildMemoryContext = (
 ) => {
   const sections = [
     {
+      title: "Open loops",
+      items: memories.filter((memory) => memory.source === "memory" && memory.type === "open_loop"),
+    },
+    {
       title: "Saved memories",
-      items: memories.filter((memory) => memory.source === "memory"),
+      items: memories.filter((memory) => memory.source === "memory" && memory.type !== "open_loop"),
     },
     {
       title: "Recent episodes",
