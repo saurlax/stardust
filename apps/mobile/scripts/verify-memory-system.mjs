@@ -97,6 +97,8 @@ assertIncludes(devices, "promotableDeviceEventTypes", "Device event promotion mu
 assertIncludes(ble, "Stardust Sense", "BLE device name must match Stardust Sense.");
 assertIncludes(ble, "sendStardustDeviceCommand", "Mobile BLE commands are missing.");
 assertIncludes(ble, "/^\\d+$/.test", "BLE device uptime timestamps must not be parsed as wall-clock dates.");
+assertIncludes(ble, "syncAfterActivate", "BLE activation must allow command sends without duplicate sync commands.");
+assertIncludes(ble, "activateStardustDevice(db, ble, readyDevice, { syncAfterActivate: false })", "BLE commands must restore subscriptions before writing commands.");
 for (const name of [
   "SERVICE_UUID",
   "STATUS_CHARACTERISTIC_UUID",

@@ -273,6 +273,7 @@ const activateStardustDevice = async (
   db: SQLiteDatabase,
   ble: BleManagerInstance,
   readyDevice: DeviceInstance,
+  options: { syncAfterActivate?: boolean } = {},
 ) => {
   disconnectSubscriptions.get(readyDevice.id)?.remove();
   disconnectSubscriptions.set(readyDevice.id, ble.onDeviceDisconnected(readyDevice.id, () => {
@@ -364,11 +365,13 @@ const activateStardustDevice = async (
     ),
   );
 
-  await readyDevice.writeCharacteristicWithResponseForService(
-    SERVICE_UUID,
-    COMMAND_CHARACTERISTIC_UUID,
-    encodeBase64(JSON.stringify({ type: "sync" })),
-  );
+  if (options.syncAfterActivate ?? true) {
+    await readyDevice.writeCharacteristicWithResponseForService(
+      SERVICE_UUID,
+      COMMAND_CHARACTERISTIC_UUID,
+      encodeBase64(JSON.stringify({ type: "sync" })),
+    );
+  }
 };
 
 export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: string) => {
@@ -394,12 +397,7 @@ export const sendStardustDeviceCommand = async (
   const ble = await getBleManager();
   const device = connectedDevices.get(deviceId) ?? (await ble.connectToDevice(deviceId, { timeout: 10000 }));
   const readyDevice = await device.discoverAllServicesAndCharacteristics();
-  connectedDevices.set(readyDevice.id, readyDevice);
-  await upsertDevice(db, {
-    id: readyDevice.id,
-    name: readyDevice.name ?? STARDUST_DEVICE_NAME,
-    status: "connected",
-  });
+  await activateStardustDevice(db, ble, readyDevice, { syncAfterActivate: false });
   await readyDevice.writeCharacteristicWithResponseForService(
     SERVICE_UUID,
     COMMAND_CHARACTERISTIC_UUID,
