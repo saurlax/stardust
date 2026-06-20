@@ -185,7 +185,9 @@ export default function MemoryScreen() {
   useFocusEffect(refresh);
 
   useEffect(() => {
-    if (targetNodeId) setSelectedNodeId(targetNodeId);
+    if (!targetNodeId) return;
+    setFilter("all");
+    setSelectedNodeId(targetNodeId);
   }, [targetNodeId]);
 
   const visibleMemories = useMemo(
