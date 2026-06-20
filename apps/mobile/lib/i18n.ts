@@ -161,6 +161,7 @@ const translations = {
       entityNodeEmpty: "No relation details yet.",
       relationWeight: "weight",
       nodeEmpty: "No details yet.",
+      openSource: "Open source",
       filter: {
         all: "All",
         preference: "Preference",
@@ -194,6 +195,7 @@ const translations = {
       capturesTitle: "Journal entries",
       timelineTitle: "Episode timeline",
       timelineSubtitle: "Browse every chat, share, image, calendar, device, and journal fragment.",
+      selectedSource: "Selected source",
       journalsTitle: "Journal",
       source: {
         all: "All",
@@ -375,6 +377,7 @@ const translations = {
       entityNodeEmpty: "还没有关系详情。",
       relationWeight: "强度",
       nodeEmpty: "暂无详情。",
+      openSource: "打开来源",
       filter: {
         all: "全部",
         preference: "偏好",
@@ -408,6 +411,7 @@ const translations = {
       capturesTitle: "日志条目",
       timelineTitle: "碎片时间线",
       timelineSubtitle: "查看聊天、分享、图片、日历、设备和日志碎片。",
+      selectedSource: "已选来源",
       journalsTitle: "日志",
       source: {
         all: "全部",

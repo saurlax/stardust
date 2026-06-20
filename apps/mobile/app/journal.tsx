@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -138,6 +138,8 @@ function JournalManager({
 
 export default function JournalScreen() {
   const db = useSQLiteContext();
+  const params = useLocalSearchParams<{ episodeId?: string }>();
+  const selectedEpisodeId = typeof params.episodeId === "string" ? params.episodeId : undefined;
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const [days, setDays] = useState<JournalDay[]>([]);
@@ -176,6 +178,12 @@ export default function JournalScreen() {
   }, [db]);
 
   useFocusEffect(refresh);
+
+  useEffect(() => {
+    if (selectedEpisodeId) {
+      setSourceFilter("all");
+    }
+  }, [selectedEpisodeId]);
 
   const runSearch = useCallback(
     (value: string) => {
@@ -301,12 +309,18 @@ export default function JournalScreen() {
 
               <View className="gap-2.5 pb-3.5 pl-4">
                 {day.entries.map((entry) => (
-                  <Card key={entry.id} className="min-h-[72px] justify-center gap-1 py-4">
+                  <Card
+                    key={entry.id}
+                    className={`min-h-[72px] justify-center gap-1 py-4 ${
+                      entry.id === selectedEpisodeId ? "border-primary bg-primary/5" : ""
+                    }`}
+                  >
                     <CardContent className="gap-1">
                       <View className="flex-row items-center gap-1.5">
                         <Ionicons name={sourceIcons[entry.source]} size={13} color={iconColor} />
                         <CardDescription>
                           {formatTime(new Date(entry.timestamp))} · {sourceLabel(entry.source)}
+                          {entry.id === selectedEpisodeId ? ` · ${t("journal.selectedSource")}` : ""}
                         </CardDescription>
                       </View>
                       <Text className="text-sm leading-5">{entry.note}</Text>

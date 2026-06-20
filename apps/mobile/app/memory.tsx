@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect, type Href } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useMemo, useState } from "react";
@@ -206,6 +206,7 @@ export default function MemoryScreen() {
         description: t("memory.memoryNodeDescription"),
         content: memory.content,
         source: memory.sourceContent,
+        sourceEpisodeId: memory.episodeId,
       };
     }
 
@@ -315,6 +316,22 @@ export default function MemoryScreen() {
                     <Text className="text-xs leading-4 text-muted-foreground">
                       {selectedNode.source}
                     </Text>
+                    {"sourceEpisodeId" in selectedNode && selectedNode.sourceEpisodeId ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-1 self-start"
+                        onPress={() =>
+                          router.push({
+                            pathname: "/journal",
+                            params: { episodeId: selectedNode.sourceEpisodeId },
+                          } as Href)
+                        }
+                      >
+                        <Ionicons name="open-outline" size={14} color={iconColor} />
+                        <Text>{t("memory.openSource")}</Text>
+                      </Button>
+                    ) : null}
                   </View>
                 ) : null}
               </CardContent>
