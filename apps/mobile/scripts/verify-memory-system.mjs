@@ -96,6 +96,9 @@ assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox e
 assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty state must open Settings.");
 assertIncludes(inboxScreen, "pendingKindFilters", "Pending inbox must expose candidate kind filters.");
 assertIncludes(inboxScreen, "visibleCandidates", "Pending inbox must filter candidates before rendering.");
+assertIncludes(inboxScreen, "pendingKindCounts", "Pending inbox filters must expose candidate counts.");
+assertIncludes(inboxScreen, "candidates.filter((candidate) => candidate.kind === kind).length", "Pending inbox filter counts must be kind-specific.");
+assertIncludes(inboxScreen, "pendingKindCounts[kind]", "Pending inbox filter labels must display counts.");
 assertIncludes(inboxScreen, "inbox.pendingFilter", "Pending inbox filters must use localized labels.");
 assertIncludes(inboxScreen, "deviceEventFilters", "Device inbox must expose device event filters.");
 assertIncludes(inboxScreen, "deviceEventFilter", "Device inbox must apply device event filters.");

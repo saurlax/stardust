@@ -688,6 +688,27 @@ export default function InboxScreen() {
         : candidates.filter((candidate) => candidate.kind === pendingKindFilter),
     [candidates, pendingKindFilter],
   );
+  const pendingKindCounts = useMemo(
+    () =>
+      pendingKindFilters.reduce<Record<PendingKindFilter, number>>(
+        (counts, kind) => {
+          counts[kind] =
+            kind === "all"
+              ? candidates.length
+              : candidates.filter((candidate) => candidate.kind === kind).length;
+          return counts;
+        },
+        {
+          all: 0,
+          memory: 0,
+          journal: 0,
+          reflection: 0,
+          entity: 0,
+          open_loop: 0,
+        },
+      ),
+    [candidates],
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
@@ -754,7 +775,7 @@ export default function InboxScreen() {
                   size="sm"
                   onPress={() => setPendingKindFilter(kind)}
                 >
-                  <Text>{t(`inbox.pendingFilter.${kind}`)}</Text>
+                  <Text>{`${t(`inbox.pendingFilter.${kind}`)} ${pendingKindCounts[kind]}`}</Text>
                 </Button>
               ))}
             </View>
