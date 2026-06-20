@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
 import type { MessageToolCard, ToolCardType } from "@/lib/chat/types";
+import { insertMemoryFts, insertReflectionFts } from "@/lib/db/fts";
 import { loadLatestChatSession, saveChatSessionSnapshot } from "@/lib/db/repositories/chatSessions";
 import {
   createDeviceEvent,
@@ -395,34 +396,6 @@ export async function updateCandidateStatus(
       }
     }
   });
-}
-
-async function insertMemoryFts(
-  db: SQLiteDatabase,
-  memory: { id: string; type: string; content: string },
-) {
-  if (!(await isFtsAvailable(db))) return;
-  await db.runAsync("DELETE FROM memory_atoms_fts WHERE memory_id = ?", memory.id);
-  await db.runAsync(
-    "INSERT INTO memory_atoms_fts (memory_id, type, content) VALUES (?, ?, ?)",
-    memory.id,
-    memory.type,
-    memory.content,
-  );
-}
-
-async function insertReflectionFts(
-  db: SQLiteDatabase,
-  reflection: { id: string; title: string; content: string },
-) {
-  if (!(await isFtsAvailable(db))) return;
-  await db.runAsync("DELETE FROM reflections_fts WHERE reflection_id = ?", reflection.id);
-  await db.runAsync(
-    "INSERT INTO reflections_fts (reflection_id, title, content) VALUES (?, ?, ?)",
-    reflection.id,
-    reflection.title,
-    reflection.content,
-  );
 }
 
 export async function getMemoryCandidate(
