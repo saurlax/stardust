@@ -1,5 +1,3 @@
-import type { SQLiteDatabase } from "expo-sqlite";
-
 import {
   createCandidatesFromToolCards,
   getMemoryCandidate,
@@ -33,6 +31,7 @@ import {
 } from "@/lib/db/repositories/memoryRecords";
 import { findRelevantKnowledge } from "@/lib/db/repositories/knowledge";
 import { getPersonalSnapshot } from "@/lib/db/repositories/snapshot";
+import { listJournalDays } from "@/lib/db/repositories/timeline";
 import { migrateDbIfNeeded } from "@/lib/db/schema";
 import type {
   DeviceEventRecord,
@@ -42,7 +41,6 @@ import type {
   Episode,
   EpisodeSource,
   JournalDay,
-  JournalEntry,
   JournalRecord,
   PersonalSnapshot,
   ReflectionRecord,
@@ -66,6 +64,7 @@ export { loadLatestChatSession, saveChatSessionSnapshot };
 export { migrateDbIfNeeded };
 export { findRelevantKnowledge };
 export { getPersonalSnapshot };
+export { listJournalDays };
 export {
   archiveReflection,
   dismissStoredMemory,
@@ -97,39 +96,7 @@ export type {
   StoredMemory,
 } from "@/lib/db/types";
 
-const nowIso = () => new Date().toISOString();
 const createId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 export const createSessionId = () => createId("session");
-
-export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]> {
-  const [episodes, memories] = await Promise.all([listEpisodes(db), listStoredMemories(db)]);
-  const entries: JournalEntry[] = [
-    ...episodes.map((episode) => ({
-      id: episode.id,
-      timestamp: episode.createdAt,
-      note: episode.content,
-      source: episode.source,
-    })),
-    ...memories.map((memory) => ({
-      id: `timeline-${memory.id}`,
-      timestamp: memory.createdAt,
-      note: memory.content,
-      source: "memory" as const,
-    })),
-  ].sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
-
-  const grouped = new Map<string, JournalDay>();
-  for (const entry of entries) {
-    const date = new Date(entry.timestamp);
-    const key = date.toISOString().slice(0, 10);
-    const current = grouped.get(key);
-    if (current) {
-      current.entries.push(entry);
-    } else {
-      grouped.set(key, { date, entries: [entry] });
-    }
-  }
-  return [...grouped.values()].sort((a, b) => b.date.getTime() - a.date.getTime());
-}
