@@ -75,8 +75,10 @@ assertIncludes(graphSource, ".slice(0, 16)", "Memory graph must cap visible enti
 assertIncludes(graphSource, ".slice(0, 24)", "Memory graph must cap visible relation nodes.");
 assertIncludes(graphSource, "memoryTypeLabel", "Memory graph must allow user-facing memory type labels.");
 assertIncludes(graphSource, "relationTypeLabel", "Memory graph must allow user-facing relation labels.");
+assertIncludes(graphSource, 'memory.candidateKind === "open_loop" ? "open_loop"', "Memory graph must group confirmed open loops separately.");
 assertIncludes(memoryScreen, "memoryTypeLabel: getMemoryTypeLabel", "Memory graph screen must localize type node labels.");
 assertIncludes(memoryScreen, "relationTypeLabel: getRelationTypeLabel", "Memory graph screen must localize relation node labels.");
+assertIncludes(memoryScreen, "matchesMemoryType(memory, type)", "Memory graph type details must include open-loop grouped memories.");
 for (const prefix of ["type-", "memory-", "reflection-", "entity-", "relation-"]) {
   assertIncludes(graphSource, prefix, `Memory graph is missing ${prefix} nodes.`);
 }

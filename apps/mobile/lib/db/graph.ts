@@ -4,6 +4,7 @@ import type { EntityRecord, ReflectionRecord, RelationRecord, StoredMemory } fro
 const SELF_ENTITY_ID = "entity-self";
 
 const memoryTypeOrder = [
+  "open_loop",
   "preference",
   "fact",
   "relationship",
@@ -25,6 +26,9 @@ type BuildMemoryTreeOptions = {
 const truncateLabel = (value: string, maxLength: number) =>
   value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
 
+const graphMemoryType = (memory: StoredMemory) =>
+  memory.candidateKind === "open_loop" ? "open_loop" : memory.type;
+
 const tokenize = (value: string) =>
   value
     .toLowerCase()
@@ -44,7 +48,7 @@ export const buildMemoryTree = (
   const typeNodes = new Set<string>();
 
   for (const type of memoryTypeOrder) {
-    if (!visibleMemories.some((memory) => memory.type === type)) continue;
+    if (!visibleMemories.some((memory) => graphMemoryType(memory) === type)) continue;
     typeNodes.add(type);
     nodes.push({
       id: `type-${type}`,
@@ -112,7 +116,8 @@ export const buildMemoryTree = (
     });
 
   visibleMemories.forEach((memory, index) => {
-    const parentId = typeNodes.has(memory.type) ? `type-${memory.type}` : "root";
+    const memoryType = graphMemoryType(memory);
+    const parentId = typeNodes.has(memoryType) ? `type-${memoryType}` : "root";
     const tokens = tokenize(memory.content);
     const related = visibleMemories
       .slice(0, index)

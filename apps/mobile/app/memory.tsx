@@ -58,6 +58,9 @@ const getStoredMemoryTypeLabel = (memory: StoredMemory) =>
     ? t("memory.filter.open_loop")
     : getMemoryTypeLabel(memory.type);
 
+const matchesMemoryType = (memory: StoredMemory, type: string) =>
+  type === "open_loop" ? memory.candidateKind === "open_loop" : memory.type === type;
+
 function FilterButton({
   active,
   label,
@@ -309,7 +312,7 @@ export default function MemoryScreen() {
         title: t(`memory.filter.${type}`),
         description: t("memory.typeNodeDescription"),
         content: visibleMemories
-          .filter((memory) => memory.type === type)
+          .filter((memory) => matchesMemoryType(memory, type))
           .slice(0, 3)
           .map((memory) => memory.content)
           .join("\n"),
