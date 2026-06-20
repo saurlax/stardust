@@ -439,12 +439,33 @@ export default function Index() {
     if (sharedImage?.path) {
       setSelectedImageUri(sharedImage.path);
       setSelectedImageMimeType(sharedImage.mimeType || "image/jpeg");
+      void createEpisode(db, {
+        source: "image",
+        title: t("chat.sharedImageEpisodeTitle"),
+        content: shareIntent.text || shareIntent.webUrl || t("chat.sharedImageEpisodeTitle"),
+        mediaUri: sharedImage.path,
+        metadata: {
+          sessionId: sessionIdRef.current,
+          shareIntent: true,
+          mimeType: sharedImage.mimeType,
+        },
+      }).catch(console.error);
     }
     if (shareIntent.text || shareIntent.webUrl) {
-      setText(shareIntent.text || shareIntent.webUrl || "");
+      const sharedText = shareIntent.text || shareIntent.webUrl || "";
+      setText(sharedText);
+      void createEpisode(db, {
+        source: "share",
+        title: t("chat.sharedTextEpisodeTitle"),
+        content: sharedText,
+        metadata: {
+          sessionId: sessionIdRef.current,
+          shareIntent: true,
+        },
+      }).catch(console.error);
     }
     resetShareIntent();
-  }, [hasShareIntent, ready, resetShareIntent, sending, sessionReady, shareIntent]);
+  }, [db, hasShareIntent, ready, resetShareIntent, sending, sessionReady, shareIntent]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>

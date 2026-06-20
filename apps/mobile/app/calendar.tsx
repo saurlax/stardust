@@ -1,5 +1,6 @@
 import * as Calendar from "expo-calendar";
 import { Drawer } from "expo-router/drawer";
+import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
+import { createEpisode } from "@/lib/db";
 import { formatMonthDay, formatTime, t } from "@/lib/i18n";
 
 type CalendarEvent = {
@@ -125,6 +127,7 @@ const ensureAppCalendarId = async () => {
 };
 
 export default function CalendarScreen() {
+  const db = useSQLiteContext();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const indicatorColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const [loading, setLoading] = useState(true);
@@ -153,9 +156,27 @@ export default function CalendarScreen() {
     const to = new Date(now.getFullYear(), now.getMonth() + 6, 0, 23, 59, 59);
 
     const events = await Calendar.getEventsAsync([calendarId], from, to);
-    const groupedDays = groupEventsByDay(normalizeEvents(events));
+    const normalizedEvents = normalizeEvents(events);
+    await Promise.all(
+      normalizedEvents.map((event) =>
+        createEpisode(db, {
+          id: `episode-calendar-${event.id}`,
+          source: "calendar",
+          title: event.title,
+          content: `${event.title} (${formatTime(event.startDate)} - ${formatTime(event.endDate)})`,
+          metadata: {
+            calendarEventId: event.id,
+            location: event.location,
+            startDate: event.startDate.toISOString(),
+            endDate: event.endDate.toISOString(),
+          },
+          createdAt: event.startDate.toISOString(),
+        }),
+      ),
+    );
+    const groupedDays = groupEventsByDay(normalizedEvents);
     setDays(groupedDays);
-  }, []);
+  }, [db]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);

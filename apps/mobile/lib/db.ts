@@ -544,6 +544,7 @@ export async function saveChatSessionSnapshot(
 
 async function insertEpisodeFts(db: SQLiteDatabase, episode: Episode) {
   if (!(await isFtsAvailable(db))) return;
+  await db.runAsync("DELETE FROM episodes_fts WHERE episode_id = ?", episode.id);
   await db.runAsync(
     `
       INSERT INTO episodes_fts (episode_id, source, title, content)
