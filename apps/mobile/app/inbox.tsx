@@ -30,7 +30,7 @@ import {
   type ReflectionRecord,
   type StoredMemory,
 } from "@/lib/db";
-import { getDeviceCapabilitySummary } from "@/lib/devices/capabilities";
+import { getDeviceCapabilityLabel, getDeviceCapabilitySummary } from "@/lib/devices/capabilities";
 import { t } from "@/lib/i18n";
 import {
   getCandidateKindLabel,
@@ -102,6 +102,14 @@ const getManifestCaptureSourceLines = (metadata?: Record<string, unknown>) => {
   return captureSources
     .filter((source): source is string => typeof source === "string")
     .map((source) => getDeviceEventTypeLabel(source));
+};
+
+const getManifestCapabilityLines = (metadata?: Record<string, unknown>) => {
+  const capabilities = metadata?.capabilities;
+  if (!Array.isArray(capabilities)) return [];
+  return capabilities
+    .filter((capability): capability is string => typeof capability === "string")
+    .map((capability) => getDeviceCapabilityLabel(capability));
 };
 
 function TabButton({
@@ -539,8 +547,10 @@ function DeviceEventCard({
     event.eventType === "manifest" ? getManifestMediaLines(event.metadata) : [];
   const manifestCaptureSourceLines =
     event.eventType === "manifest" ? getManifestCaptureSourceLines(event.metadata) : [];
+  const manifestCapabilityLines =
+    event.eventType === "manifest" ? getManifestCapabilityLines(event.metadata) : [];
   const metadataLines = Object.entries(event.metadata ?? {})
-    .filter(([key]) => key !== "media" && key !== "captureSources")
+    .filter(([key]) => key !== "media" && key !== "captureSources" && key !== "capabilities")
     .slice(0, 5)
     .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`);
 
@@ -572,6 +582,18 @@ function DeviceEventCard({
               {t("inbox.deviceManifestCaptureSources")}
             </Text>
             {manifestCaptureSourceLines.map((line) => (
+              <Text key={line} className="text-xs leading-4 text-muted-foreground">
+                {line}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+        {manifestCapabilityLines.length ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.deviceManifestCapabilities")}
+            </Text>
+            {manifestCapabilityLines.map((line) => (
               <Text key={line} className="text-xs leading-4 text-muted-foreground">
                 {line}
               </Text>

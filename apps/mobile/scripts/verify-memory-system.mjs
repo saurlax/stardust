@@ -240,6 +240,10 @@ assertIncludes(inboxScreen, "inbox.deviceManifestMedia", "Device manifest media 
 assertIncludes(inboxScreen, "getManifestCaptureSourceLines(event.metadata)", "Device manifest capture sources must be summarized.");
 assertIncludes(inboxScreen, 'key !== "captureSources"', "Device manifest capture sources should not be repeated as raw metadata.");
 assertIncludes(inboxScreen, "inbox.deviceManifestCaptureSources", "Device manifest capture sources must have a localized heading.");
+assertIncludes(inboxScreen, "getManifestCapabilityLines(event.metadata)", "Device manifest capabilities must be summarized.");
+assertIncludes(inboxScreen, "getDeviceCapabilityLabel(capability)", "Device manifest capabilities must use friendly labels.");
+assertIncludes(inboxScreen, 'key !== "capabilities"', "Device manifest capabilities should not be repeated as raw metadata.");
+assertIncludes(inboxScreen, "inbox.deviceManifestCapabilities", "Device manifest capabilities must have a localized heading.");
 assertIncludes(settings, "getDeviceKindLabel(device.kind)", "Settings must use user-facing device kind labels.");
 assertIncludes(memoryLabels, "getKnowledgeTypeLabel", "Knowledge search results need shared user-facing type labels.");
 assertIncludes(memoryLabels, "xiao-esp32s3-sense", "Device kind labels must cover Stardust Sense hardware.");
