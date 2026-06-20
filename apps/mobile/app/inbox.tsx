@@ -34,6 +34,11 @@ import { t } from "@/lib/i18n";
 
 type Tab = "pending" | "saved" | "reflections" | "devices";
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message;
+  return t("inbox.actionFailed");
+};
+
 function TabButton({
   active,
   label,
@@ -95,10 +100,12 @@ function CandidateCard({
   candidate,
   highlighted,
   onRefresh,
+  onError,
 }: {
   candidate: MemoryCandidate;
   highlighted?: boolean;
   onRefresh: () => void;
+  onError: (error: unknown) => void;
 }) {
   const db = useSQLiteContext();
   const [editing, setEditing] = useState(false);
@@ -165,7 +172,9 @@ function CandidateCard({
               <Button
                 size="sm"
                 onPress={() => {
-                  void updateCandidateStatus(db, candidate.id, "accepted", draft).then(onRefresh);
+                  void updateCandidateStatus(db, candidate.id, "accepted", draft)
+                    .then(onRefresh)
+                    .catch(onError);
                 }}
               >
                 <Text>{t("inbox.accept")}</Text>
@@ -177,7 +186,9 @@ function CandidateCard({
                 variant="outline"
                 size="sm"
                 onPress={() => {
-                  void updateCandidateStatus(db, candidate.id, "dismissed").then(onRefresh);
+                  void updateCandidateStatus(db, candidate.id, "dismissed")
+                    .then(onRefresh)
+                    .catch(onError);
                 }}
               >
                 <Text>{t("inbox.dismiss")}</Text>
@@ -193,7 +204,9 @@ function CandidateCard({
                     candidate.id,
                     "accepted",
                     card.payload.content,
-                  ).then(onRefresh);
+                  )
+                    .then(onRefresh)
+                    .catch(onError);
                 }}
               >
                 <Text>{t("inbox.accept")}</Text>
@@ -209,9 +222,11 @@ function CandidateCard({
 function MemoryCard({
   memory,
   onRefresh,
+  onError,
 }: {
   memory: StoredMemory;
   onRefresh: () => void;
+  onError: (error: unknown) => void;
 }) {
   const db = useSQLiteContext();
   const [editing, setEditing] = useState(false);
@@ -260,10 +275,12 @@ function MemoryCard({
               <Button
                 size="sm"
                 onPress={() => {
-                  void updateStoredMemoryContent(db, memory.id, draft).then(() => {
-                    setEditing(false);
-                    onRefresh();
-                  });
+                  void updateStoredMemoryContent(db, memory.id, draft)
+                    .then(() => {
+                      setEditing(false);
+                      onRefresh();
+                    })
+                    .catch(onError);
                 }}
               >
                 <Text>{t("inbox.save")}</Text>
@@ -278,7 +295,7 @@ function MemoryCard({
                 variant="outline"
                 size="sm"
                 onPress={() => {
-                  void dismissStoredMemory(db, memory.id).then(onRefresh);
+                  void dismissStoredMemory(db, memory.id).then(onRefresh).catch(onError);
                 }}
               >
                 <Text>{t("inbox.archive")}</Text>
@@ -294,9 +311,11 @@ function MemoryCard({
 function ReflectionCard({
   reflection,
   onRefresh,
+  onError,
 }: {
   reflection: ReflectionRecord;
   onRefresh: () => void;
+  onError: (error: unknown) => void;
 }) {
   const db = useSQLiteContext();
   const [editing, setEditing] = useState(false);
@@ -352,10 +371,12 @@ function ReflectionCard({
               <Button
                 size="sm"
                 onPress={() => {
-                  void updateReflectionContent(db, reflection.id, draftTitle, draftContent).then(() => {
-                    setEditing(false);
-                    onRefresh();
-                  });
+                  void updateReflectionContent(db, reflection.id, draftTitle, draftContent)
+                    .then(() => {
+                      setEditing(false);
+                      onRefresh();
+                    })
+                    .catch(onError);
                 }}
               >
                 <Text>{t("inbox.save")}</Text>
@@ -370,7 +391,7 @@ function ReflectionCard({
                 variant="outline"
                 size="sm"
                 onPress={() => {
-                  void archiveReflection(db, reflection.id).then(onRefresh);
+                  void archiveReflection(db, reflection.id).then(onRefresh).catch(onError);
                 }}
               >
                 <Text>{t("inbox.archive")}</Text>
@@ -418,10 +439,12 @@ function DeviceEventCard({
   event,
   onPromoted,
   onOpenReview,
+  onError,
 }: {
   event: DeviceEventRecord;
   onPromoted: () => void;
   onOpenReview: () => void;
+  onError: (error: unknown) => void;
 }) {
   const db = useSQLiteContext();
   const metadataLines = Object.entries(event.metadata ?? {})
@@ -478,7 +501,7 @@ function DeviceEventCard({
               variant="outline"
               size="sm"
               onPress={() => {
-                void promoteDeviceEventToCandidate(db, event).then(onPromoted);
+                void promoteDeviceEventToCandidate(db, event).then(onPromoted).catch(onError);
               }}
             >
               <Ionicons name="sparkles-outline" size={14} />
@@ -511,6 +534,7 @@ export default function InboxScreen() {
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
   const [deviceEvents, setDeviceEvents] = useState<DeviceEventRecord[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("all");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadInboxData = useCallback(
     () =>
@@ -528,6 +552,7 @@ export default function InboxScreen() {
     ([nextCandidates, nextMemories, nextReflections, nextDevices, nextDeviceEvents]: Awaited<
       ReturnType<typeof loadInboxData>
     >) => {
+      setErrorMessage(null);
       setCandidates(nextCandidates);
       setMemories(nextMemories);
       setReflections(nextReflections);
@@ -545,9 +570,16 @@ export default function InboxScreen() {
     setDeviceEvents([]);
   }, []);
 
+  const handleInboxError = useCallback((error: unknown) => {
+    setErrorMessage(getErrorMessage(error));
+  }, []);
+
   const refresh = useCallback(() => {
-    void loadInboxData().then(applyInboxData).catch(clearInboxData);
-  }, [applyInboxData, clearInboxData, loadInboxData]);
+    void loadInboxData().then(applyInboxData).catch((error) => {
+      clearInboxData();
+      handleInboxError(error);
+    });
+  }, [applyInboxData, clearInboxData, handleInboxError, loadInboxData]);
 
   useFocusEffect(
     useCallback(() => {
@@ -557,7 +589,9 @@ export default function InboxScreen() {
           if (active) applyInboxData(data);
         })
         .catch(() => {
-          if (active) clearInboxData();
+          if (!active) return;
+          clearInboxData();
+          setErrorMessage(t("inbox.loadFailed"));
         });
 
       return () => {
@@ -647,6 +681,19 @@ export default function InboxScreen() {
           />
         </View>
 
+        {errorMessage ? (
+          <Card className="gap-3 border-destructive/50 bg-destructive/5 p-4">
+            <Text className="text-sm font-semibold text-destructive">
+              {t("inbox.errorTitle")}
+            </Text>
+            <Text className="text-sm text-destructive">{errorMessage}</Text>
+            <Button variant="outline" size="sm" className="self-start" onPress={refresh}>
+              <Ionicons name="refresh-outline" size={14} />
+              <Text>{t("inbox.retry")}</Text>
+            </Button>
+          </Card>
+        ) : null}
+
         {tab === "pending" && candidates.map((candidate) => (
           <View
             key={candidate.id}
@@ -658,16 +705,22 @@ export default function InboxScreen() {
               candidate={candidate}
               highlighted={candidate.id === targetCandidateId}
               onRefresh={refresh}
+              onError={handleInboxError}
             />
           </View>
         ))}
         {tab === "saved" &&
           memories.map((memory) => (
-            <MemoryCard key={memory.id} memory={memory} onRefresh={refresh} />
+            <MemoryCard key={memory.id} memory={memory} onRefresh={refresh} onError={handleInboxError} />
           ))}
         {tab === "reflections" &&
           reflections.map((reflection) => (
-            <ReflectionCard key={reflection.id} reflection={reflection} onRefresh={refresh} />
+            <ReflectionCard
+              key={reflection.id}
+              reflection={reflection}
+              onRefresh={refresh}
+              onError={handleInboxError}
+            />
           ))}
         {tab === "devices" && devices.map((device) => <DeviceCard key={device.id} device={device} />)}
         {tab === "devices" && deviceEvents.length ? (
@@ -707,6 +760,7 @@ export default function InboxScreen() {
                   setTab("pending");
                   setTargetCandidateId(event.candidateId);
                 }}
+                onError={handleInboxError}
               />
             ))}
           </View>
