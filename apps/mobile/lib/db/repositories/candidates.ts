@@ -12,6 +12,40 @@ const nowIso = () => new Date().toISOString();
 const createEntityId = (type: string, name: string, fallbackId: string) =>
   `entity-${type}-${name.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-").replace(/^-+|-+$/g, "") || fallbackId}`;
 
+async function upsertEntity(
+  db: SQLiteDatabase,
+  {
+    id,
+    name,
+    type,
+    updatedAt,
+  }: {
+    id: string;
+    name: string;
+    type: string;
+    updatedAt: string;
+  },
+) {
+  await db.runAsync(
+    `
+      INSERT INTO entities (entity_id, name, type, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(name, type) DO UPDATE SET updated_at = excluded.updated_at
+    `,
+    id,
+    name,
+    type,
+    updatedAt,
+    updatedAt,
+  );
+  const row = await db.getFirstAsync<{ entity_id: string }>(
+    "SELECT entity_id FROM entities WHERE name = ? AND type = ? LIMIT 1",
+    name,
+    type,
+  );
+  return row?.entity_id ?? id;
+}
+
 async function syncCandidateToolCardSnapshot(
   db: SQLiteDatabase,
   candidate: MemoryCandidate,
@@ -240,7 +274,6 @@ export async function updateCandidateStatus(
       const entityName = candidate.title.trim() || content;
       const entityType = candidate.type || "topic";
       const entityId = createEntityId(entityType, entityName, candidateId);
-      const relationId = `relation-self-${entityId}`;
       const relationTarget =
         typeof candidate.metadata?.relationTarget === "string"
           ? candidate.metadata.relationTarget.trim()
@@ -253,29 +286,18 @@ export async function updateCandidateStatus(
         typeof candidate.metadata?.relationType === "string"
           ? candidate.metadata.relationType.trim() || "related"
           : "related";
-      await db.runAsync(
-        `
-          INSERT INTO entities (entity_id, name, type, created_at, updated_at)
-          VALUES (?, ?, 'person', ?, ?)
-          ON CONFLICT(name, type) DO UPDATE SET updated_at = excluded.updated_at
-        `,
-        SELF_ENTITY_ID,
-        "you",
+      const selfEntityId = await upsertEntity(db, {
+        id: SELF_ENTITY_ID,
+        name: "you",
+        type: "person",
         updatedAt,
+      });
+      const resolvedEntityId = await upsertEntity(db, {
+        id: entityId,
+        name: entityName,
+        type: entityType,
         updatedAt,
-      );
-      await db.runAsync(
-        `
-          INSERT INTO entities (entity_id, name, type, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?)
-          ON CONFLICT(name, type) DO UPDATE SET updated_at = excluded.updated_at
-        `,
-        entityId,
-        entityName,
-        entityType,
-        updatedAt,
-        updatedAt,
-      );
+      });
       await db.runAsync(
         `
           INSERT INTO relations (
@@ -286,9 +308,9 @@ export async function updateCandidateStatus(
             weight = relations.weight + 1,
             updated_at = excluded.updated_at
         `,
-        relationId,
-        SELF_ENTITY_ID,
-        entityId,
+        `relation-${selfEntityId}-${resolvedEntityId}`,
+        selfEntityId,
+        resolvedEntityId,
         "noticed",
         updatedAt,
         updatedAt,
@@ -296,18 +318,12 @@ export async function updateCandidateStatus(
 
       if (relationTarget && relationTarget.toLowerCase() !== entityName.toLowerCase()) {
         const targetEntityId = createEntityId(relationTargetType, relationTarget, candidateId);
-        await db.runAsync(
-          `
-            INSERT INTO entities (entity_id, name, type, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(name, type) DO UPDATE SET updated_at = excluded.updated_at
-          `,
-          targetEntityId,
-          relationTarget,
-          relationTargetType,
+        const resolvedTargetEntityId = await upsertEntity(db, {
+          id: targetEntityId,
+          name: relationTarget,
+          type: relationTargetType,
           updatedAt,
-          updatedAt,
-        );
+        });
         await db.runAsync(
           `
             INSERT INTO relations (
@@ -318,9 +334,9 @@ export async function updateCandidateStatus(
               weight = relations.weight + 1,
               updated_at = excluded.updated_at
           `,
-          `relation-${entityId}-${targetEntityId}-${relationType.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-") || "related"}`,
-          entityId,
-          targetEntityId,
+          `relation-${resolvedEntityId}-${resolvedTargetEntityId}-${relationType.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-") || "related"}`,
+          resolvedEntityId,
+          resolvedTargetEntityId,
           relationType,
           updatedAt,
           updatedAt,
