@@ -233,6 +233,14 @@ export function ChatMessages({
                           className="mt-2 h-[200px] w-[200px] rounded-md bg-muted"
                         />
                       ) : null}
+                      {item.role === "assistant" && item.memoryContextCount ? (
+                        <View className="mt-2 flex-row items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-1.5">
+                          <Ionicons name="sparkles-outline" size={12} color={mutedColor} />
+                          <Text className="text-xs text-muted-foreground">
+                            {`${item.memoryContextCount} ${t("chat.memoryContextUsed")}`}
+                          </Text>
+                        </View>
+                      ) : null}
                       {item.role === "assistant" && item.toolCards?.length ? (
                         <View className="mt-3 gap-2 rounded-lg border border-border bg-muted/60 p-3">
                           <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

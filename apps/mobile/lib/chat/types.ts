@@ -47,5 +47,6 @@ export type ChatMessage = {
     imageMimeType?: string;
     episodeId?: string;
   };
+  memoryContextCount?: number;
   toolCards?: MessageToolCard[];
 };

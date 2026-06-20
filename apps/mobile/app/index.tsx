@@ -238,7 +238,13 @@ export default function Index() {
       let streamedContent = "";
 
       try {
-        const memoryContext = buildMemoryContext(await findRelevantKnowledge(db, request.prompt));
+        const relevantKnowledge = await findRelevantKnowledge(db, request.prompt);
+        const memoryContext = buildMemoryContext(relevantKnowledge);
+
+        replaceMessage(assistantId, (message) => ({
+          ...message,
+          memoryContextCount: relevantKnowledge.length,
+        }));
 
         const result = await sendChatRequest({
           chatId: chatIdRef.current,
@@ -271,6 +277,7 @@ export default function Index() {
           content: result.content,
           status: "done",
           error: undefined,
+          memoryContextCount: relevantKnowledge.length,
           toolCards: result.toolCards,
         };
 
