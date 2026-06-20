@@ -136,6 +136,7 @@ export type RelationRecord = {
 export type DeviceEventRecord = {
   id: string;
   deviceId: string;
+  deviceName?: string;
   eventType: string;
   content: string;
   metadata?: Record<string, unknown>;
@@ -1811,19 +1812,29 @@ export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventR
   const rows = await db.getAllAsync<{
     device_event_id: string;
     device_id: string;
+    device_name: string | null;
     event_type: string;
     content: string;
     metadata_json: string | null;
     created_at: string;
   }>(`
-    SELECT device_event_id, device_id, event_type, content, metadata_json, created_at
+    SELECT
+      device_events.device_event_id AS device_event_id,
+      device_events.device_id AS device_id,
+      devices.name AS device_name,
+      device_events.event_type AS event_type,
+      device_events.content AS content,
+      device_events.metadata_json AS metadata_json,
+      device_events.created_at AS created_at
     FROM device_events
-    ORDER BY created_at DESC
+    LEFT JOIN devices ON devices.device_id = device_events.device_id
+    ORDER BY device_events.created_at DESC
     LIMIT 80
   `);
   return rows.map((row) => ({
     id: row.device_event_id,
     deviceId: row.device_id,
+    deviceName: row.device_name ?? undefined,
     eventType: row.event_type,
     content: row.content,
     metadata: parseJson(row.metadata_json),

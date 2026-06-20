@@ -377,7 +377,10 @@ function DeviceEventCard({ event }: { event: DeviceEventRecord }) {
     <Card className="gap-2 py-4">
       <CardContent className="gap-3">
         <CardDescription>
-          {event.eventType} · {new Date(event.createdAt).toLocaleString()}
+          {event.eventType}
+          {event.deviceName ? ` · ${event.deviceName}` : ""}
+          {" · "}
+          {new Date(event.createdAt).toLocaleString()}
         </CardDescription>
         <Text className="text-sm leading-5">{event.content}</Text>
         {metadataLines.length ? (
