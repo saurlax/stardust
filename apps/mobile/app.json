@@ -28,7 +28,14 @@
     "plugins": [
       "expo-router",
       "expo-calendar",
-      "react-native-ble-plx",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": true,
+          "modes": ["central"],
+          "bluetoothAlwaysPermission": "Allow Stardust to connect to Stardust Sense devices."
+        }
+      ],
       [
         "expo-share-intent",
         {

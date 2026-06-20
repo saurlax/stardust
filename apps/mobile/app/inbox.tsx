@@ -12,12 +12,14 @@ import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import {
   listDevices,
+  listDeviceEvents,
   listMemoryCandidates,
   listReflections,
   listStoredMemories,
   toToolCardsFromCandidates,
   updateCandidateStatus,
   type DeviceRecord,
+  type DeviceEventRecord,
   type MemoryCandidate,
   type ReflectionRecord,
   type StoredMemory,
@@ -190,6 +192,19 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
   );
 }
 
+function DeviceEventCard({ event }: { event: DeviceEventRecord }) {
+  return (
+    <Card className="gap-2 py-4">
+      <CardContent className="gap-2">
+        <CardDescription>
+          {event.eventType} · {new Date(event.createdAt).toLocaleString()}
+        </CardDescription>
+        <Text className="text-sm leading-5">{event.content}</Text>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function InboxScreen() {
   const db = useSQLiteContext();
   const [tab, setTab] = useState<Tab>("pending");
@@ -197,6 +212,7 @@ export default function InboxScreen() {
   const [memories, setMemories] = useState<StoredMemory[]>([]);
   const [reflections, setReflections] = useState<ReflectionRecord[]>([]);
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
+  const [deviceEvents, setDeviceEvents] = useState<DeviceEventRecord[]>([]);
 
   const refresh = useCallback(() => {
     let active = true;
@@ -205,13 +221,15 @@ export default function InboxScreen() {
       listStoredMemories(db),
       listReflections(db),
       listDevices(db),
+      listDeviceEvents(db),
     ])
-      .then(([nextCandidates, nextMemories, nextReflections, nextDevices]) => {
+      .then(([nextCandidates, nextMemories, nextReflections, nextDevices, nextDeviceEvents]) => {
         if (!active) return;
         setCandidates(nextCandidates);
         setMemories(nextMemories);
         setReflections(nextReflections);
         setDevices(nextDevices);
+        setDeviceEvents(nextDeviceEvents);
       })
       .catch(() => {
         if (!active) return;
@@ -219,6 +237,7 @@ export default function InboxScreen() {
         setMemories([]);
         setReflections([]);
         setDevices([]);
+        setDeviceEvents([]);
       });
 
     return () => {
@@ -291,11 +310,19 @@ export default function InboxScreen() {
             <ReflectionCard key={reflection.id} reflection={reflection} />
           ))}
         {tab === "devices" && devices.map((device) => <DeviceCard key={device.id} device={device} />)}
+        {tab === "devices" && deviceEvents.length ? (
+          <View className="gap-2">
+            <Text className="px-0.5 text-lg font-semibold">{t("inbox.deviceEvents")}</Text>
+            {deviceEvents.map((event) => (
+              <DeviceEventCard key={event.id} event={event} />
+            ))}
+          </View>
+        ) : null}
 
         {((tab === "pending" && !candidates.length) ||
           (tab === "saved" && !memories.length) ||
           (tab === "reflections" && !reflections.length) ||
-          (tab === "devices" && !devices.length)) ? (
+          (tab === "devices" && !devices.length && !deviceEvents.length)) ? (
           <Card className="min-h-24 items-center justify-center px-4">
             <Text variant="muted">{emptyText}</Text>
           </Card>

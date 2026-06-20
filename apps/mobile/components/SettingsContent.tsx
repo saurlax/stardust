@@ -15,7 +15,11 @@ import { testLocalConnection } from "@/lib/api";
 import type { AiConfig } from "@/lib/config";
 import { getCachedAiConfig, getConfigValidationError } from "@/lib/config";
 import { listDevices, type DeviceRecord } from "@/lib/db";
-import { scanStardustDevices, subscribeToStardustDevice } from "@/lib/devices/ble";
+import {
+  scanStardustDevices,
+  sendStardustDeviceCommand,
+  subscribeToStardustDevice,
+} from "@/lib/devices/ble";
 import { t } from "@/lib/i18n";
 
 type SettingsFieldProps = React.ComponentProps<typeof Input> & {
@@ -164,6 +168,15 @@ export function SettingsContent() {
     }
   };
 
+  const onCaptureDevice = async (device: DeviceRecord) => {
+    try {
+      await sendStardustDeviceCommand(db, device.id, "capture");
+      showToast(t("settings.deviceCaptureSent"), "success");
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    }
+  };
+
   return (
     <>
       <Toast visible={toast.visible} message={toast.message} tone={toast.tone} />
@@ -239,13 +252,22 @@ export function SettingsContent() {
                     <Text className="text-xs text-muted-foreground">
                       {device.kind} · {device.status}
                     </Text>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onPress={() => void onSubscribeDevice(device)}
-                    >
-                      <Text>{t("settings.subscribeDevice")}</Text>
-                    </Button>
+                    <View className="flex-row flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onPress={() => void onSubscribeDevice(device)}
+                      >
+                        <Text>{t("settings.subscribeDevice")}</Text>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onPress={() => void onCaptureDevice(device)}
+                      >
+                        <Text>{t("settings.captureDevice")}</Text>
+                      </Button>
+                    </View>
                   </View>
                 ))
               ) : (

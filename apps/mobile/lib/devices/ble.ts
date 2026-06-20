@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 import type { SQLiteDatabase } from "expo-sqlite";
 
-import { createDeviceEvent, upsertDevice } from "@/lib/db";
+import { createDeviceEvent, updateDeviceStatus, upsertDevice } from "@/lib/db";
 
 const STARDUST_DEVICE_NAME = "Stardust Sense";
 const SERVICE_UUID = "7b3f4a10-9d62-4a7d-a0d9-2ffb9239c4d1";
@@ -65,6 +65,12 @@ const getBleManager = async () => {
   }
 };
 
+const normalizeEventTimestamp = (value?: string) => {
+  if (!value) return undefined;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : undefined;
+};
+
 export const scanStardustDevices = async (db: SQLiteDatabase) => {
   const ble = await getBleManager();
   const found = new Map<string, { id: string; name: string }>();
@@ -101,6 +107,9 @@ export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: st
   const ble = await getBleManager();
   const device = await ble.connectToDevice(deviceId, { timeout: 10000 });
   const readyDevice = await device.discoverAllServicesAndCharacteristics();
+  ble.onDeviceDisconnected(readyDevice.id, () => {
+    void updateDeviceStatus(db, readyDevice.id, "disconnected");
+  });
   await upsertDevice(db, {
     id: readyDevice.id,
     name: readyDevice.name ?? STARDUST_DEVICE_NAME,
@@ -147,8 +156,11 @@ export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: st
           deviceId: readyDevice.id,
           eventType: event.type ?? "capture",
           content: event.content ?? "Screen-off capture",
-          metadata: event.metadata,
-          createdAt: event.ts,
+          metadata: {
+            ...(event.metadata ?? {}),
+            deviceTimestamp: event.ts,
+          },
+          createdAt: normalizeEventTimestamp(event.ts),
         });
       } catch {
         // Ignore malformed event payloads.
@@ -160,5 +172,25 @@ export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: st
     SERVICE_UUID,
     COMMAND_CHARACTERISTIC_UUID,
     encodeBase64(JSON.stringify({ type: "sync" })),
+  );
+};
+
+export const sendStardustDeviceCommand = async (
+  db: SQLiteDatabase,
+  deviceId: string,
+  command: "capture" | "sync" | "sleep",
+) => {
+  const ble = await getBleManager();
+  const device = await ble.connectToDevice(deviceId, { timeout: 10000 });
+  const readyDevice = await device.discoverAllServicesAndCharacteristics();
+  await upsertDevice(db, {
+    id: readyDevice.id,
+    name: readyDevice.name ?? STARDUST_DEVICE_NAME,
+    status: "connected",
+  });
+  await readyDevice.writeCharacteristicWithResponseForService(
+    SERVICE_UUID,
+    COMMAND_CHARACTERISTIC_UUID,
+    encodeBase64(JSON.stringify({ type: command })),
   );
 };

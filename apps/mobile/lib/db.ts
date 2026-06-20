@@ -105,6 +105,14 @@ export type DeviceRecord = {
   firmwareVersion?: string;
 };
 
+export type EntityRecord = {
+  id: string;
+  name: string;
+  type: string;
+  createdAt: string;
+  updatedAt?: string;
+};
+
 export type DeviceEventRecord = {
   id: string;
   deviceId: string;
@@ -752,6 +760,22 @@ export async function updateCandidateStatus(
         content,
       });
     }
+
+    if (candidate.kind === "entity") {
+      const entityId = `entity-${candidate.type}-${content.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-").replace(/^-+|-+$/g, "") || candidateId}`;
+      await db.runAsync(
+        `
+          INSERT INTO entities (entity_id, name, type, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(name, type) DO UPDATE SET updated_at = excluded.updated_at
+        `,
+        entityId,
+        content,
+        candidate.type || "topic",
+        updatedAt,
+        updatedAt,
+      );
+    }
   });
 }
 
@@ -910,6 +934,29 @@ export async function listReflections(db: SQLiteDatabase): Promise<ReflectionRec
     title: row.title,
     content: row.content,
     status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export async function listEntities(db: SQLiteDatabase): Promise<EntityRecord[]> {
+  const rows = await db.getAllAsync<{
+    entity_id: string;
+    name: string;
+    type: string;
+    created_at: string;
+    updated_at: string;
+  }>(`
+    SELECT entity_id, name, type, created_at, updated_at
+    FROM entities
+    ORDER BY updated_at DESC
+    LIMIT 80
+  `);
+
+  return rows.map((row) => ({
+    id: row.entity_id,
+    name: row.name,
+    type: row.type,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
@@ -1317,6 +1364,23 @@ export async function upsertDevice(
   );
 }
 
+export async function updateDeviceStatus(
+  db: SQLiteDatabase,
+  deviceId: string,
+  status: DeviceStatus,
+) {
+  await db.runAsync(
+    `
+      UPDATE devices
+      SET status = ?, updated_at = ?
+      WHERE device_id = ?
+    `,
+    status,
+    nowIso(),
+    deviceId,
+  );
+}
+
 export async function createDeviceEvent(
   db: SQLiteDatabase,
   input: {
@@ -1383,6 +1447,7 @@ export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventR
 export const buildMemoryTree = (
   memories: StoredMemory[],
   reflections: ReflectionRecord[] = [],
+  entities: EntityRecord[] = [],
 ): NebulaTree => {
   const nodes: NebulaTree["nodes"] = [{ id: "root", title: "you", size: 10 }];
   const visibleMemories = memories.slice(0, 48);
@@ -1406,6 +1471,15 @@ export const buildMemoryTree = (
       title: reflection.title.length > 18 ? `${reflection.title.slice(0, 18)}...` : reflection.title,
       linksTo: ["root"],
       size: 8 - index * 0.15,
+    });
+  });
+
+  entities.slice(0, 16).forEach((entity, index) => {
+    nodes.push({
+      id: `entity-${entity.id}`,
+      title: entity.name.length > 18 ? `${entity.name.slice(0, 18)}...` : entity.name,
+      linksTo: ["root"],
+      size: 6.8 - Math.min(index, 12) * 0.08,
     });
   });
 

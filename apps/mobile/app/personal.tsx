@@ -12,6 +12,7 @@ import { Text } from "@/components/ui/text";
 import {
   buildMemoryTree,
   getPersonalSnapshot,
+  listEntities,
   listJournalRecords,
   listReflections,
   listStoredMemories,
@@ -48,11 +49,12 @@ export default function PersonalScreen() {
         listStoredMemories(db),
         listJournalRecords(db),
         listReflections(db),
+        listEntities(db),
       ])
-        .then(([nextSnapshot, memories, journals, reflections]) => {
+        .then(([nextSnapshot, memories, journals, reflections, entities]) => {
           if (!active) return;
           setSnapshot(nextSnapshot);
-          setMemoryTree(buildMemoryTree(memories, reflections));
+          setMemoryTree(buildMemoryTree(memories, reflections, entities));
           setRecentMemories(memories.slice(0, 3));
           setRecentJournals(journals.slice(0, 3));
         })

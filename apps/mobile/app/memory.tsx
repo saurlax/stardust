@@ -14,8 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   buildMemoryTree,
   dismissStoredMemory,
+  listEntities,
   listReflections,
   listStoredMemories,
+  type EntityRecord,
   type ReflectionRecord,
   type StoredMemory,
   updateStoredMemoryContent,
@@ -121,21 +123,24 @@ export default function MemoryScreen() {
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const [memories, setMemories] = useState<StoredMemory[]>([]);
   const [reflections, setReflections] = useState<ReflectionRecord[]>([]);
+  const [entities, setEntities] = useState<EntityRecord[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
 
   const refresh = useCallback(() => {
     let active = true;
 
-    Promise.all([listStoredMemories(db), listReflections(db)])
-      .then(([nextMemories, nextReflections]) => {
+    Promise.all([listStoredMemories(db), listReflections(db), listEntities(db)])
+      .then(([nextMemories, nextReflections, nextEntities]) => {
         if (!active) return;
         setMemories(nextMemories);
         setReflections(nextReflections);
+        setEntities(nextEntities);
       })
       .catch(() => {
         if (!active) return;
         setMemories([]);
         setReflections([]);
+        setEntities([]);
       });
 
     return () => {
@@ -150,8 +155,8 @@ export default function MemoryScreen() {
     [filter, memories],
   );
   const memoryTree = useMemo(
-    () => buildMemoryTree(visibleMemories, reflections),
-    [reflections, visibleMemories],
+    () => buildMemoryTree(visibleMemories, reflections, entities),
+    [entities, reflections, visibleMemories],
   );
 
   return (
@@ -199,6 +204,10 @@ export default function MemoryScreen() {
             <Card className="flex-1 px-3 py-3">
               <CardDescription>{t("memory.reflectionCount")}</CardDescription>
               <Text className="text-2xl font-semibold">{reflections.length}</Text>
+            </Card>
+            <Card className="flex-1 px-3 py-3">
+              <CardDescription>{t("memory.entityCount")}</CardDescription>
+              <Text className="text-2xl font-semibold">{entities.length}</Text>
             </Card>
           </View>
 
