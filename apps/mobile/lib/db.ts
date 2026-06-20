@@ -1099,6 +1099,51 @@ export async function listReflections(db: SQLiteDatabase): Promise<ReflectionRec
   }));
 }
 
+export async function updateReflectionContent(
+  db: SQLiteDatabase,
+  reflectionId: string,
+  title: string,
+  content: string,
+) {
+  const nextTitle = title.trim();
+  const nextContent = content.trim();
+  if (!nextTitle || !nextContent) return;
+  const updatedAt = nowIso();
+
+  await db.runAsync(
+    `
+      UPDATE reflections
+      SET title = ?, content = ?, updated_at = ?
+      WHERE reflection_id = ? AND status = 'active'
+    `,
+    nextTitle,
+    nextContent,
+    updatedAt,
+    reflectionId,
+  );
+  await insertReflectionFts(db, {
+    id: reflectionId,
+    title: nextTitle,
+    content: nextContent,
+  });
+}
+
+export async function archiveReflection(db: SQLiteDatabase, reflectionId: string) {
+  const updatedAt = nowIso();
+  await db.runAsync(
+    `
+      UPDATE reflections
+      SET status = 'archived', updated_at = ?
+      WHERE reflection_id = ?
+    `,
+    updatedAt,
+    reflectionId,
+  );
+  if (await isFtsAvailable(db)) {
+    await db.runAsync("DELETE FROM reflections_fts WHERE reflection_id = ?", reflectionId);
+  }
+}
+
 export async function listEntities(db: SQLiteDatabase): Promise<EntityRecord[]> {
   const rows = await db.getAllAsync<{
     entity_id: string;

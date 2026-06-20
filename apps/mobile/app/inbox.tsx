@@ -8,9 +8,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  archiveReflection,
   listDevices,
   listDeviceEvents,
   listMemoryCandidates,
@@ -18,6 +20,7 @@ import {
   listStoredMemories,
   toToolCardsFromCandidates,
   updateCandidateStatus,
+  updateReflectionContent,
   type DeviceRecord,
   type DeviceEventRecord,
   type MemoryCandidate,
@@ -185,15 +188,81 @@ function MemoryCard({ memory }: { memory: StoredMemory }) {
   );
 }
 
-function ReflectionCard({ reflection }: { reflection: ReflectionRecord }) {
+function ReflectionCard({
+  reflection,
+  onRefresh,
+}: {
+  reflection: ReflectionRecord;
+  onRefresh: () => void;
+}) {
+  const db = useSQLiteContext();
+  const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(reflection.title);
+  const [draftContent, setDraftContent] = useState(reflection.content);
+
   return (
     <Card className="gap-2 py-4">
       <CardHeader className="gap-1">
         <CardDescription>{new Date(reflection.createdAt).toLocaleDateString()}</CardDescription>
-        <CardTitle className="text-base">{reflection.title}</CardTitle>
+        {editing ? (
+          <Input value={draftTitle} onChangeText={setDraftTitle} />
+        ) : (
+          <CardTitle className="text-base">{reflection.title}</CardTitle>
+        )}
       </CardHeader>
-      <CardContent>
-        <Text className="text-sm leading-5">{reflection.content}</Text>
+      <CardContent className="gap-3">
+        {editing ? (
+          <Textarea
+            value={draftContent}
+            onChangeText={setDraftContent}
+            className="min-h-24 rounded-md bg-background"
+          />
+        ) : (
+          <Text className="text-sm leading-5">{reflection.content}</Text>
+        )}
+        <View className="flex-row flex-wrap gap-2">
+          {editing ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={() => {
+                  setEditing(false);
+                  setDraftTitle(reflection.title);
+                  setDraftContent(reflection.content);
+                }}
+              >
+                <Text>{t("inbox.cancel")}</Text>
+              </Button>
+              <Button
+                size="sm"
+                onPress={() => {
+                  void updateReflectionContent(db, reflection.id, draftTitle, draftContent).then(() => {
+                    setEditing(false);
+                    onRefresh();
+                  });
+                }}
+              >
+                <Text>{t("inbox.save")}</Text>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onPress={() => setEditing(true)}>
+                <Text>{t("inbox.edit")}</Text>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={() => {
+                  void archiveReflection(db, reflection.id).then(onRefresh);
+                }}
+              >
+                <Text>{t("inbox.archive")}</Text>
+              </Button>
+            </>
+          )}
+        </View>
       </CardContent>
     </Card>
   );
@@ -330,7 +399,7 @@ export default function InboxScreen() {
         {tab === "saved" && memories.map((memory) => <MemoryCard key={memory.id} memory={memory} />)}
         {tab === "reflections" &&
           reflections.map((reflection) => (
-            <ReflectionCard key={reflection.id} reflection={reflection} />
+            <ReflectionCard key={reflection.id} reflection={reflection} onRefresh={refresh} />
           ))}
         {tab === "devices" && devices.map((device) => <DeviceCard key={device.id} device={device} />)}
         {tab === "devices" && deviceEvents.length ? (
