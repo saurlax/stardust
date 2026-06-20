@@ -10,12 +10,14 @@ export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]>
     ...episodes.map((episode) => ({
       id: episode.id,
       timestamp: episode.createdAt,
+      title: episode.title,
       note: episode.content,
       source: episode.source,
     })),
     ...memories.map((memory) => ({
       id: `timeline-${memory.id}`,
       timestamp: memory.createdAt,
+      title: memory.candidateKind === "open_loop" ? "open_loop" : memory.type,
       note: memory.content,
       source: "memory" as const,
     })),

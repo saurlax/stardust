@@ -12,7 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMonthDay, formatTime, t } from "@/lib/i18n";
-import { getKnowledgeTypeLabel } from "@/lib/memoryLabels";
+import {
+  getDeviceEventTypeLabel,
+  getKnowledgeTypeLabel,
+  getMemoryTypeLabel,
+} from "@/lib/memoryLabels";
 import {
   findRelevantKnowledge,
   listJournalDays,
@@ -37,6 +41,13 @@ const sourceIcons: Record<Exclude<SourceFilter, "all">, keyof typeof Ionicons.gl
 
 function sourceLabel(source: SourceFilter) {
   return t(`journal.source.${source}`);
+}
+
+function entryTitle(entry: JournalDay["entries"][number]) {
+  if (!entry.title) return undefined;
+  if (entry.source === "iot") return getDeviceEventTypeLabel(entry.title);
+  if (entry.source === "memory") return getMemoryTypeLabel(entry.title);
+  return entry.title;
 }
 
 const getErrorMessage = (error: unknown) => {
@@ -337,6 +348,9 @@ export default function JournalScreen() {
                   {formatMonthDay(new Date(selectedEntry.timestamp))}
                 </CardDescription>
               </View>
+              {entryTitle(selectedEntry) ? (
+                <Text className="text-sm font-semibold">{entryTitle(selectedEntry)}</Text>
+              ) : null}
               <Text className="text-sm leading-5">{selectedEntry.note}</Text>
             </CardContent>
           </Card>
@@ -487,6 +501,9 @@ export default function JournalScreen() {
                           {entry.id === selectedEpisodeId ? ` · ${t("journal.selectedSource")}` : ""}
                         </CardDescription>
                       </View>
+                      {entryTitle(entry) ? (
+                        <Text className="text-sm font-semibold">{entryTitle(entry)}</Text>
+                      ) : null}
                       <Text className="text-sm leading-5">{entry.note}</Text>
                     </CardContent>
                   </Card>

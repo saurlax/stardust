@@ -179,6 +179,7 @@ export type JournalRecord = {
 export type JournalEntry = {
   id: string;
   timestamp: string;
+  title?: string;
   note: string;
   source: EpisodeSource | "memory";
 };

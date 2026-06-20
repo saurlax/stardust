@@ -15,6 +15,7 @@ const devices = read(mobileRoot, "lib", "db", "repositories", "devices.ts");
 const deviceCapabilities = read(mobileRoot, "lib", "devices", "capabilities.ts");
 const episodes = read(mobileRoot, "lib", "db", "repositories", "episodes.ts");
 const knowledge = read(mobileRoot, "lib", "db", "repositories", "knowledge.ts");
+const timeline = read(mobileRoot, "lib", "db", "repositories", "timeline.ts");
 const snapshot = read(mobileRoot, "lib", "db", "repositories", "snapshot.ts");
 const memoryRecords = read(mobileRoot, "lib", "db", "repositories", "memoryRecords.ts");
 const ble = read(mobileRoot, "lib", "devices", "ble.ts");
@@ -97,6 +98,10 @@ assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be 
 assertIncludes(journalScreen, "sourceCounts", "Episode timeline source filters must expose counts.");
 assertIncludes(journalScreen, "sourceCounts[source]", "Episode timeline source filter labels must display counts.");
 assertIncludes(journalScreen, "entries.filter((entry) => entry.source === source).length", "Episode timeline source counts must be source-specific.");
+assertIncludes(timeline, "title: episode.title", "Episode timeline entries must preserve episode titles.");
+assertIncludes(timeline, 'title: memory.candidateKind === "open_loop"', "Memory timeline entries must preserve memory type labels.");
+assertIncludes(journalScreen, "function entryTitle", "Journal timeline must render user-facing entry titles.");
+assertIncludes(journalScreen, "getDeviceEventTypeLabel(entry.title)", "IoT timeline titles must use device event labels.");
 assertIncludes(journalScreen, "entityEntryPrefix", "Journal search must label entity graph results.");
 assertIncludes(journalScreen, "relationEntryPrefix", "Journal search must label relation graph results.");
 assertIncludes(journalScreen, "`entity-${result.id}`", "Journal search must open entity graph results.");
