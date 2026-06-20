@@ -124,10 +124,15 @@ export type EntityRecord = {
 
 export type RelationRecord = {
   id: string;
+  candidateId?: string;
+  episodeId?: string;
   sourceEntityId: string;
   targetEntityId: string;
   sourceEntityName?: string;
   targetEntityName?: string;
+  sourceTitle?: string;
+  sourceContent?: string;
+  sourceCreatedAt?: string;
   type: string;
   weight: number;
   createdAt: string;

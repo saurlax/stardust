@@ -182,10 +182,15 @@ export async function listEntities(db: SQLiteDatabase): Promise<EntityRecord[]> 
 export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[]> {
   const rows = await db.getAllAsync<{
     relation_id: string;
+    candidate_id: string | null;
+    episode_id: string | null;
     source_entity_id: string;
     target_entity_id: string;
     source_entity_name: string | null;
     target_entity_name: string | null;
+    source_title: string | null;
+    source_content: string | null;
+    source_created_at: string | null;
     type: string;
     weight: number;
     created_at: string;
@@ -193,10 +198,15 @@ export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[
   }>(`
     SELECT
       relations.relation_id AS relation_id,
+      relations.candidate_id AS candidate_id,
+      relations.episode_id AS episode_id,
       relations.source_entity_id AS source_entity_id,
       relations.target_entity_id AS target_entity_id,
       source_entities.name AS source_entity_name,
       target_entities.name AS target_entity_name,
+      episodes.title AS source_title,
+      episodes.content AS source_content,
+      episodes.created_at AS source_created_at,
       relations.type AS type,
       relations.weight AS weight,
       relations.created_at AS created_at,
@@ -204,16 +214,22 @@ export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[
     FROM relations
     LEFT JOIN entities AS source_entities ON source_entities.entity_id = relations.source_entity_id
     LEFT JOIN entities AS target_entities ON target_entities.entity_id = relations.target_entity_id
+    LEFT JOIN episodes ON episodes.episode_id = relations.episode_id
     ORDER BY relations.weight DESC, relations.updated_at DESC
     LIMIT 120
   `);
 
   return rows.map((row) => ({
     id: row.relation_id,
+    candidateId: row.candidate_id ?? undefined,
+    episodeId: row.episode_id ?? undefined,
     sourceEntityId: row.source_entity_id,
     targetEntityId: row.target_entity_id,
     sourceEntityName: row.source_entity_name ?? undefined,
     targetEntityName: row.target_entity_name ?? undefined,
+    sourceTitle: row.source_title ?? undefined,
+    sourceContent: row.source_content ?? undefined,
+    sourceCreatedAt: row.source_created_at ?? undefined,
     type: row.type,
     weight: row.weight,
     createdAt: row.created_at,

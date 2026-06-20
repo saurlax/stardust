@@ -288,6 +288,7 @@ export default function MemoryScreen() {
       const related = relations.filter(
         (relation) => relation.sourceEntityId === entity.id || relation.targetEntityId === entity.id,
       );
+      const relationSource = related.find((relation) => relation.sourceContent);
       const relationLines = related.map((relation) => {
         const isSource = relation.sourceEntityId === entity.id;
         const peerName = isSource
@@ -299,6 +300,8 @@ export default function MemoryScreen() {
         title: entity.name,
         description: `${t("memory.entityNodeDescription")} · ${entity.type}`,
         content: relationLines.length ? relationLines.join("\n") : t("memory.entityNodeEmpty"),
+        source: relationSource?.sourceContent,
+        sourceEpisodeId: relationSource?.episodeId,
       };
     }
 

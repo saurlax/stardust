@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
-export const DATABASE_VERSION = 13;
+export const DATABASE_VERSION = 14;
 
 let ftsAvailable: boolean | undefined;
 
@@ -122,12 +122,16 @@ async function createCurrentTables(db: SQLiteDatabase) {
 
     CREATE TABLE IF NOT EXISTS relations (
       relation_id TEXT PRIMARY KEY NOT NULL,
+      candidate_id TEXT,
+      episode_id TEXT,
       source_entity_id TEXT NOT NULL,
       target_entity_id TEXT NOT NULL,
       type TEXT NOT NULL,
       weight INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (candidate_id) REFERENCES memory_candidates(candidate_id) ON DELETE SET NULL,
+      FOREIGN KEY (episode_id) REFERENCES episodes(episode_id) ON DELETE SET NULL,
       FOREIGN KEY (source_entity_id) REFERENCES entities(entity_id) ON DELETE CASCADE,
       FOREIGN KEY (target_entity_id) REFERENCES entities(entity_id) ON DELETE CASCADE
     );

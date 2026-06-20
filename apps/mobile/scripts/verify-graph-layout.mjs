@@ -77,6 +77,7 @@ for (const prefix of ["type-", "memory-", "reflection-", "entity-"]) {
 }
 assertIncludes(memoryScreen, "function OpenSourceButton", "Memory graph details must expose source episode navigation.");
 assertIncludes(memoryScreen, "<OpenSourceButton episodeId={memory.episodeId} />", "Saved memory cards must link to source episodes.");
+assertIncludes(memoryScreen, "relationSource?.episodeId", "Entity graph details must link relation source episodes.");
 assertIncludes(memoryScreen, "setErrorMessage(t(\"memory.loadFailed\"))", "Memory graph load failures must be visible.");
 assertIncludes(memoryScreen, ".catch(onError)", "Saved memory actions must surface failures.");
 assertIncludes(memoryScreen, "{relations.length}", "Memory graph must expose relation counts.");

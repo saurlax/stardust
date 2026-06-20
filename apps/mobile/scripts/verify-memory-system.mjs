@@ -108,7 +108,12 @@ for (const functionName of [
 }
 
 assertIncludes(schema, "episode_id TEXT", "Reflections must preserve source episodes.");
-assertIncludes(schema, "export const DATABASE_VERSION = 13", "Database version must reflect the current schema.");
+assertIncludes(schema, "export const DATABASE_VERSION = 14", "Database version must reflect the current schema.");
+assertIncludes(schema, "candidate_id TEXT", "Relations must preserve source candidates.");
+assertIncludes(schema, "episode_id TEXT", "Relations must preserve source episodes.");
+assertIncludes(candidates, "candidate_id, episode_id, source_entity_id", "Entity candidate acceptance must write relation provenance.");
+assertIncludes(candidates, "candidate.episodeId ?? null", "Entity relations must retain source episodes.");
+assertIncludes(memoryRecords, "LEFT JOIN episodes ON episodes.episode_id = relations.episode_id", "Relation listing must expose source episode details.");
 for (const constraint of [
   "FOREIGN KEY (episode_id) REFERENCES episodes(episode_id) ON DELETE SET NULL",
   "FOREIGN KEY (candidate_id) REFERENCES memory_candidates(candidate_id) ON DELETE SET NULL",

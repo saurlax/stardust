@@ -302,14 +302,19 @@ export async function updateCandidateStatus(
       await db.runAsync(
         `
           INSERT INTO relations (
-            relation_id, source_entity_id, target_entity_id, type, weight, created_at, updated_at
+            relation_id, candidate_id, episode_id, source_entity_id, target_entity_id, type,
+            weight, created_at, updated_at
           )
-          VALUES (?, ?, ?, ?, 1, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
           ON CONFLICT(relation_id) DO UPDATE SET
             weight = relations.weight + 1,
+            candidate_id = COALESCE(relations.candidate_id, excluded.candidate_id),
+            episode_id = COALESCE(relations.episode_id, excluded.episode_id),
             updated_at = excluded.updated_at
         `,
         `relation-${selfEntityId}-${resolvedEntityId}`,
+        candidateId,
+        candidate.episodeId ?? null,
         selfEntityId,
         resolvedEntityId,
         "noticed",
@@ -328,14 +333,19 @@ export async function updateCandidateStatus(
         await db.runAsync(
           `
             INSERT INTO relations (
-              relation_id, source_entity_id, target_entity_id, type, weight, created_at, updated_at
+              relation_id, candidate_id, episode_id, source_entity_id, target_entity_id, type,
+              weight, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, 1, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
             ON CONFLICT(relation_id) DO UPDATE SET
               weight = relations.weight + 1,
+              candidate_id = COALESCE(relations.candidate_id, excluded.candidate_id),
+              episode_id = COALESCE(relations.episode_id, excluded.episode_id),
               updated_at = excluded.updated_at
           `,
           `relation-${resolvedEntityId}-${resolvedTargetEntityId}-${relationType.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-") || "related"}`,
+          candidateId,
+          candidate.episodeId ?? null,
           resolvedEntityId,
           resolvedTargetEntityId,
           relationType,
