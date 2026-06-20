@@ -11,6 +11,7 @@
     "dev:mobile": "pnpm --filter ./apps/mobile run dev",
     "dev:api": "pnpm --filter ./apps/api run dev",
     "lint": "pnpm --filter ./apps/mobile run lint",
+    "smoke:web": "pnpm --filter ./apps/mobile run smoke:web",
     "typecheck": "pnpm --filter ./apps/mobile run typecheck",
     "verify:memory": "pnpm --filter ./apps/mobile run verify:config && pnpm --filter ./apps/mobile run verify:memory",
     "prepare": "husky"
