@@ -250,6 +250,7 @@ export async function promoteDeviceEventToCandidate(
         toolType: "save_memory",
         source: "device_event",
         deviceId: event.deviceId,
+        deviceName: event.deviceName,
         eventId: event.id,
         eventType: event.eventType,
       }),

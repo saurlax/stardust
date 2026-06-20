@@ -74,6 +74,19 @@ const getDeviceStatusLabel = (status: DeviceRecord["status"]) => {
   }
 };
 
+const getCandidateTitle = (candidate: MemoryCandidate) => {
+  if (candidate.metadata?.source === "device_event") {
+    const eventType =
+      typeof candidate.metadata.eventType === "string" ? candidate.metadata.eventType : undefined;
+    const deviceName =
+      typeof candidate.metadata.deviceName === "string" ? candidate.metadata.deviceName : undefined;
+    if (eventType && deviceName) return `${getDeviceEventTypeLabel(eventType)} · ${deviceName}`;
+    if (eventType) return getDeviceEventTypeLabel(eventType);
+  }
+
+  return candidate.title;
+};
+
 function TabButton({
   active,
   label,
@@ -173,7 +186,7 @@ function CandidateCard({
         <CardDescription>
           {getCandidateKindLabel(candidate.kind)} · {getMemoryTypeLabel(candidate.type)}
         </CardDescription>
-        <CardTitle className="text-base leading-5">{candidate.title}</CardTitle>
+        <CardTitle className="text-base leading-5">{getCandidateTitle(candidate)}</CardTitle>
       </CardHeader>
       <CardContent className="gap-3">
         {editing ? (

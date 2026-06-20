@@ -179,6 +179,7 @@ assertIncludes(schema, "candidate_id TEXT", "Device events must retain promoted 
 assertIncludes(devices, "SET candidate_id = ?", "Device event promotion must link back to the candidate.");
 assertIncludes(devices, "memory_candidates.candidate_id = device_events.candidate_id", "Device event review state must use explicit candidate links.");
 assertIncludes(devices, "promotableDeviceEventTypes", "Device event promotion must filter operational events.");
+assertIncludes(devices, "deviceName: event.deviceName", "Promoted device candidates must retain their device names.");
 assertIncludes(schema, "protocol_version TEXT", "Devices must persist protocol versions.");
 assertIncludes(schema, "capabilities_json TEXT", "Devices must persist capability manifests.");
 assertIncludes(devices, "parseCapabilities", "Device repository must parse stored capabilities.");
@@ -212,6 +213,8 @@ assertIncludes(inboxScreen, "inbox.capabilities", "Device inbox must display dev
 assertIncludes(inboxScreen, "getDeviceCapabilitySummary(device.capabilities)", "Device inbox must show friendly capability labels.");
 assertIncludes(inboxScreen, "getDeviceStatusLabel", "Device inbox must use localized device status labels.");
 assertIncludes(inboxScreen, "getCandidateKindLabel(candidate.kind)", "Pending candidates must use user-facing kind labels.");
+assertIncludes(inboxScreen, "getCandidateTitle(candidate)", "Pending candidates must use user-facing titles.");
+assertIncludes(inboxScreen, 'candidate.metadata?.source === "device_event"', "Device candidates must format titles from metadata.");
 assertIncludes(inboxScreen, "getDeviceEventTypeLabel(event.eventType)", "Device events must use user-facing event labels.");
 assertIncludes(settings, "getDeviceKindLabel(device.kind)", "Settings must use user-facing device kind labels.");
 assertIncludes(memoryLabels, "getKnowledgeTypeLabel", "Knowledge search results need shared user-facing type labels.");
