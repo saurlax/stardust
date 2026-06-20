@@ -13,11 +13,11 @@ import {
   buildMemoryTree,
   getPersonalSnapshot,
   listEntities,
-  listJournalRecords,
+  listEpisodes,
   listReflections,
   listRelations,
   listStoredMemories,
-  type JournalRecord,
+  type Episode,
   type PersonalSnapshot,
   type StoredMemory,
 } from "@/lib/db";
@@ -39,7 +39,7 @@ export default function PersonalScreen() {
   const [snapshot, setSnapshot] = useState<PersonalSnapshot>(emptySnapshot);
   const [memoryTree, setMemoryTree] = useState(buildMemoryTree([]));
   const [recentMemories, setRecentMemories] = useState<StoredMemory[]>([]);
-  const [recentJournals, setRecentJournals] = useState<JournalRecord[]>([]);
+  const [recentEpisodes, setRecentEpisodes] = useState<Episode[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,24 +48,24 @@ export default function PersonalScreen() {
       Promise.all([
         getPersonalSnapshot(db),
         listStoredMemories(db),
-        listJournalRecords(db),
+        listEpisodes(db, 3),
         listReflections(db),
         listEntities(db),
         listRelations(db),
       ])
-        .then(([nextSnapshot, memories, journals, reflections, entities, relations]) => {
+        .then(([nextSnapshot, memories, episodes, reflections, entities, relations]) => {
           if (!active) return;
           setSnapshot(nextSnapshot);
           setMemoryTree(buildMemoryTree(memories, reflections, entities, relations));
           setRecentMemories(memories.slice(0, 3));
-          setRecentJournals(journals.slice(0, 3));
+          setRecentEpisodes(episodes);
         })
         .catch(() => {
           if (!active) return;
           setSnapshot(emptySnapshot);
           setMemoryTree(buildMemoryTree([]));
           setRecentMemories([]);
-          setRecentJournals([]);
+          setRecentEpisodes([]);
         });
 
       return () => {
@@ -144,10 +144,13 @@ export default function PersonalScreen() {
                 {t("personal.recentCapturesDescription")}
               </Text>
             </View>
-            {recentJournals.length ? (
-              recentJournals.map((journal) => (
-                <View key={journal.id} className="gap-1 rounded-lg bg-muted/50 px-3 py-3">
-                  <Text className="text-sm leading-5">{journal.content}</Text>
+            {recentEpisodes.length ? (
+              recentEpisodes.map((episode) => (
+                <View key={episode.id} className="gap-1 rounded-lg bg-muted/50 px-3 py-3">
+                  <Text className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {t(`journal.source.${episode.source}`)}
+                  </Text>
+                  <Text className="text-sm leading-5">{episode.content}</Text>
                 </View>
               ))
             ) : (
