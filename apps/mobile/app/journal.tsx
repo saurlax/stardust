@@ -38,6 +38,11 @@ function sourceLabel(source: SourceFilter) {
   return t(`journal.source.${source}`);
 }
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message;
+  return t("journal.actionFailed");
+};
+
 function SourceFilterButton({
   active,
   source,
@@ -57,9 +62,11 @@ function SourceFilterButton({
 function JournalManager({
   journals,
   onRefresh,
+  onError,
 }: {
   journals: JournalRecord[];
   onRefresh: () => void;
+  onError: (error: unknown) => void;
 }) {
   const db = useSQLiteContext();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -106,11 +113,13 @@ function JournalManager({
                   <Button
                     size="sm"
                     onPress={() => {
-                      void updateJournalContent(db, journal.id, draft).then(() => {
-                        setEditingId(null);
-                        setDraft("");
-                        onRefresh();
-                      });
+                      void updateJournalContent(db, journal.id, draft)
+                        .then(() => {
+                          setEditingId(null);
+                          setDraft("");
+                          onRefresh();
+                        })
+                        .catch(onError);
                     }}
                   >
                     <Text>{t("journal.save")}</Text>
@@ -148,6 +157,7 @@ export default function JournalScreen() {
   const [journals, setJournals] = useState<JournalRecord[]>([]);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [query, setQuery] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [results, setResults] = useState<
     {
       id: string;
@@ -165,11 +175,13 @@ export default function JournalScreen() {
     Promise.all([listJournalDays(db), listJournalRecords(db)])
       .then(([nextDays, nextJournals]) => {
         if (!active) return;
+        setErrorMessage(null);
         setDays(nextDays);
         setJournals(nextJournals);
       })
       .catch(() => {
         if (!active) return;
+        setErrorMessage(t("journal.loadFailed"));
         setDays([]);
         setJournals([]);
       });
@@ -178,6 +190,10 @@ export default function JournalScreen() {
       active = false;
     };
   }, [db]);
+
+  const handleJournalError = useCallback((error: unknown) => {
+    setErrorMessage(getErrorMessage(error));
+  }, []);
 
   useFocusEffect(refresh);
 
@@ -197,7 +213,15 @@ export default function JournalScreen() {
         return;
       }
 
-      void findRelevantKnowledge(db, trimmed).then(setResults).catch(() => setResults([]));
+      void findRelevantKnowledge(db, trimmed)
+        .then((nextResults) => {
+          setErrorMessage(null);
+          setResults(nextResults);
+        })
+        .catch((error) => {
+          setResults([]);
+          setErrorMessage(getErrorMessage(error));
+        });
     },
     [db],
   );
@@ -253,6 +277,26 @@ export default function JournalScreen() {
           <Text className="text-xl font-semibold">{t("journal.headerTitle")}</Text>
           <Text className="mt-1 text-sm text-muted-foreground">{t("journal.subtitle")}</Text>
         </View>
+
+        {errorMessage ? (
+          <Card className="gap-3 border-destructive/50 bg-destructive/5 p-4">
+            <Text className="text-sm font-semibold text-destructive">
+              {t("journal.errorTitle")}
+            </Text>
+            <Text className="text-sm text-destructive">{errorMessage}</Text>
+            <Button
+              variant="outline"
+              size="sm"
+              className="self-start"
+              onPress={() => {
+                refresh();
+              }}
+            >
+              <Ionicons name="refresh-outline" size={14} color={iconColor} />
+              <Text>{t("journal.retry")}</Text>
+            </Button>
+          </Card>
+        ) : null}
 
         {selectedEntry ? (
           <Card className="gap-2 py-4">
@@ -339,7 +383,11 @@ export default function JournalScreen() {
           </CardContent>
         </Card>
 
-        <JournalManager journals={journals} onRefresh={refresh} />
+        <JournalManager
+          journals={journals}
+          onRefresh={refresh}
+          onError={handleJournalError}
+        />
 
         <View className="gap-2">
           <View className="px-0.5">

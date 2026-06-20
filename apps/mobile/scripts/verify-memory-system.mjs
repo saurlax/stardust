@@ -18,6 +18,7 @@ const ble = read(mobileRoot, "lib", "devices", "ble.ts");
 const config = read(mobileRoot, "lib", "config.ts");
 const chatScreen = read(mobileRoot, "app", "index.tsx");
 const chatRuntime = read(mobileRoot, "lib", "chat", "runtime.ts");
+const journalScreen = read(mobileRoot, "app", "journal.tsx");
 const settings = read(mobileRoot, "components", "SettingsContent.tsx");
 const iotSketch = read(repoRoot, "iot", "iot.ino");
 
@@ -73,6 +74,8 @@ for (const column of ["memory_context_json", "request_episode_id", "tool_cards_j
 }
 assertIncludes(chatScreen, "await createEpisode(db", "Chat input episodes must be persisted before AI candidate creation.");
 assertIncludes(chatScreen, "await saveChatSessionSnapshot(db", "Chat messages must be persisted before AI candidate creation.");
+assertIncludes(journalScreen, "setErrorMessage(t(\"journal.loadFailed\"))", "Episode timeline load failures must be visible.");
+assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be visible.");
 assertIncludes(candidates, "createEpisodeInCurrentTransaction(db", "Accepted journal candidates must create episodes inside the candidate transaction.");
 if (readExportedFunction(candidates, "updateCandidateStatus").includes("createEpisode(db")) {
   throw new Error("Accepted candidates must not open nested episode transactions.");
