@@ -13,6 +13,12 @@ const MANIFEST_CHARACTERISTIC_UUID = "7b3f4a14-9d62-4a7d-a0d9-2ffb9239c4d1";
 type BlePlxModule = typeof import("react-native-ble-plx");
 type BleManagerInstance = InstanceType<BlePlxModule["BleManager"]>;
 type DeviceInstance = Awaited<ReturnType<BleManagerInstance["connectToDevice"]>>;
+export type StardustBleStatus =
+  | "poweredOn"
+  | "poweredOff"
+  | "unsupported"
+  | "unauthorized"
+  | "unavailable";
 
 let manager: BleManagerInstance | null = null;
 const connectedDevices = new Map<string, DeviceInstance>();
@@ -161,6 +167,29 @@ const getBleManager = async () => {
     return manager;
   } catch {
     throw new Error("BLE is unavailable. Build a custom dev client with react-native-ble-plx.");
+  }
+};
+
+export const getStardustBleStatus = async (): Promise<StardustBleStatus> => {
+  if (Platform.OS === "web") return "unsupported";
+
+  try {
+    const ble = await getBleManager();
+    const state = await ble.state();
+    switch (state) {
+      case "PoweredOn":
+        return "poweredOn";
+      case "PoweredOff":
+        return "poweredOff";
+      case "Unsupported":
+        return "unsupported";
+      case "Unauthorized":
+        return "unauthorized";
+      default:
+        return "unavailable";
+    }
+  } catch {
+    return "unavailable";
   }
 };
 

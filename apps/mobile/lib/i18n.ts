@@ -75,6 +75,11 @@ const translations = {
       devicesTitle: "Screen-off devices",
       devicesDescription:
         "Pair Stardust Sense devices through a native development build. BLE is not available in Expo Go or web.",
+      blePoweredOn: "Bluetooth is ready for Stardust Sense.",
+      blePoweredOff: "Bluetooth is turned off.",
+      bleUnsupported: "BLE is not supported in this runtime.",
+      bleUnauthorized: "Bluetooth permission is required.",
+      bleUnavailable: "BLE status is unavailable.",
       scanDevices: "Scan Stardust Sense",
       scanningDevices: "Scanning...",
       noDevices: "No devices paired yet.",
@@ -312,6 +317,11 @@ const translations = {
       devicesTitle: "屏幕外设备",
       devicesDescription:
         "通过原生开发构建配对 Stardust Sense。Expo Go 和 Web 不支持 BLE。",
+      blePoweredOn: "蓝牙已就绪，可以连接 Stardust Sense。",
+      blePoweredOff: "蓝牙未开启。",
+      bleUnsupported: "当前运行环境不支持 BLE。",
+      bleUnauthorized: "需要蓝牙权限。",
+      bleUnavailable: "无法读取 BLE 状态。",
       scanDevices: "扫描 Stardust Sense",
       scanningDevices: "扫描中...",
       noDevices: "还没有配对设备。",

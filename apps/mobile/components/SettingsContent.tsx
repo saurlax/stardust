@@ -17,9 +17,11 @@ import { getCachedAiConfig, getConfigValidationError } from "@/lib/config";
 import { listDevices, type DeviceRecord } from "@/lib/db";
 import {
   disconnectStardustDevice,
+  getStardustBleStatus,
   scanStardustDevices,
   sendStardustDeviceCommand,
   subscribeToStardustDevice,
+  type StardustBleStatus,
 } from "@/lib/devices/ble";
 import { t } from "@/lib/i18n";
 
@@ -55,6 +57,21 @@ const getDeviceDetailLines = (device: DeviceRecord) =>
     device.firmwareVersion ? `${t("settings.firmware")}: ${device.firmwareVersion}` : undefined,
   ].filter(Boolean);
 
+const getBleStatusLabel = (status: StardustBleStatus) => {
+  switch (status) {
+    case "poweredOn":
+      return t("settings.blePoweredOn");
+    case "poweredOff":
+      return t("settings.blePoweredOff");
+    case "unsupported":
+      return t("settings.bleUnsupported");
+    case "unauthorized":
+      return t("settings.bleUnauthorized");
+    default:
+      return t("settings.bleUnavailable");
+  }
+};
+
 export function SettingsContent() {
   const db = useSQLiteContext();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
@@ -64,6 +81,7 @@ export function SettingsContent() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [bleStatus, setBleStatus] = useState<StardustBleStatus>("unavailable");
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
   const [toast, setToast] = useState<ToastState>({
     visible: false,
@@ -85,12 +103,16 @@ export function SettingsContent() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      listDevices(db)
-        .then((nextDevices) => {
-          if (active) setDevices(nextDevices);
+      Promise.all([listDevices(db), getStardustBleStatus()])
+        .then(([nextDevices, nextBleStatus]) => {
+          if (!active) return;
+          setDevices(nextDevices);
+          setBleStatus(nextBleStatus);
         })
         .catch(() => {
-          if (active) setDevices([]);
+          if (!active) return;
+          setDevices([]);
+          setBleStatus("unavailable");
         });
       return () => {
         active = false;
@@ -155,6 +177,12 @@ export function SettingsContent() {
   const onScanDevices = async () => {
     setScanning(true);
     try {
+      const nextBleStatus = await getStardustBleStatus();
+      setBleStatus(nextBleStatus);
+      if (nextBleStatus !== "poweredOn") {
+        showToast(getBleStatusLabel(nextBleStatus), "error");
+        return;
+      }
       const found = await scanStardustDevices(db);
       showToast(
         found.length ? t("settings.deviceScanFound") : t("settings.deviceScanEmpty"),
@@ -268,10 +296,18 @@ export function SettingsContent() {
               <CardDescription>{t("settings.devicesDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="gap-3 px-0">
+              <View className="flex-row items-center gap-2 rounded-md bg-muted/60 px-3 py-2">
+                <Ionicons
+                  name={bleStatus === "poweredOn" ? "radio-outline" : "alert-circle-outline"}
+                  size={16}
+                  color={iconColor}
+                />
+                <Text className="text-sm">{getBleStatusLabel(bleStatus)}</Text>
+              </View>
               <Button
                 variant="outline"
                 onPress={() => void onScanDevices()}
-                disabled={scanning}
+                disabled={scanning || bleStatus !== "poweredOn"}
                 className="w-full"
               >
                 <Text>{scanning ? t("settings.scanningDevices") : t("settings.scanDevices")}</Text>
