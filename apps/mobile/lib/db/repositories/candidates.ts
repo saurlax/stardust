@@ -217,12 +217,13 @@ export async function updateCandidateStatus(
       await db.runAsync(
         `
           INSERT OR REPLACE INTO reflections (
-            reflection_id, candidate_id, title, content, status, created_at, updated_at
+            reflection_id, candidate_id, episode_id, title, content, status, created_at, updated_at
           )
-          VALUES (?, ?, ?, ?, 'active', ?, ?)
+          VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
         `,
         `reflection-${candidateId}`,
         candidateId,
+        candidate.episodeId ?? null,
         candidate.title,
         content,
         updatedAt,

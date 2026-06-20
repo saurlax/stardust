@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
-export const DATABASE_VERSION = 11;
+export const DATABASE_VERSION = 12;
 
 let ftsAvailable: boolean | undefined;
 
@@ -94,6 +94,7 @@ async function createCurrentTables(db: SQLiteDatabase) {
     CREATE TABLE IF NOT EXISTS reflections (
       reflection_id TEXT PRIMARY KEY NOT NULL,
       candidate_id TEXT,
+      episode_id TEXT,
       title TEXT NOT NULL,
       content TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'active',

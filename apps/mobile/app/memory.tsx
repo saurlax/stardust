@@ -237,6 +237,8 @@ export default function MemoryScreen() {
         title: reflection.title,
         description: t("memory.reflectionNodeDescription"),
         content: reflection.content,
+        source: reflection.sourceContent,
+        sourceEpisodeId: reflection.episodeId,
       };
     }
 

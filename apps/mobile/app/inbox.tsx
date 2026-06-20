@@ -320,6 +320,18 @@ function ReflectionCard({
         ) : (
           <Text className="text-sm leading-5">{reflection.content}</Text>
         )}
+        {reflection.sourceContent ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.source")}
+            </Text>
+            <Text className="text-xs leading-4 text-muted-foreground">
+              {reflection.sourceTitle ? `${reflection.sourceTitle} · ` : ""}
+              {reflection.sourceContent}
+            </Text>
+            <OpenEpisodeButton episodeId={reflection.episodeId} />
+          </View>
+        ) : null}
         <View className="flex-row flex-wrap gap-2">
           {editing ? (
             <>

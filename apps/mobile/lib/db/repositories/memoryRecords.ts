@@ -38,7 +38,7 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
       episodes.created_at AS source_created_at
     FROM memory_atoms
     LEFT JOIN episodes ON episodes.episode_id = memory_atoms.episode_id
-    WHERE status = 'active'
+    WHERE memory_atoms.status = 'active'
     ORDER BY memory_atoms.created_at DESC
   `);
 
@@ -63,24 +63,44 @@ export async function listReflections(db: SQLiteDatabase): Promise<ReflectionRec
   const rows = await db.getAllAsync<{
     reflection_id: string;
     candidate_id: string | null;
+    episode_id: string | null;
     title: string;
     content: string;
     status: "active" | "archived";
+    source_title: string | null;
+    source_content: string | null;
+    source_created_at: string | null;
     created_at: string;
     updated_at: string;
   }>(`
-    SELECT reflection_id, candidate_id, title, content, status, created_at, updated_at
+    SELECT
+      reflections.reflection_id AS reflection_id,
+      reflections.candidate_id AS candidate_id,
+      reflections.episode_id AS episode_id,
+      reflections.title AS title,
+      reflections.content AS content,
+      reflections.status AS status,
+      reflections.created_at AS created_at,
+      reflections.updated_at AS updated_at,
+      episodes.title AS source_title,
+      episodes.content AS source_content,
+      episodes.created_at AS source_created_at
     FROM reflections
-    WHERE status = 'active'
-    ORDER BY created_at DESC
+    LEFT JOIN episodes ON episodes.episode_id = reflections.episode_id
+    WHERE reflections.status = 'active'
+    ORDER BY reflections.created_at DESC
   `);
 
   return rows.map((row) => ({
     id: row.reflection_id,
     candidateId: row.candidate_id ?? undefined,
+    episodeId: row.episode_id ?? undefined,
     title: row.title,
     content: row.content,
     status: row.status,
+    sourceTitle: row.source_title ?? undefined,
+    sourceContent: row.source_content ?? undefined,
+    sourceCreatedAt: row.source_created_at ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));

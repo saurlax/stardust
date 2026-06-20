@@ -48,6 +48,9 @@ for (const column of ["memory_context_json", "request_episode_id", "tool_cards_j
   assertIncludes(schema, column, `Chat persistence is missing column: ${column}`);
 }
 
+assertIncludes(schema, "episode_id TEXT", "Reflections must preserve source episodes.");
+assertIncludes(schema, "export const DATABASE_VERSION = 12", "Database version must reflect the current schema.");
+
 assertIncludes(devices, "createEpisode(db", "Device events must create timeline episodes.");
 assertIncludes(devices, 'source: "iot"', "Device event episodes must use the iot source.");
 assertIncludes(devices, "INSERT OR IGNORE INTO device_events", "Device events must be idempotent.");

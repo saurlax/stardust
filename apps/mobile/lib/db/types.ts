@@ -90,9 +90,13 @@ export type StoredMemory = {
 export type ReflectionRecord = {
   id: string;
   candidateId?: string;
+  episodeId?: string;
   title: string;
   content: string;
   status: "active" | "archived";
+  sourceTitle?: string;
+  sourceContent?: string;
+  sourceCreatedAt?: string;
   createdAt: string;
   updatedAt?: string;
 };
