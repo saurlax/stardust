@@ -169,6 +169,11 @@ const translations = {
         accepted: "Saved",
         dismissed: "Dismissed",
       },
+      deviceStatus: {
+        known: "Known",
+        connected: "Connected",
+        disconnected: "Disconnected",
+      },
       openReview: "Open review",
       openMemoryGraph: "Open memory graph",
       openTimeline: "Open timeline",
@@ -492,6 +497,11 @@ const translations = {
         pending: "待确认",
         accepted: "已保存",
         dismissed: "已忽略",
+      },
+      deviceStatus: {
+        known: "已发现",
+        connected: "已连接",
+        disconnected: "已断开",
       },
       openReview: "打开审核",
       openMemoryGraph: "打开记忆星图",

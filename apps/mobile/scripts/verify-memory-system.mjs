@@ -202,6 +202,7 @@ assertIncludes(settings, "syncDeviceUnavailable", "Settings must explain unsuppo
 assertIncludes(settings, "sleepDeviceUnavailable", "Settings must explain unsupported sleep commands.");
 assertIncludes(inboxScreen, "inbox.capabilities", "Device inbox must display device capabilities.");
 assertIncludes(inboxScreen, "getDeviceCapabilitySummary(device.capabilities)", "Device inbox must show friendly capability labels.");
+assertIncludes(inboxScreen, "getDeviceStatusLabel", "Device inbox must use localized device status labels.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM entities", "Personal snapshot must expose entity graph growth.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal snapshot must expose relation graph growth.");
 assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snapshot must expose confirmed open loops.");

@@ -57,6 +57,17 @@ const getCandidateStatusLabel = (status?: DeviceEventRecord["candidateStatus"]) 
   }
 };
 
+const getDeviceStatusLabel = (status: DeviceRecord["status"]) => {
+  switch (status) {
+    case "connected":
+      return t("inbox.deviceStatus.connected");
+    case "disconnected":
+      return t("inbox.deviceStatus.disconnected");
+    default:
+      return t("inbox.deviceStatus.known");
+  }
+};
+
 function TabButton({
   active,
   label,
@@ -462,7 +473,7 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
     <Card className="gap-2 py-4">
       <CardContent className="gap-2">
         <CardDescription>
-          {device.kind} · {device.status}
+          {device.kind} · {getDeviceStatusLabel(device.status)}
         </CardDescription>
         <Text className="text-base font-semibold">{device.name}</Text>
         {detailLines.map((line) => (
