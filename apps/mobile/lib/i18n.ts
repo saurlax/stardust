@@ -236,6 +236,7 @@ const translations = {
       loadFailed: "Failed to load events from calendar.",
       noEvents: "No events found for this app.",
       untitledEvent: "Untitled event",
+      openTimeline: "Open timeline",
     },
   },
   "zh-Hans": {
@@ -468,6 +469,7 @@ const translations = {
       loadFailed: "无法从日历加载事件。",
       noEvents: "这个应用没有找到事件。",
       untitledEvent: "未命名事件",
+      openTimeline: "打开时间线",
     },
   },
 } as const;

@@ -1,4 +1,5 @@
 import * as Calendar from "expo-calendar";
+import { router, type Href } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useState } from "react";
@@ -12,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { createEpisode } from "@/lib/db";
@@ -255,6 +257,19 @@ export default function CalendarScreen() {
                           {event.location ? (
                             <Text variant="muted">{event.location}</Text>
                           ) : null}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-1 self-start"
+                            onPress={() =>
+                              router.push({
+                                pathname: "/journal",
+                                params: { episodeId: `episode-calendar-${event.id}` },
+                              } as Href)
+                            }
+                          >
+                            <Text>{t("calendar.openTimeline")}</Text>
+                          </Button>
                         </CardContent>
                       </Card>
                     ))}
