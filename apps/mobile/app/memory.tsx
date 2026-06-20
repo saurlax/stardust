@@ -123,7 +123,7 @@ function MemoryEditor({
                 void dismissStoredMemory(db, memory.id).then(onRefresh);
               }}
             >
-              <Text>{t("memory.delete")}</Text>
+              <Text>{t("memory.archive")}</Text>
             </Button>
           </>
         )}
