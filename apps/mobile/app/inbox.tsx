@@ -35,6 +35,8 @@ import { t } from "@/lib/i18n";
 type Tab = "pending" | "saved" | "reflections" | "devices";
 const pendingKindFilters = ["all", "memory", "journal", "reflection", "entity", "open_loop"] as const;
 type PendingKindFilter = (typeof pendingKindFilters)[number];
+const deviceEventFilters = ["all", "promotable", "in_review", "operational"] as const;
+type DeviceEventFilter = (typeof deviceEventFilters)[number];
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message) return error.message;
@@ -555,6 +557,7 @@ export default function InboxScreen() {
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
   const [deviceEvents, setDeviceEvents] = useState<DeviceEventRecord[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("all");
+  const [deviceEventFilter, setDeviceEventFilter] = useState<DeviceEventFilter>("all");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadInboxData = useCallback(
@@ -654,11 +657,24 @@ export default function InboxScreen() {
     }
   }, [tab]);
   const visibleDeviceEvents = useMemo(
-    () =>
-      selectedDeviceId === "all"
-        ? deviceEvents
-        : deviceEvents.filter((event) => event.deviceId === selectedDeviceId),
-    [deviceEvents, selectedDeviceId],
+    () => {
+      const byDevice =
+        selectedDeviceId === "all"
+          ? deviceEvents
+          : deviceEvents.filter((event) => event.deviceId === selectedDeviceId);
+
+      switch (deviceEventFilter) {
+        case "promotable":
+          return byDevice.filter((event) => event.promotable && !event.candidateStatus);
+        case "in_review":
+          return byDevice.filter((event) => !!event.candidateStatus);
+        case "operational":
+          return byDevice.filter((event) => !event.promotable);
+        default:
+          return byDevice;
+      }
+    },
+    [deviceEventFilter, deviceEvents, selectedDeviceId],
   );
   const visibleCandidates = useMemo(
     () =>
@@ -789,6 +805,20 @@ export default function InboxScreen() {
                     onPress={() => setSelectedDeviceId(device.id)}
                   >
                     <Text>{device.name}</Text>
+                  </Button>
+                ))}
+              </View>
+            </ScrollView>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-2 pr-4">
+                {deviceEventFilters.map((filter) => (
+                  <Button
+                    key={filter}
+                    variant={deviceEventFilter === filter ? "default" : "outline"}
+                    size="sm"
+                    onPress={() => setDeviceEventFilter(filter)}
+                  >
+                    <Text>{t(`inbox.deviceEventFilter.${filter}`)}</Text>
                   </Button>
                 ))}
               </View>

@@ -96,6 +96,9 @@ assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty stat
 assertIncludes(inboxScreen, "pendingKindFilters", "Pending inbox must expose candidate kind filters.");
 assertIncludes(inboxScreen, "visibleCandidates", "Pending inbox must filter candidates before rendering.");
 assertIncludes(inboxScreen, "inbox.pendingFilter", "Pending inbox filters must use localized labels.");
+assertIncludes(inboxScreen, "deviceEventFilters", "Device inbox must expose device event filters.");
+assertIncludes(inboxScreen, "deviceEventFilter", "Device inbox must apply device event filters.");
+assertIncludes(inboxScreen, "event.promotable && !event.candidateStatus", "Device inbox must separate promotable capture events.");
 assertIncludes(candidates, "createEpisodeInCurrentTransaction(db", "Accepted journal candidates must create episodes inside the candidate transaction.");
 if (readExportedFunction(candidates, "updateCandidateStatus").includes("createEpisode(db")) {
   throw new Error("Accepted candidates must not open nested episode transactions.");
