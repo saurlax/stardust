@@ -2,8 +2,14 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 import type { MessageToolCard, ToolCardType } from "@/lib/chat/types";
 import { loadLatestChatSession, saveChatSessionSnapshot } from "@/lib/db/repositories/chatSessions";
+import {
+  createEpisode,
+  listEpisodes,
+  listJournalRecords,
+  updateJournalContent,
+} from "@/lib/db/repositories/episodes";
 import { isFtsAvailable, migrateDbIfNeeded } from "@/lib/db/schema";
-import { parseToolCards, serializeToolCards } from "@/lib/db/serialization";
+import { parseJson, parseToolCards, safeJson, serializeToolCards } from "@/lib/db/serialization";
 import { runInTransaction } from "@/lib/db/transactions";
 import type {
   CandidateKind,
@@ -27,6 +33,7 @@ import type {
 
 export const DATABASE_NAME = "stardust.db";
 export { buildMemoryTree } from "@/lib/db/graph";
+export { createEpisode, listEpisodes, listJournalRecords, updateJournalContent };
 export { loadLatestChatSession, saveChatSessionSnapshot };
 export { migrateDbIfNeeded };
 export type {
@@ -64,19 +71,6 @@ const tokenize = (value: string) =>
     .toLowerCase()
     .split(/[^a-z0-9\u4e00-\u9fff]+/i)
     .filter((token) => token.length >= 2);
-
-const safeJson = (value?: Record<string, unknown> | null) =>
-  value ? JSON.stringify(value) : null;
-
-const parseJson = (value?: string | null): Record<string, unknown> | undefined => {
-  if (!value) return undefined;
-  try {
-    const parsed = JSON.parse(value) as Record<string, unknown>;
-    return parsed && typeof parsed === "object" ? parsed : undefined;
-  } catch {
-    return undefined;
-  }
-};
 
 async function syncCandidateToolCardSnapshot(
   db: SQLiteDatabase,
@@ -124,71 +118,6 @@ async function syncCandidateToolCardSnapshot(
     candidate.sessionId,
     candidate.messageId,
   );
-}
-
-async function insertEpisodeFts(db: SQLiteDatabase, episode: Episode) {
-  if (!(await isFtsAvailable(db))) return;
-  await db.runAsync("DELETE FROM episodes_fts WHERE episode_id = ?", episode.id);
-  await db.runAsync(
-    `
-      INSERT INTO episodes_fts (episode_id, source, title, content)
-      VALUES (?, ?, ?, ?)
-    `,
-    episode.id,
-    episode.source,
-    episode.title ?? "",
-    episode.content,
-  );
-}
-
-export async function createEpisode(
-  db: SQLiteDatabase,
-  input: {
-    id?: string;
-    source: EpisodeSource;
-    title?: string;
-    content: string;
-    mediaUri?: string;
-    metadata?: Record<string, unknown>;
-    createdAt?: string;
-  },
-): Promise<Episode> {
-  const episode: Episode = {
-    id: input.id ?? createId("episode"),
-    source: input.source,
-    title: input.title,
-    content: input.content.trim(),
-    mediaUri: input.mediaUri,
-    metadata: input.metadata,
-    createdAt: input.createdAt ?? nowIso(),
-  };
-  if (!episode.content) return episode;
-
-  await db.runAsync(
-    `
-      INSERT INTO episodes (
-        episode_id, source, title, content, media_uri, metadata_json, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(episode_id) DO UPDATE SET
-        source = excluded.source,
-        title = excluded.title,
-        content = excluded.content,
-        media_uri = excluded.media_uri,
-        metadata_json = excluded.metadata_json,
-        updated_at = excluded.updated_at
-    `,
-    episode.id,
-    episode.source,
-    episode.title ?? null,
-    episode.content,
-    episode.mediaUri ?? null,
-    safeJson(episode.metadata),
-    episode.createdAt,
-    episode.createdAt,
-  );
-  await insertEpisodeFts(db, episode);
-  return episode;
 }
 
 const cardKind = (type: ToolCardType): CandidateKind => {
@@ -823,48 +752,6 @@ export async function dismissStoredMemory(db: SQLiteDatabase, memoryId: string) 
   }
 }
 
-export async function listEpisodes(db: SQLiteDatabase, limit = 120): Promise<Episode[]> {
-  const rows = await db.getAllAsync<{
-    episode_id: string;
-    source: EpisodeSource;
-    title: string | null;
-    content: string;
-    media_uri: string | null;
-    metadata_json: string | null;
-    created_at: string;
-  }>(
-    `
-      SELECT episode_id, source, title, content, media_uri, metadata_json, created_at
-      FROM episodes
-      ORDER BY created_at DESC
-      LIMIT ?
-    `,
-    limit,
-  );
-
-  return rows.map((row) => ({
-    id: row.episode_id,
-    source: row.source,
-    title: row.title ?? undefined,
-    content: row.content,
-    mediaUri: row.media_uri ?? undefined,
-    metadata: parseJson(row.metadata_json),
-    createdAt: row.created_at,
-  }));
-}
-
-export async function listJournalRecords(db: SQLiteDatabase): Promise<JournalRecord[]> {
-  const episodes = await listEpisodes(db);
-  return episodes
-    .filter((episode) => episode.source === "journal")
-    .map((episode) => ({
-      id: episode.id,
-      content: episode.content,
-      kind: episode.source,
-      createdAt: episode.createdAt,
-    }));
-}
-
 export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]> {
   const [episodes, memories] = await Promise.all([listEpisodes(db), listStoredMemories(db)]);
   const entries: JournalEntry[] = [
@@ -894,41 +781,6 @@ export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]>
     }
   }
   return [...grouped.values()].sort((a, b) => b.date.getTime() - a.date.getTime());
-}
-
-export async function updateJournalContent(db: SQLiteDatabase, episodeId: string, content: string) {
-  const trimmed = content.trim();
-  if (!trimmed) return;
-  const updatedAt = nowIso();
-  await db.runAsync(
-    "UPDATE episodes SET content = ?, updated_at = ? WHERE episode_id = ?",
-    trimmed,
-    updatedAt,
-    episodeId,
-  );
-  if (await isFtsAvailable(db)) {
-    await db.runAsync("DELETE FROM episodes_fts WHERE episode_id = ?", episodeId);
-    const episode = await db.getFirstAsync<{
-      episode_id: string;
-      source: EpisodeSource;
-      title: string | null;
-      content: string;
-      media_uri: string | null;
-      metadata_json: string | null;
-      created_at: string;
-    }>("SELECT * FROM episodes WHERE episode_id = ?", episodeId);
-    if (episode) {
-      await insertEpisodeFts(db, {
-        id: episode.episode_id,
-        source: episode.source,
-        title: episode.title ?? undefined,
-        content: episode.content,
-        mediaUri: episode.media_uri ?? undefined,
-        metadata: parseJson(episode.metadata_json),
-        createdAt: episode.created_at,
-      });
-    }
-  }
 }
 
 const toFtsQuery = (query: string) =>
