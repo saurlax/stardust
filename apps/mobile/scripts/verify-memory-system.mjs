@@ -244,6 +244,8 @@ assertIncludes(inboxScreen, "getDeviceCandidateContextLines(candidate)", "Device
 assertIncludes(inboxScreen, "inbox.deviceContext", "Device candidate context must have a localized heading.");
 assertIncludes(inboxScreen, "eventMetadata?.deviceTimestamp", "Device candidate context must expose device timestamps.");
 assertIncludes(inboxScreen, "getDeviceEventTypeLabel(event.eventType)", "Device events must use user-facing event labels.");
+assertIncludes(inboxScreen, "getDeviceEventContextLines(event)", "Device events must summarize device metadata context.");
+assertIncludes(inboxScreen, 'key !== "deviceTimestamp"', "Device event timestamps should not be repeated as raw metadata.");
 assertIncludes(inboxScreen, "getManifestMediaLines(event.metadata)", "Device manifest media placeholders must be summarized.");
 assertIncludes(inboxScreen, 'key !== "media"', "Device manifest media should not be repeated as raw metadata.");
 assertIncludes(inboxScreen, "inbox.deviceManifestMedia", "Device manifest media summaries must have a localized heading.");

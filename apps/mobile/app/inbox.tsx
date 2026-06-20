@@ -149,6 +149,19 @@ const getManifestCapabilityLines = (metadata?: Record<string, unknown>) => {
     .map((capability) => getDeviceCapabilityLabel(capability));
 };
 
+const getDeviceEventContextLines = (event: DeviceEventRecord) => {
+  const captureSource =
+    typeof event.metadata?.source === "string" ? event.metadata.source : undefined;
+  const deviceTimestamp =
+    typeof event.metadata?.deviceTimestamp === "string" ? event.metadata.deviceTimestamp : undefined;
+  return [
+    captureSource
+      ? `${t("inbox.deviceContextCaptureSource")}: ${getDeviceEventTypeLabel(captureSource)}`
+      : undefined,
+    deviceTimestamp ? `${t("inbox.deviceContextDeviceTime")}: ${deviceTimestamp}` : undefined,
+  ].filter((line): line is string => !!line);
+};
+
 function TabButton({
   active,
   label,
@@ -600,8 +613,16 @@ function DeviceEventCard({
     event.eventType === "manifest" ? getManifestCaptureSourceLines(event.metadata) : [];
   const manifestCapabilityLines =
     event.eventType === "manifest" ? getManifestCapabilityLines(event.metadata) : [];
+  const deviceEventContextLines = getDeviceEventContextLines(event);
   const metadataLines = Object.entries(event.metadata ?? {})
-    .filter(([key]) => key !== "media" && key !== "captureSources" && key !== "capabilities")
+    .filter(
+      ([key]) =>
+        key !== "media" &&
+        key !== "captureSources" &&
+        key !== "capabilities" &&
+        key !== "source" &&
+        key !== "deviceTimestamp",
+    )
     .slice(0, 5)
     .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`);
 
@@ -645,6 +666,18 @@ function DeviceEventCard({
               {t("inbox.deviceManifestCapabilities")}
             </Text>
             {manifestCapabilityLines.map((line) => (
+              <Text key={line} className="text-xs leading-4 text-muted-foreground">
+                {line}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+        {deviceEventContextLines.length ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.deviceContext")}
+            </Text>
+            {deviceEventContextLines.map((line) => (
               <Text key={line} className="text-xs leading-4 text-muted-foreground">
                 {line}
               </Text>
