@@ -102,6 +102,8 @@ assertIncludes(inboxScreen, "pendingKindCounts[kind]", "Pending inbox filter lab
 assertIncludes(inboxScreen, "inbox.pendingFilter", "Pending inbox filters must use localized labels.");
 assertIncludes(inboxScreen, "deviceEventFilters", "Device inbox must expose device event filters.");
 assertIncludes(inboxScreen, "deviceEventFilter", "Device inbox must apply device event filters.");
+assertIncludes(inboxScreen, "deviceEventFilterCounts", "Device inbox filters must expose event counts.");
+assertIncludes(inboxScreen, "deviceEventFilterCounts[filter]", "Device inbox filter labels must display counts.");
 assertIncludes(inboxScreen, "event.promotable && !event.candidateStatus", "Device inbox must separate promotable capture events.");
 assertIncludes(candidates, "createEpisodeInCurrentTransaction(db", "Accepted journal candidates must create episodes inside the candidate transaction.");
 if (readExportedFunction(candidates, "updateCandidateStatus").includes("createEpisode(db")) {

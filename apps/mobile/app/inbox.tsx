@@ -709,6 +709,22 @@ export default function InboxScreen() {
       ),
     [candidates],
   );
+  const deviceEventFilterCounts = useMemo(
+    () => {
+      const byDevice =
+        selectedDeviceId === "all"
+          ? deviceEvents
+          : deviceEvents.filter((event) => event.deviceId === selectedDeviceId);
+
+      return {
+        all: byDevice.length,
+        promotable: byDevice.filter((event) => event.promotable && !event.candidateStatus).length,
+        in_review: byDevice.filter((event) => !!event.candidateStatus).length,
+        operational: byDevice.filter((event) => !event.promotable).length,
+      };
+    },
+    [deviceEvents, selectedDeviceId],
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
@@ -844,7 +860,7 @@ export default function InboxScreen() {
                     size="sm"
                     onPress={() => setDeviceEventFilter(filter)}
                   >
-                    <Text>{t(`inbox.deviceEventFilter.${filter}`)}</Text>
+                    <Text>{`${t(`inbox.deviceEventFilter.${filter}`)} ${deviceEventFilterCounts[filter]}`}</Text>
                   </Button>
                 ))}
               </View>
