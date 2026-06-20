@@ -342,6 +342,9 @@ assertIncludes(ble, "event-${stableHash(fallbackValue)}", "BLE event fallback id
 assertIncludes(ble, "scopedDeviceEventId(deviceId, event.id, encodedValue)", "BLE event notifications must use stable fallback ids.");
 assertIncludes(ble, "await ensureBlePermissions();", "BLE permission errors should surface before module import failures.");
 assertIncludes(settings, '"/inbox?tab=devices" as Href', "Settings devices panel must open the device review tab.");
+assertIncludes(settings, "openDeviceInboxForDevice", "Settings device cards must open review filtered to the selected device.");
+assertIncludes(inboxScreen, "params.deviceId", "Device inbox must accept selected device route params.");
+assertIncludes(inboxScreen, "setSelectedDeviceId(params.deviceId)", "Device inbox route params must select devices.");
 assertIncludes(appConfig, '"react-native-ble-plx"', "Expo config must include the BLE plugin.");
 assertIncludes(appConfig, '"neverForLocation": true', "BLE scan permission should declare neverForLocation.");
 assertIncludes(appConfig, '"modes": ["central"]', "BLE plugin must run in central mode for Stardust Sense.");

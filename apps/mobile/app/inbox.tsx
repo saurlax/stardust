@@ -819,7 +819,7 @@ function DeviceEventCard({
 
 export default function InboxScreen() {
   const db = useSQLiteContext();
-  const params = useLocalSearchParams<{ tab?: string; candidateId?: string }>();
+  const params = useLocalSearchParams<{ tab?: string; candidateId?: string; deviceId?: string }>();
   const scrollRef = useRef<ScrollView>(null);
   const candidateOffsetsRef = useRef(new Map<string, number>());
   const [tab, setTab] = useState<Tab>("pending");
@@ -908,7 +908,11 @@ export default function InboxScreen() {
       setTargetCandidateId(params.candidateId);
       setPendingKindFilter("all");
     }
-  }, [params.candidateId, params.tab]);
+    if (typeof params.deviceId === "string") {
+      setSelectedDeviceId(params.deviceId);
+      setDeviceEventFilter("all");
+    }
+  }, [params.candidateId, params.deviceId, params.tab]);
 
   useEffect(() => {
     if (tab !== "pending" || !targetCandidateId || !candidates.length) return;

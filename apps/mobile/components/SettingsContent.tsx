@@ -136,6 +136,10 @@ const openDeviceInbox = () => {
   router.push("/inbox?tab=devices" as Href);
 };
 
+const openDeviceInboxForDevice = (deviceId: string) => {
+  router.push(`/inbox?tab=devices&deviceId=${encodeURIComponent(deviceId)}` as Href);
+};
+
 export function SettingsContent() {
   const db = useSQLiteContext();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
@@ -469,7 +473,11 @@ export function SettingsContent() {
                       >
                         <Text>{t("settings.disconnectDevice")}</Text>
                       </Button>
-                      <Button variant="outline" size="sm" onPress={openDeviceInbox}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onPress={() => openDeviceInboxForDevice(device.id)}
+                      >
                         <Text>{t("settings.reviewDeviceEvents")}</Text>
                       </Button>
                     </View>
