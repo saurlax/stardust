@@ -63,6 +63,7 @@ async function listRecentEpisodeKnowledge(
     title: item.title ?? undefined,
     content: item.content,
     hasMedia: !!item.media_uri,
+    isScreenOff: item.type === "iot",
     createdAt: item.created_at,
     rank: 2 + index * 0.05,
   }));
@@ -220,6 +221,7 @@ export async function findRelevantKnowledge(
         title: item.title ?? undefined,
         content: item.content,
         hasMedia: !!item.media_uri,
+        isScreenOff: item.type === "iot",
         createdAt: item.created_at,
         rank: rankByTokenMatches(`${item.type} ${item.content}`, tokens) + 0.2,
       })),
@@ -309,6 +311,7 @@ export async function findRelevantKnowledge(
       title: item.title ?? undefined,
       content: item.content,
       hasMedia: !!item.media_uri,
+      isScreenOff: item.type === "iot",
       createdAt: item.created_at,
       rank: item.rank + 0.2,
     })),

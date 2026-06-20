@@ -204,6 +204,7 @@ export type RelevantKnowledge = {
   title?: string;
   content: string;
   hasMedia?: boolean;
+  isScreenOff?: boolean;
   createdAt: string;
   nodeId?: string;
   rank: number;

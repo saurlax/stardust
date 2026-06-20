@@ -245,6 +245,7 @@ export default function JournalScreen() {
       title?: string;
       content: string;
       createdAt: string;
+      isScreenOff?: boolean;
       nodeId?: string;
       rank: number;
     }[]
@@ -456,6 +457,7 @@ export default function JournalScreen() {
                             ? t("journal.relationEntryPrefix")
                           : t("journal.episodeEntryPrefix")}
                     {result.type ? ` · ${getKnowledgeTypeLabel(result.source, result.type)}` : ""}
+                    {result.isScreenOff ? ` · ${t("journal.screenOffResult")}` : ""}
                   </CardDescription>
                   {result.title ? (
                     <Text className="text-sm font-semibold leading-5">{result.title}</Text>

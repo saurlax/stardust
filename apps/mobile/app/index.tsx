@@ -56,6 +56,7 @@ const buildMemoryContext = (
     title?: string;
     content: string;
     hasMedia?: boolean;
+    isScreenOff?: boolean;
     createdAt: string;
   }[],
 ) => {
@@ -95,7 +96,8 @@ const buildMemoryContext = (
                 ? `${memory.type ?? memory.source}: ${memory.title}`
                 : memory.type ?? memory.source;
               const mediaSuffix = memory.hasMedia ? " [media attached]" : "";
-              return `${index + 1}. [${label}${mediaSuffix}] ${memory.content} (${memory.createdAt.slice(0, 10)})`;
+              const screenOffSuffix = memory.isScreenOff ? " [screen-off capture]" : "";
+              return `${index + 1}. [${label}${mediaSuffix}${screenOffSuffix}] ${memory.content} (${memory.createdAt.slice(0, 10)})`;
             },
           )
           .join("\n")}`,
