@@ -32,6 +32,14 @@ export type MessageToolCard = {
   createdAt?: string;
 };
 
+export type MessageMemoryContext = {
+  id: string;
+  source: "memory" | "episode" | "reflection";
+  type?: string;
+  content: string;
+  createdAt: string;
+};
+
 export type ChatMessage = {
   id: string;
   role: MessageRole;
@@ -48,5 +56,6 @@ export type ChatMessage = {
     episodeId?: string;
   };
   memoryContextCount?: number;
+  memoryContext?: MessageMemoryContext[];
   toolCards?: MessageToolCard[];
 };

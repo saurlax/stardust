@@ -55,6 +55,45 @@ const getRelationSummary = (card: MessageToolCard) =>
     ? `${card.payload.relationType ?? t("chat.cardRelationDefault")} · ${card.payload.relationTarget}`
     : undefined;
 
+function MemoryContextSummary({ message }: { message: ChatMessage }) {
+  const [expanded, setExpanded] = useState(false);
+  const context = message.memoryContext ?? [];
+  if (!message.memoryContextCount) return null;
+
+  return (
+    <View className="mt-2 gap-2 rounded-md bg-muted/60 px-2.5 py-1.5">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-auto justify-start gap-1.5 px-0 py-0"
+        onPress={() => setExpanded((current) => !current)}
+      >
+        <Ionicons name="sparkles-outline" size={12} />
+        <Text className="text-xs text-muted-foreground">
+          {`${message.memoryContextCount} ${t("chat.memoryContextUsed")}`}
+        </Text>
+        {context.length ? (
+          <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={12} />
+        ) : null}
+      </Button>
+      {expanded && context.length ? (
+        <View className="gap-1.5">
+          {context.map((item) => (
+            <View key={`${item.source}-${item.id}`} className="gap-0.5 border-t border-border/60 pt-1.5">
+              <Text className="text-[10px] font-semibold uppercase text-muted-foreground">
+                {item.source} · {item.type ?? t("chat.memoryContextUnknown")} · {item.createdAt.slice(0, 10)}
+              </Text>
+              <Text className="text-xs leading-4 text-muted-foreground">
+                {item.content.length > 120 ? `${item.content.slice(0, 120)}...` : item.content}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function ToolCardActions({
   messageId,
   card,
@@ -233,14 +272,7 @@ export function ChatMessages({
                           className="mt-2 h-[200px] w-[200px] rounded-md bg-muted"
                         />
                       ) : null}
-                      {item.role === "assistant" && item.memoryContextCount ? (
-                        <View className="mt-2 flex-row items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-1.5">
-                          <Ionicons name="sparkles-outline" size={12} color={mutedColor} />
-                          <Text className="text-xs text-muted-foreground">
-                            {`${item.memoryContextCount} ${t("chat.memoryContextUsed")}`}
-                          </Text>
-                        </View>
-                      ) : null}
+                      {item.role === "assistant" ? <MemoryContextSummary message={item} /> : null}
                       {item.role === "assistant" && item.toolCards?.length ? (
                         <View className="mt-3 gap-2 rounded-lg border border-border bg-muted/60 p-3">
                           <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

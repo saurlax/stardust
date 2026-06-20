@@ -244,6 +244,7 @@ export default function Index() {
         replaceMessage(assistantId, (message) => ({
           ...message,
           memoryContextCount: relevantKnowledge.length,
+          memoryContext: relevantKnowledge.slice(0, 5),
         }));
 
         const result = await sendChatRequest({
@@ -278,6 +279,7 @@ export default function Index() {
           status: "done",
           error: undefined,
           memoryContextCount: relevantKnowledge.length,
+          memoryContext: relevantKnowledge.slice(0, 5),
           toolCards: result.toolCards,
         };
 
