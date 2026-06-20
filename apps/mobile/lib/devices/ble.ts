@@ -283,8 +283,10 @@ const createConnectionAuditEvent = (
   deviceId: string,
   status: "disconnected" | "restore_failed" | "restored",
   error?: unknown,
-) =>
-  createDeviceEvent(db, {
+) => {
+  const minuteBucket = Math.floor(Date.now() / 60000);
+  return createDeviceEvent(db, {
+    id: `connection-${deviceId}-${status}-${minuteBucket}`,
     deviceId,
     eventType: "connection",
     content: `Stardust Sense connection ${status.replace("_", " ")}`,
@@ -294,6 +296,7 @@ const createConnectionAuditEvent = (
       error: error instanceof Error ? error.message : undefined,
     },
   });
+};
 const ensureDeviceCommandCapability = async (
   db: SQLiteDatabase,
   deviceId: string,
@@ -467,7 +470,9 @@ export const subscribeToStardustDevice = async (db: SQLiteDatabase, deviceId: st
 
 export const restoreStardustDeviceSubscriptions = async (db: SQLiteDatabase) => {
   const devices = await listDevices(db);
-  const connected = devices.filter((device) => device.status === "connected");
+  const connected = devices.filter(
+    (device) => device.status === "connected" && !connectedDevices.has(device.id),
+  );
   await Promise.allSettled(
     connected.map(async (device) => {
       try {
@@ -515,4 +520,5 @@ export const disconnectStardustDevice = async (db: SQLiteDatabase, deviceId: str
   disconnectSubscriptions.delete(deviceId);
   connectedDevices.delete(deviceId);
   await updateDeviceStatus(db, deviceId, "disconnected");
+  await createConnectionAuditEvent(db, deviceId, "disconnected");
 };

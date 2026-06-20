@@ -162,9 +162,12 @@ assertIncludes(ble, 'createCommandAuditEvent(db, deviceId, command, "sent")', "B
 assertIncludes(ble, 'createCommandAuditEvent(db, deviceId, command, "failed", error)', "BLE command audit events must record failed sends.");
 assertIncludes(ble, "createConnectionAuditEvent", "BLE connection changes must record local audit events.");
 assertIncludes(ble, 'eventType: "connection"', "BLE connection audit events must be device events.");
+assertIncludes(ble, "connection-${deviceId}-${status}-${minuteBucket}", "BLE connection audit events must use stable minute-bucket ids.");
+assertIncludes(ble, "!connectedDevices.has(device.id)", "BLE subscription restore must not duplicate already connected devices.");
 assertIncludes(ble, 'createConnectionAuditEvent(db, device.id, "restored")', "BLE restore success must be audited.");
 assertIncludes(ble, 'createConnectionAuditEvent(db, device.id, "restore_failed", error)', "BLE restore failures must be audited.");
 assertIncludes(ble, 'createConnectionAuditEvent(db, readyDevice.id, "disconnected")', "BLE disconnects must be audited.");
+assertIncludes(ble, 'createConnectionAuditEvent(db, deviceId, "disconnected")', "Manual BLE disconnects must be audited.");
 assertIncludes(settings, "settings.capabilities", "Settings must display device capabilities.");
 assertIncludes(settings, "getDeviceCapabilitySummary(device.capabilities)", "Settings must show friendly capability labels.");
 assertIncludes(settings, "supportsDeviceCommand", "Settings device commands must respect advertised capabilities.");
