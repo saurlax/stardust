@@ -13,6 +13,7 @@ import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import {
   archiveReflection,
+  dismissStoredMemory,
   listDevices,
   listDeviceEvents,
   listMemoryCandidates,
@@ -21,6 +22,7 @@ import {
   toToolCardsFromCandidates,
   updateCandidateStatus,
   updateReflectionContent,
+  updateStoredMemoryContent,
   type DeviceRecord,
   type DeviceEventRecord,
   type MemoryCandidate,
@@ -176,14 +178,32 @@ function CandidateCard({
   );
 }
 
-function MemoryCard({ memory }: { memory: StoredMemory }) {
+function MemoryCard({
+  memory,
+  onRefresh,
+}: {
+  memory: StoredMemory;
+  onRefresh: () => void;
+}) {
+  const db = useSQLiteContext();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(memory.content);
+
   return (
     <Card className="gap-2 py-4">
       <CardContent className="gap-2">
         <CardDescription>
           {memory.type} · {new Date(memory.createdAt).toLocaleDateString()}
         </CardDescription>
-        <Text className="text-sm leading-5">{memory.content}</Text>
+        {editing ? (
+          <Textarea
+            value={draft}
+            onChangeText={setDraft}
+            className="min-h-24 rounded-md bg-background"
+          />
+        ) : (
+          <Text className="text-sm leading-5">{memory.content}</Text>
+        )}
         {memory.sourceContent ? (
           <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
             <Text className="text-xs font-semibold uppercase text-muted-foreground">
@@ -195,6 +215,48 @@ function MemoryCard({ memory }: { memory: StoredMemory }) {
             </Text>
           </View>
         ) : null}
+        <View className="flex-row flex-wrap gap-2">
+          {editing ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={() => {
+                  setEditing(false);
+                  setDraft(memory.content);
+                }}
+              >
+                <Text>{t("inbox.cancel")}</Text>
+              </Button>
+              <Button
+                size="sm"
+                onPress={() => {
+                  void updateStoredMemoryContent(db, memory.id, draft).then(() => {
+                    setEditing(false);
+                    onRefresh();
+                  });
+                }}
+              >
+                <Text>{t("inbox.save")}</Text>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onPress={() => setEditing(true)}>
+                <Text>{t("inbox.edit")}</Text>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={() => {
+                  void dismissStoredMemory(db, memory.id).then(onRefresh);
+                }}
+              >
+                <Text>{t("inbox.archive")}</Text>
+              </Button>
+            </>
+          )}
+        </View>
       </CardContent>
     </Card>
   );
@@ -448,7 +510,10 @@ export default function InboxScreen() {
         {tab === "pending" && candidates.map((candidate) => (
           <CandidateCard key={candidate.id} candidate={candidate} onRefresh={refresh} />
         ))}
-        {tab === "saved" && memories.map((memory) => <MemoryCard key={memory.id} memory={memory} />)}
+        {tab === "saved" &&
+          memories.map((memory) => (
+            <MemoryCard key={memory.id} memory={memory} onRefresh={refresh} />
+          ))}
         {tab === "reflections" &&
           reflections.map((reflection) => (
             <ReflectionCard key={reflection.id} reflection={reflection} onRefresh={refresh} />
