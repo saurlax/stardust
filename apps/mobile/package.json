@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "smoke:web": "node scripts/smoke-web-export.mjs",
     "verify:config": "node scripts/verify-config-migration.mjs",
+    "verify:graph": "node scripts/verify-graph-layout.mjs",
     "verify:memory": "node scripts/verify-memory-system.mjs"
   },
   "dependencies": {
