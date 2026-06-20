@@ -67,6 +67,9 @@ const getDeviceDetailLines = (device: DeviceRecord) =>
     device.pendingReviewCount
       ? `${t("settings.pendingReviews")}: ${device.pendingReviewCount}`
       : undefined,
+    device.reviewedEventCount
+      ? `${t("settings.reviewedEvents")}: ${device.reviewedEventCount}`
+      : undefined,
     device.lastEventAt
       ? `${t("settings.lastEvent")}: ${new Date(device.lastEventAt).toLocaleString()}`
       : undefined,

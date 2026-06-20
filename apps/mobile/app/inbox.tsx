@@ -609,6 +609,7 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
       : undefined,
     `${t("inbox.deviceEventCount")}: ${device.eventCount}`,
     device.pendingReviewCount ? `${t("inbox.pendingReviews")}: ${device.pendingReviewCount}` : undefined,
+    device.reviewedEventCount ? `${t("inbox.reviewedEvents")}: ${device.reviewedEventCount}` : undefined,
     device.lastEventAt
       ? `${t("inbox.lastEvent")}: ${new Date(device.lastEventAt).toLocaleString()}`
       : undefined,

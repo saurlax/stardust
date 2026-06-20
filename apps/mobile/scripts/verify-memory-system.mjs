@@ -144,6 +144,9 @@ assertIncludes(personalDrawer, 'params: { episodeId: episode.id }', "Personal dr
 assertIncludes(inboxScreen, "function SummaryTile", "Memory inbox must expose a capture pipeline summary.");
 assertIncludes(inboxScreen, "pendingDeviceReviews", "Memory inbox pipeline must count unreviewed device captures.");
 assertIncludes(inboxScreen, 'setDeviceEventFilter("promotable")', "Device review summary must jump to promotable device events.");
+assertIncludes(devices, "reviewed_event_count", "Device lists must count reviewed capture events.");
+assertIncludes(inboxScreen, "device.reviewedEventCount", "Device inbox cards must display reviewed capture counts.");
+assertIncludes(settings, "device.reviewedEventCount", "Settings device cards must display reviewed capture counts.");
 assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");
 assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty state must open Settings.");
 assertIncludes(inboxScreen, "pendingKindFilters", "Pending inbox must expose candidate kind filters.");

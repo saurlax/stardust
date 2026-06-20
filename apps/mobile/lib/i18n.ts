@@ -96,6 +96,7 @@ const translations = {
       capabilities: "Capabilities",
       deviceEventCount: "Captured events",
       pendingReviews: "Pending reviews",
+      reviewedEvents: "Reviewed captures",
       lastEvent: "Last event",
       deviceStatusKnown: "Known",
       deviceStatusConnected: "Connected",
@@ -235,6 +236,7 @@ const translations = {
       capabilities: "Capabilities",
       deviceEventCount: "Captured events",
       pendingReviews: "Pending reviews",
+      reviewedEvents: "Reviewed captures",
       lastEvent: "Last event",
     },
     personal: {
@@ -476,6 +478,7 @@ const translations = {
       capabilities: "能力",
       deviceEventCount: "已捕获事件",
       pendingReviews: "待确认",
+      reviewedEvents: "已审核捕获",
       lastEvent: "最近事件",
       deviceStatusKnown: "已发现",
       deviceStatusConnected: "已连接",
@@ -615,6 +618,7 @@ const translations = {
       capabilities: "能力",
       deviceEventCount: "已捕获事件",
       pendingReviews: "待确认",
+      reviewedEvents: "已审核捕获",
       lastEvent: "最近事件",
     },
     personal: {

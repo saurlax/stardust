@@ -116,6 +116,7 @@ export type DeviceRecord = {
   capabilities?: string[];
   eventCount: number;
   pendingReviewCount: number;
+  reviewedEventCount: number;
   lastEventAt?: string;
 };
 

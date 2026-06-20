@@ -36,6 +36,7 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
     capabilities_json: string | null;
     event_count: number;
     pending_review_count: number;
+    reviewed_event_count: number;
     last_event_at: string | null;
   }>(`
     SELECT
@@ -50,6 +51,7 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
       devices.capabilities_json AS capabilities_json,
       COUNT(device_events.device_event_id) AS event_count,
       SUM(CASE WHEN memory_candidates.status = 'pending' THEN 1 ELSE 0 END) AS pending_review_count,
+      SUM(CASE WHEN memory_candidates.status IN ('accepted', 'dismissed') THEN 1 ELSE 0 END) AS reviewed_event_count,
       MAX(device_events.created_at) AS last_event_at
     FROM devices
     LEFT JOIN device_events ON device_events.device_id = devices.device_id
@@ -69,6 +71,7 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
     capabilities: parseCapabilities(row.capabilities_json),
     eventCount: row.event_count ?? 0,
     pendingReviewCount: row.pending_review_count ?? 0,
+    reviewedEventCount: row.reviewed_event_count ?? 0,
     lastEventAt: row.last_event_at ?? undefined,
   }));
 }
