@@ -14,6 +14,7 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
     episode_id: string | null;
     session_id: string | null;
     message_id: string | null;
+    candidate_kind: StoredMemory["candidateKind"] | null;
     type: string;
     content: string;
     importance: number;
@@ -29,6 +30,7 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
       memory_atoms.episode_id AS episode_id,
       memory_atoms.session_id AS session_id,
       memory_atoms.message_id AS message_id,
+      memory_candidates.kind AS candidate_kind,
       memory_atoms.type AS type,
       memory_atoms.content AS content,
       memory_atoms.importance AS importance,
@@ -39,6 +41,7 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
       episodes.created_at AS source_created_at
     FROM memory_atoms
     LEFT JOIN episodes ON episodes.episode_id = memory_atoms.episode_id
+    LEFT JOIN memory_candidates ON memory_candidates.candidate_id = memory_atoms.candidate_id
     WHERE memory_atoms.status = 'active'
     ORDER BY memory_atoms.created_at DESC
   `);
@@ -49,6 +52,7 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
     episodeId: row.episode_id ?? undefined,
     sessionId: row.session_id ?? undefined,
     messageId: row.message_id ?? undefined,
+    candidateKind: row.candidate_kind ?? undefined,
     type: row.type,
     content: row.content,
     importance: row.importance,

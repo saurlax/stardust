@@ -76,6 +76,7 @@ export type StoredMemory = {
   sessionId?: string;
   messageId?: string;
   episodeId?: string;
+  candidateKind?: CandidateKind;
   type: string;
   content: string;
   importance: number;

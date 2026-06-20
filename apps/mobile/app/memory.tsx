@@ -29,6 +29,7 @@ import { THEME } from "@/lib/theme";
 
 const filters = [
   "all",
+  "open_loop",
   "preference",
   "fact",
   "relationship",
@@ -104,6 +105,7 @@ function MemoryEditor({
     <Card className="gap-3 py-4">
       <CardHeader className="gap-1">
         <CardDescription>
+          {memory.candidateKind === "open_loop" ? `${t("memory.openLoopBadge")} · ` : ""}
           {memory.type} · {new Date(memory.createdAt).toLocaleDateString()}
         </CardDescription>
         {editing ? (
@@ -232,8 +234,17 @@ export default function MemoryScreen() {
   }, [targetNodeId]);
 
   const visibleMemories = useMemo(
-    () => (filter === "all" ? memories : memories.filter((memory) => memory.type === filter)),
+    () =>
+      filter === "all"
+        ? memories
+        : filter === "open_loop"
+          ? memories.filter((memory) => memory.candidateKind === "open_loop")
+          : memories.filter((memory) => memory.type === filter),
     [filter, memories],
+  );
+  const openLoopCount = useMemo(
+    () => memories.filter((memory) => memory.candidateKind === "open_loop").length,
+    [memories],
   );
   const memoryTree = useMemo(
     () => buildMemoryTree(visibleMemories, reflections, entities, relations),
@@ -399,10 +410,16 @@ export default function MemoryScreen() {
             </Card>
           </View>
 
-          <Card className="self-start px-3 py-3">
-            <CardDescription>{t("memory.relationCount")}</CardDescription>
-            <Text className="text-2xl font-semibold">{relations.length}</Text>
-          </Card>
+          <View className="flex-row gap-2">
+            <Card className="flex-1 px-3 py-3">
+              <CardDescription>{t("memory.openLoopCount")}</CardDescription>
+              <Text className="text-2xl font-semibold">{openLoopCount}</Text>
+            </Card>
+            <Card className="flex-1 px-3 py-3">
+              <CardDescription>{t("memory.relationCount")}</CardDescription>
+              <Text className="text-2xl font-semibold">{relations.length}</Text>
+            </Card>
+          </View>
 
           {selectedNode ? (
             <Card className="gap-3 py-4">

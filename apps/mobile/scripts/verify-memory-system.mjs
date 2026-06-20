@@ -23,6 +23,7 @@ const chatRuntime = read(mobileRoot, "lib", "chat", "runtime.ts");
 const chatMessages = read(mobileRoot, "components", "ChatMessages.tsx");
 const journalScreen = read(mobileRoot, "app", "journal.tsx");
 const inboxScreen = read(mobileRoot, "app", "inbox.tsx");
+const memoryScreen = read(mobileRoot, "app", "memory.tsx");
 const settings = read(mobileRoot, "components", "SettingsContent.tsx");
 const iotSketch = read(repoRoot, "iot", "iot.ino");
 
@@ -141,6 +142,10 @@ assertIncludes(devices, "promotableDeviceEventTypes", "Device event promotion mu
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM entities", "Personal snapshot must expose entity graph growth.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal snapshot must expose relation graph growth.");
 assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snapshot must expose confirmed open loops.");
+assertIncludes(memoryRecords, "memory_candidates.kind AS candidate_kind", "Stored memories must retain their source candidate kind.");
+assertIncludes(memoryScreen, '"open_loop"', "Memory screen must expose an open-loop filter.");
+assertIncludes(memoryScreen, "candidateKind === \"open_loop\"", "Memory screen must identify confirmed open loops.");
+assertIncludes(inboxScreen, "inbox.openLoopBadge", "Saved inbox memories must label confirmed open loops.");
 assertIncludes(knowledge, "listEntityRelationKnowledge", "Retrieval must include entity graph knowledge.");
 assertIncludes(knowledge, 'source: "entity" as const', "Entity graph retrieval results must be typed.");
 assertIncludes(knowledge, 'source: "relation" as const', "Relation graph retrieval results must be typed.");

@@ -253,6 +253,7 @@ function MemoryCard({
     <Card className="gap-2 py-4">
       <CardContent className="gap-2">
         <CardDescription>
+          {memory.candidateKind === "open_loop" ? `${t("inbox.openLoopBadge")} · ` : ""}
           {memory.type} · {new Date(memory.createdAt).toLocaleDateString()}
         </CardDescription>
         {editing ? (
