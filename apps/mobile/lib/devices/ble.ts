@@ -305,6 +305,30 @@ const createConnectionAuditEvent = (
     },
   });
 };
+const createEventStreamDeviceEvent = (
+  db: SQLiteDatabase,
+  deviceId: string,
+  encodedValue: string,
+) => {
+  const event = JSON.parse(decodeBase64(encodedValue)) as {
+    id?: string;
+    type?: string;
+    content?: string;
+    ts?: string;
+    metadata?: Record<string, unknown>;
+  };
+  return createDeviceEvent(db, {
+    id: scopedDeviceEventId(deviceId, event.id, encodedValue),
+    deviceId,
+    eventType: event.type ?? "capture",
+    content: event.content ?? "Screen-off capture",
+    metadata: {
+      ...(event.metadata ?? {}),
+      deviceTimestamp: event.ts,
+    },
+    createdAt: normalizeEventTimestamp(event.ts),
+  });
+};
 const ensureDeviceCommandCapability = async (
   db: SQLiteDatabase,
   deviceId: string,
@@ -429,6 +453,17 @@ const activateStardustDevice = async (
     }
   }
 
+  const currentEvent = await readyDevice
+    .readCharacteristicForService(SERVICE_UUID, EVENT_CHARACTERISTIC_UUID)
+    .catch(() => null);
+  if (currentEvent?.value) {
+    try {
+      await createEventStreamDeviceEvent(db, readyDevice.id, currentEvent.value);
+    } catch {
+      // Ignore malformed current event payloads.
+    }
+  }
+
   eventSubscriptions.get(readyDevice.id)?.remove();
   eventSubscriptions.set(
     readyDevice.id,
@@ -438,24 +473,7 @@ const activateStardustDevice = async (
       (error, characteristic) => {
         if (error || !characteristic?.value) return;
         try {
-          const event = JSON.parse(decodeBase64(characteristic.value)) as {
-            id?: string;
-            type?: string;
-            content?: string;
-            ts?: string;
-            metadata?: Record<string, unknown>;
-          };
-          void createDeviceEvent(db, {
-            id: scopedDeviceEventId(readyDevice.id, event.id, characteristic.value),
-            deviceId: readyDevice.id,
-            eventType: event.type ?? "capture",
-            content: event.content ?? "Screen-off capture",
-            metadata: {
-              ...(event.metadata ?? {}),
-              deviceTimestamp: event.ts,
-            },
-            createdAt: normalizeEventTimestamp(event.ts),
-          });
+          void createEventStreamDeviceEvent(db, readyDevice.id, characteristic.value);
         } catch {
           // Ignore malformed event payloads.
         }
