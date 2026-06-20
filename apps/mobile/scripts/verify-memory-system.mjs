@@ -198,6 +198,8 @@ assertIncludes(devices, "SET candidate_id = ?", "Device event promotion must lin
 assertIncludes(devices, "memory_candidates.candidate_id = device_events.candidate_id", "Device event review state must use explicit candidate links.");
 assertIncludes(devices, "promotableDeviceEventTypes", "Device event promotion must filter operational events.");
 assertIncludes(devices, "deviceName: event.deviceName", "Promoted device candidates must retain their device names.");
+assertIncludes(devices, "eventMetadata: event.metadata", "Promoted device candidates must retain original device metadata.");
+assertIncludes(devices, "eventCreatedAt: event.createdAt", "Promoted device candidates must retain original event timestamps.");
 assertIncludes(schema, "protocol_version TEXT", "Devices must persist protocol versions.");
 assertIncludes(schema, "capabilities_json TEXT", "Devices must persist capability manifests.");
 assertIncludes(devices, "parseCapabilities", "Device repository must parse stored capabilities.");
@@ -236,6 +238,9 @@ assertIncludes(inboxScreen, "getDeviceStatusLabel", "Device inbox must use local
 assertIncludes(inboxScreen, "getCandidateKindLabel(candidate.kind)", "Pending candidates must use user-facing kind labels.");
 assertIncludes(inboxScreen, "getCandidateTitle(candidate)", "Pending candidates must use user-facing titles.");
 assertIncludes(inboxScreen, 'candidate.metadata?.source === "device_event"', "Device candidates must format titles from metadata.");
+assertIncludes(inboxScreen, "getDeviceCandidateContextLines(candidate)", "Device candidates must show screen-off source context.");
+assertIncludes(inboxScreen, "inbox.deviceContext", "Device candidate context must have a localized heading.");
+assertIncludes(inboxScreen, "eventMetadata?.deviceTimestamp", "Device candidate context must expose device timestamps.");
 assertIncludes(inboxScreen, "getDeviceEventTypeLabel(event.eventType)", "Device events must use user-facing event labels.");
 assertIncludes(inboxScreen, "getManifestMediaLines(event.metadata)", "Device manifest media placeholders must be summarized.");
 assertIncludes(inboxScreen, 'key !== "media"', "Device manifest media should not be repeated as raw metadata.");

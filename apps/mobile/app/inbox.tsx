@@ -87,6 +87,37 @@ const getCandidateTitle = (candidate: MemoryCandidate) => {
   return candidate.title;
 };
 
+const getDeviceCandidateContextLines = (candidate: MemoryCandidate) => {
+  if (candidate.metadata?.source !== "device_event") return [];
+  const eventType =
+    typeof candidate.metadata.eventType === "string" ? candidate.metadata.eventType : undefined;
+  const deviceName =
+    typeof candidate.metadata.deviceName === "string" ? candidate.metadata.deviceName : undefined;
+  const eventCreatedAt =
+    typeof candidate.metadata.eventCreatedAt === "string" ? candidate.metadata.eventCreatedAt : undefined;
+  const eventMetadata =
+    candidate.metadata.eventMetadata &&
+    typeof candidate.metadata.eventMetadata === "object" &&
+    !Array.isArray(candidate.metadata.eventMetadata)
+      ? (candidate.metadata.eventMetadata as Record<string, unknown>)
+      : undefined;
+  const captureSource =
+    typeof eventMetadata?.source === "string" ? eventMetadata.source : undefined;
+  const deviceTimestamp =
+    typeof eventMetadata?.deviceTimestamp === "string" ? eventMetadata.deviceTimestamp : undefined;
+  return [
+    deviceName ? `${t("inbox.deviceContextDevice")}: ${deviceName}` : undefined,
+    eventType ? `${t("inbox.deviceContextEvent")}: ${getDeviceEventTypeLabel(eventType)}` : undefined,
+    captureSource
+      ? `${t("inbox.deviceContextCaptureSource")}: ${getDeviceEventTypeLabel(captureSource)}`
+      : undefined,
+    deviceTimestamp ? `${t("inbox.deviceContextDeviceTime")}: ${deviceTimestamp}` : undefined,
+    eventCreatedAt
+      ? `${t("inbox.deviceContextReceived")}: ${new Date(eventCreatedAt).toLocaleString()}`
+      : undefined,
+  ].filter((line): line is string => !!line);
+};
+
 const getManifestMediaLines = (metadata?: Record<string, unknown>) => {
   const media = metadata?.media;
   if (!media || typeof media !== "object" || Array.isArray(media)) return [];
@@ -204,6 +235,7 @@ function CandidateCard({
   const relationSummary = card.payload.relationTarget
     ? `${card.payload.relationType ?? t("inbox.relatedTo")} · ${card.payload.relationTarget}`
     : undefined;
+  const deviceContextLines = getDeviceCandidateContextLines(candidate);
 
   return (
     <Card className={`gap-3 py-4 ${highlighted ? "border-primary bg-primary/5" : ""}`}>
@@ -230,6 +262,19 @@ function CandidateCard({
               {t("inbox.relation")}
             </Text>
             <Text className="text-xs leading-4 text-muted-foreground">{relationSummary}</Text>
+          </View>
+        ) : null}
+
+        {deviceContextLines.length ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.deviceContext")}
+            </Text>
+            {deviceContextLines.map((line) => (
+              <Text key={line} className="text-xs leading-4 text-muted-foreground">
+                {line}
+              </Text>
+            ))}
           </View>
         ) : null}
 

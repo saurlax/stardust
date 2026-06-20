@@ -254,6 +254,8 @@ export async function promoteDeviceEventToCandidate(
         deviceName: event.deviceName,
         eventId: event.id,
         eventType: event.eventType,
+        eventCreatedAt: event.createdAt,
+        eventMetadata: event.metadata,
       }),
       createdAt,
       createdAt,
