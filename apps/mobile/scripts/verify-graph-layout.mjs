@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const mobileRoot = path.join(__dirname, "..");
 const graphSource = fs.readFileSync(path.join(mobileRoot, "lib", "db", "graph.ts"), "utf8");
+const memoryScreen = fs.readFileSync(path.join(mobileRoot, "app", "memory.tsx"), "utf8");
 
 const assertIncludes = (source, value, message) => {
   if (!source.includes(value)) {
@@ -74,5 +75,7 @@ assertIncludes(graphSource, ".slice(0, 16)", "Memory graph must cap visible enti
 for (const prefix of ["type-", "memory-", "reflection-", "entity-"]) {
   assertIncludes(graphSource, prefix, `Memory graph is missing ${prefix} nodes.`);
 }
+assertIncludes(memoryScreen, "function OpenSourceButton", "Memory graph details must expose source episode navigation.");
+assertIncludes(memoryScreen, "<OpenSourceButton episodeId={memory.episodeId} />", "Saved memory cards must link to source episodes.");
 
 console.log("Memory graph layout invariants look valid.");

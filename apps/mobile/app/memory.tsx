@@ -58,6 +58,30 @@ function FilterButton({
   );
 }
 
+function OpenSourceButton({ episodeId }: { episodeId?: string }) {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
+
+  if (!episodeId) return null;
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="mt-1 self-start"
+      onPress={() =>
+        router.push({
+          pathname: "/journal",
+          params: { episodeId },
+        } as Href)
+      }
+    >
+      <Ionicons name="open-outline" size={14} color={iconColor} />
+      <Text>{t("memory.openSource")}</Text>
+    </Button>
+  );
+}
+
 function MemoryEditor({
   memory,
   onRefresh,
@@ -93,6 +117,7 @@ function MemoryEditor({
                   {memory.sourceTitle ? `${memory.sourceTitle} · ` : ""}
                   {memory.sourceContent}
                 </Text>
+                <OpenSourceButton episodeId={memory.episodeId} />
               </View>
             ) : null}
           </View>
@@ -358,22 +383,11 @@ export default function MemoryScreen() {
                     <Text className="text-xs leading-4 text-muted-foreground">
                       {selectedNode.source}
                     </Text>
-                    {"sourceEpisodeId" in selectedNode && selectedNode.sourceEpisodeId ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-1 self-start"
-                        onPress={() =>
-                          router.push({
-                            pathname: "/journal",
-                            params: { episodeId: selectedNode.sourceEpisodeId },
-                          } as Href)
-                        }
-                      >
-                        <Ionicons name="open-outline" size={14} color={iconColor} />
-                        <Text>{t("memory.openSource")}</Text>
-                      </Button>
-                    ) : null}
+                    <OpenSourceButton
+                      episodeId={
+                        "sourceEpisodeId" in selectedNode ? selectedNode.sourceEpisodeId : undefined
+                      }
+                    />
                   </View>
                 ) : null}
               </CardContent>
