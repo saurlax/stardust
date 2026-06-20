@@ -96,7 +96,7 @@ export async function upsertDevice(
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(device_id) DO UPDATE SET
         name = excluded.name,
-        kind = excluded.kind,
+        kind = COALESCE(?, devices.kind),
         status = excluded.status,
         last_seen_at = excluded.last_seen_at,
         battery_level = COALESCE(excluded.battery_level, devices.battery_level),
@@ -116,6 +116,7 @@ export async function upsertDevice(
     device.capabilities?.length ? JSON.stringify(device.capabilities) : null,
     seenAt,
     seenAt,
+    device.kind ?? null,
   );
 }
 

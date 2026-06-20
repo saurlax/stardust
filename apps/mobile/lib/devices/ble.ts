@@ -256,6 +256,10 @@ const readCapabilities = (value: Record<string, unknown>) =>
   Array.isArray(value.capabilities)
     ? value.capabilities.filter((item): item is string => typeof item === "string")
     : undefined;
+const readDeviceKind = (value: Record<string, unknown>) =>
+  typeof value.deviceKind === "string" && value.deviceKind.trim()
+    ? value.deviceKind.trim()
+    : undefined;
 const commandCapabilities: Record<StardustDeviceCommand, string> = {
   capture: "command-capture",
   sync: "command-sync",
@@ -378,6 +382,7 @@ const activateStardustDevice = async (
     try {
       const parsed = JSON.parse(decodeBase64(status.value)) as {
         battery?: number;
+        deviceKind?: string;
         firmware?: string;
         protocolVersion?: string;
         capabilities?: unknown[];
@@ -385,6 +390,7 @@ const activateStardustDevice = async (
       await upsertDevice(db, {
         id: readyDevice.id,
         name: readyDevice.name ?? STARDUST_DEVICE_NAME,
+        kind: readDeviceKind(parsed),
         status: "connected",
         batteryLevel: parsed.battery,
         firmwareVersion: parsed.firmware,
@@ -405,6 +411,7 @@ const activateStardustDevice = async (
       await upsertDevice(db, {
         id: readyDevice.id,
         name: readyDevice.name ?? STARDUST_DEVICE_NAME,
+        kind: readDeviceKind(parsed),
         status: "connected",
         protocolVersion:
           typeof parsed.protocolVersion === "string" ? parsed.protocolVersion : undefined,

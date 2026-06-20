@@ -198,10 +198,13 @@ assertIncludes(devices, "deviceName: event.deviceName", "Promoted device candida
 assertIncludes(schema, "protocol_version TEXT", "Devices must persist protocol versions.");
 assertIncludes(schema, "capabilities_json TEXT", "Devices must persist capability manifests.");
 assertIncludes(devices, "parseCapabilities", "Device repository must parse stored capabilities.");
+assertIncludes(devices, "kind = COALESCE(?, devices.kind)", "Device upserts must not overwrite known device kinds with missing manifest values.");
 assertIncludes(deviceCapabilities, "getDeviceCapabilityLabel", "Device capabilities need user-facing labels.");
 assertIncludes(deviceCapabilities, "getDeviceCapabilitySummary", "Device capability summaries must be shared by device surfaces.");
 assertIncludes(deviceCapabilities, "supportsDeviceCommand", "Device command capability checks must be shared by device surfaces.");
 assertIncludes(ble, "readCapabilities", "BLE sync must parse manifest capabilities.");
+assertIncludes(ble, "readDeviceKind", "BLE sync must parse manifest device kinds.");
+assertIncludes(ble, "kind: readDeviceKind(parsed)", "BLE sync must persist device kinds from status and manifest payloads.");
 assertIncludes(ble, "protocolVersion", "BLE sync must persist protocol versions.");
 assertIncludes(ble, "ensureDeviceCommandCapability", "BLE commands must enforce advertised capabilities.");
 assertIncludes(ble, "commandCapabilities", "BLE commands must map commands to advertised capabilities.");
