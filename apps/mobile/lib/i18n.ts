@@ -226,6 +226,7 @@ const translations = {
       timelineSubtitle: "Browse every chat, share, image, calendar, device, and journal fragment.",
       selectedSource: "Selected source",
       openTimeline: "Open timeline",
+      openMemoryGraph: "Open memory graph",
       journalsTitle: "Journal",
       source: {
         all: "All",
@@ -473,6 +474,7 @@ const translations = {
       timelineSubtitle: "查看聊天、分享、图片、日历、设备和日志碎片。",
       selectedSource: "已选来源",
       openTimeline: "打开时间线",
+      openMemoryGraph: "打开记忆星图",
       journalsTitle: "日志",
       source: {
         all: "全部",

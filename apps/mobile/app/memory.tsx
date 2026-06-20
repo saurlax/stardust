@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, useFocusEffect, type Href } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams, type Href } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -146,6 +146,8 @@ function MemoryEditor({
 
 export default function MemoryScreen() {
   const db = useSQLiteContext();
+  const params = useLocalSearchParams<{ nodeId?: string }>();
+  const targetNodeId = typeof params.nodeId === "string" ? params.nodeId : undefined;
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const [memories, setMemories] = useState<StoredMemory[]>([]);
@@ -181,6 +183,10 @@ export default function MemoryScreen() {
   }, [db]);
 
   useFocusEffect(refresh);
+
+  useEffect(() => {
+    if (targetNodeId) setSelectedNodeId(targetNodeId);
+  }, [targetNodeId]);
 
   const visibleMemories = useMemo(
     () => (filter === "all" ? memories : memories.filter((memory) => memory.type === filter)),
