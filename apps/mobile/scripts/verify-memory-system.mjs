@@ -198,6 +198,9 @@ assertIncludes(ble, "activateStardustDevice(db, ble, readyDevice, { syncAfterAct
 assertIncludes(ble, "manifestEventId", "BLE manifest events need stable ids that ignore uptime-only changes.");
 assertIncludes(ble, "manifest.bootId", "BLE manifest ids must use firmware boot ids when available.");
 assertIncludes(ble, "manifest.eventCount", "BLE manifest ids must use firmware event counts when available.");
+assertIncludes(ble, "fallbackValue", "BLE device event ids must have a stable payload fallback.");
+assertIncludes(ble, "event-${stableHash(fallbackValue)}", "BLE event fallback ids must dedupe repeated payloads.");
+assertIncludes(ble, "scopedDeviceEventId(readyDevice.id, event.id, characteristic.value)", "BLE event notifications must use stable fallback ids.");
 assertIncludes(ble, "await ensureBlePermissions();", "BLE permission errors should surface before module import failures.");
 assertIncludes(settings, '"/inbox?tab=devices" as Href', "Settings devices panel must open the device review tab.");
 assertIncludes(appConfig, '"react-native-ble-plx"', "Expo config must include the BLE plugin.");

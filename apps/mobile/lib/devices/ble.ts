@@ -235,8 +235,12 @@ const stableHash = (value: string) => {
   return (hash >>> 0).toString(36);
 };
 
-const scopedDeviceEventId = (deviceId: string, eventId?: string) =>
-  eventId ? `${deviceId}:${eventId}` : undefined;
+const scopedDeviceEventId = (deviceId: string, eventId?: string, fallbackValue?: string) =>
+  eventId
+    ? `${deviceId}:${eventId}`
+    : fallbackValue
+      ? `${deviceId}:event-${stableHash(fallbackValue)}`
+      : undefined;
 
 const manifestEventId = (deviceId: string, manifestValue: string, manifest: Record<string, unknown>) => {
   const bootId = typeof manifest.bootId === "string" ? manifest.bootId : undefined;
@@ -435,7 +439,7 @@ const activateStardustDevice = async (
             metadata?: Record<string, unknown>;
           };
           void createDeviceEvent(db, {
-            id: scopedDeviceEventId(readyDevice.id, event.id),
+            id: scopedDeviceEventId(readyDevice.id, event.id, characteristic.value),
             deviceId: readyDevice.id,
             eventType: event.type ?? "capture",
             content: event.content ?? "Screen-off capture",
