@@ -314,7 +314,7 @@ export default function Index() {
         sourceMessages,
       });
     },
-    [createTransportMessages, ready, runRequest, sending],
+    [createTransportMessages, db, ready, runRequest, sending],
   );
 
   const sendText = () => sendPrompt(text, selectedImageUri, selectedImageMimeType);
