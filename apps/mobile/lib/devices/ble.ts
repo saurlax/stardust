@@ -164,8 +164,8 @@ const getBleManager = async () => {
   }
   if (manager) return manager;
 
+  await ensureBlePermissions();
   try {
-    await ensureBlePermissions();
     const { BleManager } = await import("react-native-ble-plx");
     manager = new BleManager();
     return manager;

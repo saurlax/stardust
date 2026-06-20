@@ -7,6 +7,8 @@ const mobileRoot = path.join(__dirname, "..");
 const repoRoot = path.join(mobileRoot, "..", "..");
 
 const read = (...parts) => fs.readFileSync(path.join(...parts), "utf8");
+const appConfig = read(mobileRoot, "app.json");
+const packageJson = read(mobileRoot, "package.json");
 const schema = read(mobileRoot, "lib", "db", "schema.ts");
 const candidates = read(mobileRoot, "lib", "db", "repositories", "candidates.ts");
 const devices = read(mobileRoot, "lib", "db", "repositories", "devices.ts");
@@ -116,6 +118,11 @@ assertIncludes(ble, "activateStardustDevice(db, ble, readyDevice, { syncAfterAct
 assertIncludes(ble, "manifestEventId", "BLE manifest events need stable ids that ignore uptime-only changes.");
 assertIncludes(ble, "manifest.bootId", "BLE manifest ids must use firmware boot ids when available.");
 assertIncludes(ble, "manifest.eventCount", "BLE manifest ids must use firmware event counts when available.");
+assertIncludes(ble, "await ensureBlePermissions();", "BLE permission errors should surface before module import failures.");
+assertIncludes(appConfig, '"react-native-ble-plx"', "Expo config must include the BLE plugin.");
+assertIncludes(appConfig, '"neverForLocation": true', "BLE scan permission should declare neverForLocation.");
+assertIncludes(appConfig, '"modes": ["central"]', "BLE plugin must run in central mode for Stardust Sense.");
+assertIncludes(packageJson, '"expo-dev-client"', "BLE requires a native development build dependency.");
 for (const name of [
   "SERVICE_UUID",
   "STATUS_CHARACTERISTIC_UUID",
