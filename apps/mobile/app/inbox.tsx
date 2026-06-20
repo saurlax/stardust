@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect, type Href } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useMemo, useState } from "react";
@@ -297,13 +297,43 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
 }
 
 function DeviceEventCard({ event }: { event: DeviceEventRecord }) {
+  const metadataLines = Object.entries(event.metadata ?? {})
+    .slice(0, 5)
+    .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`);
+
   return (
     <Card className="gap-2 py-4">
-      <CardContent className="gap-2">
+      <CardContent className="gap-3">
         <CardDescription>
           {event.eventType} · {new Date(event.createdAt).toLocaleString()}
         </CardDescription>
         <Text className="text-sm leading-5">{event.content}</Text>
+        {metadataLines.length ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.deviceMetadata")}
+            </Text>
+            {metadataLines.map((line) => (
+              <Text key={line} className="text-xs leading-4 text-muted-foreground">
+                {line}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+        <Button
+          variant="outline"
+          size="sm"
+          className="self-start"
+          onPress={() =>
+            router.push({
+              pathname: "/journal",
+              params: { episodeId: `episode-${event.id}` },
+            } as Href)
+          }
+        >
+          <Ionicons name="open-outline" size={14} />
+          <Text>{t("inbox.openTimeline")}</Text>
+        </Button>
       </CardContent>
     </Card>
   );
