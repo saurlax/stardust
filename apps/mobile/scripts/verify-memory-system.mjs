@@ -108,6 +108,7 @@ assertIncludes(journalScreen, "function entryTitle", "Journal timeline must rend
 assertIncludes(journalScreen, "getDeviceEventTypeLabel(entry.title)", "IoT timeline titles must use device event labels.");
 assertIncludes(journalScreen, "entityEntryPrefix", "Journal search must label entity graph results.");
 assertIncludes(journalScreen, "relationEntryPrefix", "Journal search must label relation graph results.");
+assertIncludes(journalScreen, "result.title", "Journal search results must display retrieved knowledge titles.");
 assertIncludes(journalScreen, "`entity-${result.id}`", "Journal search must open entity graph results.");
 assertIncludes(journalScreen, "result.nodeId", "Journal search must use graph node ids when available.");
 assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");

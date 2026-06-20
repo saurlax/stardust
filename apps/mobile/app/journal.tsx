@@ -177,6 +177,7 @@ export default function JournalScreen() {
       id: string;
       source: "memory" | "episode" | "reflection" | "entity" | "relation";
       type?: string;
+      title?: string;
       content: string;
       createdAt: string;
       nodeId?: string;
@@ -389,6 +390,9 @@ export default function JournalScreen() {
                           : t("journal.episodeEntryPrefix")}
                     {result.type ? ` · ${getKnowledgeTypeLabel(result.source, result.type)}` : ""}
                   </CardDescription>
+                  {result.title ? (
+                    <Text className="text-sm font-semibold leading-5">{result.title}</Text>
+                  ) : null}
                   <Text className="text-sm leading-5">{result.content}</Text>
                   {result.source === "episode" ? (
                     <Button
