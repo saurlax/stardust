@@ -160,6 +160,11 @@ assertIncludes(ble, "createCommandAuditEvent", "BLE commands must record local c
 assertIncludes(ble, 'eventType: "command"', "BLE command audit events must be device events.");
 assertIncludes(ble, 'createCommandAuditEvent(db, deviceId, command, "sent")', "BLE command audit events must record successful sends.");
 assertIncludes(ble, 'createCommandAuditEvent(db, deviceId, command, "failed", error)', "BLE command audit events must record failed sends.");
+assertIncludes(ble, "createConnectionAuditEvent", "BLE connection changes must record local audit events.");
+assertIncludes(ble, 'eventType: "connection"', "BLE connection audit events must be device events.");
+assertIncludes(ble, 'createConnectionAuditEvent(db, device.id, "restored")', "BLE restore success must be audited.");
+assertIncludes(ble, 'createConnectionAuditEvent(db, device.id, "restore_failed", error)', "BLE restore failures must be audited.");
+assertIncludes(ble, 'createConnectionAuditEvent(db, readyDevice.id, "disconnected")', "BLE disconnects must be audited.");
 assertIncludes(settings, "settings.capabilities", "Settings must display device capabilities.");
 assertIncludes(settings, "getDeviceCapabilitySummary(device.capabilities)", "Settings must show friendly capability labels.");
 assertIncludes(settings, "supportsDeviceCommand", "Settings device commands must respect advertised capabilities.");

@@ -278,6 +278,22 @@ const createCommandAuditEvent = (
       error: error instanceof Error ? error.message : undefined,
     },
   });
+const createConnectionAuditEvent = (
+  db: SQLiteDatabase,
+  deviceId: string,
+  status: "disconnected" | "restore_failed" | "restored",
+  error?: unknown,
+) =>
+  createDeviceEvent(db, {
+    deviceId,
+    eventType: "connection",
+    content: `Stardust Sense connection ${status.replace("_", " ")}`,
+    metadata: {
+      status,
+      source: "mobile_ble",
+      error: error instanceof Error ? error.message : undefined,
+    },
+  });
 const ensureDeviceCommandCapability = async (
   db: SQLiteDatabase,
   deviceId: string,
@@ -338,6 +354,7 @@ const activateStardustDevice = async (
     disconnectSubscriptions.get(readyDevice.id)?.remove();
     disconnectSubscriptions.delete(readyDevice.id);
     void updateDeviceStatus(db, readyDevice.id, "disconnected");
+    void createConnectionAuditEvent(db, readyDevice.id, "disconnected");
   }));
   connectedDevices.set(readyDevice.id, readyDevice);
   await upsertDevice(db, {
@@ -452,7 +469,15 @@ export const restoreStardustDeviceSubscriptions = async (db: SQLiteDatabase) => 
   const devices = await listDevices(db);
   const connected = devices.filter((device) => device.status === "connected");
   await Promise.allSettled(
-    connected.map((device) => subscribeToStardustDevice(db, device.id)),
+    connected.map(async (device) => {
+      try {
+        await subscribeToStardustDevice(db, device.id);
+        await createConnectionAuditEvent(db, device.id, "restored");
+      } catch (error) {
+        await updateDeviceStatus(db, device.id, "disconnected");
+        await createConnectionAuditEvent(db, device.id, "restore_failed", error);
+      }
+    }),
   );
 };
 
