@@ -101,6 +101,8 @@ assertIncludes(chatMessages, 'type === "open_loop"', "Chat memory context must l
 assertIncludes(chatMessages, "getKnowledgeTypeLabel(item.source, item.type)", "Chat memory context must use user-facing type labels.");
 assertIncludes(chatMessages, "getContextSourceLabel", "Chat memory context must use user-facing source labels.");
 assertIncludes(chatMessages, "item.title", "Chat memory context must display retrieved knowledge titles.");
+assertIncludes(chatMessages, "item.hasMedia", "Chat memory context summaries must flag media episodes.");
+assertIncludes(chatScreen, "[media attached]", "Chat prompt context must flag media episodes.");
 assertIncludes(journalScreen, "setErrorMessage(t(\"journal.loadFailed\"))", "Episode timeline load failures must be visible.");
 assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be visible.");
 assertIncludes(journalScreen, "sourceCounts", "Episode timeline source filters must expose counts.");
@@ -108,6 +110,7 @@ assertIncludes(journalScreen, "sourceCounts[source]", "Episode timeline source f
 assertIncludes(journalScreen, "entries.filter((entry) => entry.source === source).length", "Episode timeline source counts must be source-specific.");
 assertIncludes(timeline, "title: episode.title", "Episode timeline entries must preserve episode titles.");
 assertIncludes(timeline, "mediaUri: episode.mediaUri", "Episode timeline entries must preserve media URIs.");
+assertIncludes(knowledge, "hasMedia: !!item.media_uri", "Knowledge retrieval must expose media-bearing episodes.");
 assertIncludes(timeline, 'title: memory.candidateKind === "open_loop"', "Memory timeline entries must preserve memory type labels.");
 assertIncludes(timeline, "nodeId: `memory-${memory.id}`", "Memory timeline entries must carry graph node ids.");
 assertIncludes(journalScreen, "function entryTitle", "Journal timeline must render user-facing entry titles.");

@@ -200,6 +200,7 @@ export type RelevantKnowledge = {
   type?: string;
   title?: string;
   content: string;
+  hasMedia?: boolean;
   createdAt: string;
   nodeId?: string;
   rank: number;

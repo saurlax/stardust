@@ -139,6 +139,7 @@ function MemoryContextSummary({ message }: { message: ChatMessage }) {
                     {getContextSourceLabel(item)} ·{" "}
                     {getKnowledgeTypeLabel(item.source, item.type) ||
                       getContextTypeLabel(item.type)}{" "}
+                    {item.hasMedia ? `· ${t("chat.memoryContextMedia")}` : ""}
                     · {item.createdAt.slice(0, 10)}
                   </Text>
                   {item.title ? (

@@ -55,6 +55,7 @@ const buildMemoryContext = (
     type?: string;
     title?: string;
     content: string;
+    hasMedia?: boolean;
     createdAt: string;
   }[],
 ) => {
@@ -93,7 +94,8 @@ const buildMemoryContext = (
               const label = memory.title
                 ? `${memory.type ?? memory.source}: ${memory.title}`
                 : memory.type ?? memory.source;
-              return `${index + 1}. [${label}] ${memory.content} (${memory.createdAt.slice(0, 10)})`;
+              const mediaSuffix = memory.hasMedia ? " [media attached]" : "";
+              return `${index + 1}. [${label}${mediaSuffix}] ${memory.content} (${memory.createdAt.slice(0, 10)})`;
             },
           )
           .join("\n")}`,

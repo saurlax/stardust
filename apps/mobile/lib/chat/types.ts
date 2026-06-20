@@ -38,6 +38,7 @@ export type MessageMemoryContext = {
   type?: string;
   title?: string;
   content: string;
+  hasMedia?: boolean;
   createdAt: string;
   nodeId?: string;
 };

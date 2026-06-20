@@ -44,10 +44,11 @@ async function listRecentEpisodeKnowledge(
     type: string;
     title: string | null;
     content: string;
+    media_uri: string | null;
     created_at: string;
   }>(
     `
-      SELECT episode_id AS id, source AS type, title, content, created_at
+      SELECT episode_id AS id, source AS type, title, content, media_uri, created_at
       FROM episodes
       ORDER BY created_at DESC
       LIMIT ?
@@ -61,6 +62,7 @@ async function listRecentEpisodeKnowledge(
     type: item.type,
     title: item.title ?? undefined,
     content: item.content,
+    hasMedia: !!item.media_uri,
     createdAt: item.created_at,
     rank: 2 + index * 0.05,
   }));
@@ -187,7 +189,7 @@ export async function findRelevantKnowledge(
         limit,
       ),
       db.getAllAsync<any>(
-        `SELECT episode_id AS id, source AS type, title, content, created_at FROM episodes WHERE ${episodeLike} LIMIT ?`,
+        `SELECT episode_id AS id, source AS type, title, content, media_uri, created_at FROM episodes WHERE ${episodeLike} LIMIT ?`,
         ...params,
         limit,
       ),
@@ -217,6 +219,7 @@ export async function findRelevantKnowledge(
         type: item.type,
         title: item.title ?? undefined,
         content: item.content,
+        hasMedia: !!item.media_uri,
         createdAt: item.created_at,
         rank: rankByTokenMatches(`${item.type} ${item.content}`, tokens) + 0.2,
       })),
@@ -257,7 +260,9 @@ export async function findRelevantKnowledge(
       `
         SELECT episodes.episode_id AS id, episodes.source AS type,
           episodes.title AS title,
-          episodes.content AS content, episodes.created_at AS created_at,
+          episodes.content AS content,
+          episodes.media_uri AS media_uri,
+          episodes.created_at AS created_at,
           bm25(episodes_fts) AS rank
         FROM episodes_fts
         JOIN episodes ON episodes.episode_id = episodes_fts.episode_id
@@ -303,6 +308,7 @@ export async function findRelevantKnowledge(
       type: item.type,
       title: item.title ?? undefined,
       content: item.content,
+      hasMedia: !!item.media_uri,
       createdAt: item.created_at,
       rank: item.rank + 0.2,
     })),
