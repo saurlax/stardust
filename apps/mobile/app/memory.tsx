@@ -286,7 +286,12 @@ export default function MemoryScreen() {
     [memories],
   );
   const memoryTree = useMemo(
-    () => buildMemoryTree(visibleMemories, reflections, entities, relations),
+    () =>
+      buildMemoryTree(visibleMemories, reflections, entities, relations, {
+        rootTitle: t("memory.rootNodeTitle"),
+        memoryTypeLabel: getMemoryTypeLabel,
+        relationTypeLabel: getRelationTypeLabel,
+      }),
     [entities, reflections, relations, visibleMemories],
   );
   const selectedNode = useMemo(() => {

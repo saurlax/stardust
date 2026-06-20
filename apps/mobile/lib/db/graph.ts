@@ -16,6 +16,15 @@ const memoryTypeOrder = [
   "opinion",
 ];
 
+type BuildMemoryTreeOptions = {
+  rootTitle?: string;
+  memoryTypeLabel?: (type: string) => string;
+  relationTypeLabel?: (type: string) => string;
+};
+
+const truncateLabel = (value: string, maxLength: number) =>
+  value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+
 const tokenize = (value: string) =>
   value
     .toLowerCase()
@@ -27,8 +36,9 @@ export const buildMemoryTree = (
   reflections: ReflectionRecord[] = [],
   entities: EntityRecord[] = [],
   relations: RelationRecord[] = [],
+  options: BuildMemoryTreeOptions = {},
 ): NebulaTree => {
-  const nodes: NebulaTree["nodes"] = [{ id: "root", title: "you", size: 10 }];
+  const nodes: NebulaTree["nodes"] = [{ id: "root", title: options.rootTitle ?? "you", size: 10 }];
   const visibleMemories = memories.slice(0, 48);
   const visibleReflections = reflections.slice(0, 8);
   const typeNodes = new Set<string>();
@@ -38,7 +48,7 @@ export const buildMemoryTree = (
     typeNodes.add(type);
     nodes.push({
       id: `type-${type}`,
-      title: type,
+      title: options.memoryTypeLabel?.(type) ?? type,
       linksTo: ["root"],
       size: 7.5,
     });
@@ -47,7 +57,7 @@ export const buildMemoryTree = (
   visibleReflections.forEach((reflection, index) => {
     nodes.push({
       id: `reflection-${reflection.id}`,
-      title: reflection.title.length > 18 ? `${reflection.title.slice(0, 18)}...` : reflection.title,
+      title: truncateLabel(reflection.title, 18),
       linksTo: ["root"],
       size: 8 - index * 0.15,
     });
@@ -67,7 +77,7 @@ export const buildMemoryTree = (
       });
     nodes.push({
       id: `entity-${entity.id}`,
-      title: entity.name.length > 18 ? `${entity.name.slice(0, 18)}...` : entity.name,
+      title: truncateLabel(entity.name, 18),
       linksTo: relationLinks.length ? relationLinks : ["root"],
       size: 6.8 - Math.min(index, 12) * 0.08,
     });
@@ -95,7 +105,7 @@ export const buildMemoryTree = (
 
       nodes.push({
         id: `relation-${relation.id}`,
-        title: relation.type.length > 18 ? `${relation.type.slice(0, 18)}...` : relation.type,
+        title: truncateLabel(options.relationTypeLabel?.(relation.type) ?? relation.type, 18),
         linksTo: linksTo.length ? linksTo : ["root"],
         size: 4.6 + Math.min(relation.weight, 6) * 0.18 - Math.min(index, 18) * 0.04,
       });
@@ -109,7 +119,7 @@ export const buildMemoryTree = (
       .find((previous) => tokenize(previous.content).some((token) => tokens.includes(token)));
     nodes.push({
       id: `memory-${memory.id}`,
-      title: memory.content.length > 20 ? `${memory.content.slice(0, 20)}...` : memory.content,
+      title: truncateLabel(memory.content, 20),
       linksTo: related ? [parentId, `memory-${related.id}`] : [parentId],
       size: 5.2 + Math.min(memory.importance, 5) * 0.35,
     });
