@@ -11,6 +11,17 @@ const createId = (prefix: string) =>
 const promotableDeviceEventTypes = new Set(["capture", "button", "serial"]);
 const isPromotableDeviceEvent = (eventType: string) =>
   promotableDeviceEventTypes.has(eventType.toLowerCase());
+const parseCapabilities = (value: string | null) => {
+  if (!value) return undefined;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
   const rows = await db.getAllAsync<{
@@ -21,6 +32,8 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
     last_seen_at: string | null;
     battery_level: number | null;
     firmware_version: string | null;
+    protocol_version: string | null;
+    capabilities_json: string | null;
     event_count: number;
     pending_review_count: number;
     last_event_at: string | null;
@@ -33,6 +46,8 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
       devices.last_seen_at AS last_seen_at,
       devices.battery_level AS battery_level,
       devices.firmware_version AS firmware_version,
+      devices.protocol_version AS protocol_version,
+      devices.capabilities_json AS capabilities_json,
       COUNT(device_events.device_event_id) AS event_count,
       SUM(CASE WHEN memory_candidates.status = 'pending' THEN 1 ELSE 0 END) AS pending_review_count,
       MAX(device_events.created_at) AS last_event_at
@@ -50,6 +65,8 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
     lastSeenAt: row.last_seen_at ?? undefined,
     batteryLevel: row.battery_level ?? undefined,
     firmwareVersion: row.firmware_version ?? undefined,
+    protocolVersion: row.protocol_version ?? undefined,
+    capabilities: parseCapabilities(row.capabilities_json),
     eventCount: row.event_count ?? 0,
     pendingReviewCount: row.pending_review_count ?? 0,
     lastEventAt: row.last_event_at ?? undefined,
@@ -65,6 +82,8 @@ export async function upsertDevice(
     status?: DeviceStatus;
     batteryLevel?: number;
     firmwareVersion?: string;
+    protocolVersion?: string;
+    capabilities?: string[];
   },
 ) {
   const seenAt = nowIso();
@@ -72,9 +91,9 @@ export async function upsertDevice(
     `
       INSERT INTO devices (
         device_id, name, kind, status, last_seen_at, battery_level, firmware_version,
-        created_at, updated_at
+        protocol_version, capabilities_json, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(device_id) DO UPDATE SET
         name = excluded.name,
         kind = excluded.kind,
@@ -82,6 +101,8 @@ export async function upsertDevice(
         last_seen_at = excluded.last_seen_at,
         battery_level = COALESCE(excluded.battery_level, devices.battery_level),
         firmware_version = COALESCE(excluded.firmware_version, devices.firmware_version),
+        protocol_version = COALESCE(excluded.protocol_version, devices.protocol_version),
+        capabilities_json = COALESCE(excluded.capabilities_json, devices.capabilities_json),
         updated_at = excluded.updated_at
     `,
     device.id,
@@ -91,6 +112,8 @@ export async function upsertDevice(
     seenAt,
     device.batteryLevel ?? null,
     device.firmwareVersion ?? null,
+    device.protocolVersion ?? null,
+    device.capabilities?.length ? JSON.stringify(device.capabilities) : null,
     seenAt,
     seenAt,
   );

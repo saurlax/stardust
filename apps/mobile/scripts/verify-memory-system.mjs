@@ -120,7 +120,7 @@ for (const functionName of [
 }
 
 assertIncludes(schema, "episode_id TEXT", "Reflections must preserve source episodes.");
-assertIncludes(schema, "export const DATABASE_VERSION = 15", "Database version must reflect the current schema.");
+assertIncludes(schema, "export const DATABASE_VERSION = 16", "Database version must reflect the current schema.");
 assertIncludes(schema, "candidate_id TEXT", "Relations must preserve source candidates.");
 assertIncludes(schema, "episode_id TEXT", "Relations must preserve source episodes.");
 assertIncludes(candidates, "candidate_id, episode_id, source_entity_id", "Entity candidate acceptance must write relation provenance.");
@@ -145,6 +145,13 @@ assertIncludes(schema, "candidate_id TEXT", "Device events must retain promoted 
 assertIncludes(devices, "SET candidate_id = ?", "Device event promotion must link back to the candidate.");
 assertIncludes(devices, "memory_candidates.candidate_id = device_events.candidate_id", "Device event review state must use explicit candidate links.");
 assertIncludes(devices, "promotableDeviceEventTypes", "Device event promotion must filter operational events.");
+assertIncludes(schema, "protocol_version TEXT", "Devices must persist protocol versions.");
+assertIncludes(schema, "capabilities_json TEXT", "Devices must persist capability manifests.");
+assertIncludes(devices, "parseCapabilities", "Device repository must parse stored capabilities.");
+assertIncludes(ble, "readCapabilities", "BLE sync must parse manifest capabilities.");
+assertIncludes(ble, "protocolVersion", "BLE sync must persist protocol versions.");
+assertIncludes(settings, "settings.capabilities", "Settings must display device capabilities.");
+assertIncludes(inboxScreen, "inbox.capabilities", "Device inbox must display device capabilities.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM entities", "Personal snapshot must expose entity graph growth.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal snapshot must expose relation graph growth.");
 assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snapshot must expose confirmed open loops.");

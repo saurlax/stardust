@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
-export const DATABASE_VERSION = 15;
+export const DATABASE_VERSION = 16;
 
 let ftsAvailable: boolean | undefined;
 
@@ -144,6 +144,8 @@ async function createCurrentTables(db: SQLiteDatabase) {
       last_seen_at TEXT,
       battery_level INTEGER,
       firmware_version TEXT,
+      protocol_version TEXT,
+      capabilities_json TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );

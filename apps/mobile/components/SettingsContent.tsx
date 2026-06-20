@@ -57,6 +57,10 @@ const getDeviceDetailLines = (device: DeviceRecord) =>
     }`,
     device.batteryLevel === undefined ? undefined : `${t("settings.battery")}: ${device.batteryLevel}%`,
     device.firmwareVersion ? `${t("settings.firmware")}: ${device.firmwareVersion}` : undefined,
+    device.protocolVersion ? `${t("settings.protocol")}: ${device.protocolVersion}` : undefined,
+    device.capabilities?.length
+      ? `${t("settings.capabilities")}: ${device.capabilities.join(", ")}`
+      : undefined,
     `${t("settings.deviceEventCount")}: ${device.eventCount}`,
     device.pendingReviewCount
       ? `${t("settings.pendingReviews")}: ${device.pendingReviewCount}`

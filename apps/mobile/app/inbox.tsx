@@ -433,6 +433,10 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
     }`,
     device.batteryLevel === undefined ? undefined : `${t("inbox.battery")}: ${device.batteryLevel}%`,
     device.firmwareVersion ? `${t("inbox.firmware")}: ${device.firmwareVersion}` : undefined,
+    device.protocolVersion ? `${t("inbox.protocol")}: ${device.protocolVersion}` : undefined,
+    device.capabilities?.length
+      ? `${t("inbox.capabilities")}: ${device.capabilities.join(", ")}`
+      : undefined,
     `${t("inbox.deviceEventCount")}: ${device.eventCount}`,
     device.pendingReviewCount ? `${t("inbox.pendingReviews")}: ${device.pendingReviewCount}` : undefined,
     device.lastEventAt

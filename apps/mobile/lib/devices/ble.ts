@@ -247,6 +247,10 @@ const manifestEventId = (deviceId: string, manifestValue: string, manifest: Reco
     ? `manifest-${deviceId}-${bootId}-${eventCount}`
     : `manifest-${deviceId}-${stableHash(manifestValue)}`;
 };
+const readCapabilities = (value: Record<string, unknown>) =>
+  Array.isArray(value.capabilities)
+    ? value.capabilities.filter((item): item is string => typeof item === "string")
+    : undefined;
 
 export const scanStardustDevices = async (db: SQLiteDatabase) => {
   const ble = await getBleManager();
@@ -311,6 +315,8 @@ const activateStardustDevice = async (
       const parsed = JSON.parse(decodeBase64(status.value)) as {
         battery?: number;
         firmware?: string;
+        protocolVersion?: string;
+        capabilities?: unknown[];
       };
       await upsertDevice(db, {
         id: readyDevice.id,
@@ -318,6 +324,8 @@ const activateStardustDevice = async (
         status: "connected",
         batteryLevel: parsed.battery,
         firmwareVersion: parsed.firmware,
+        protocolVersion: parsed.protocolVersion,
+        capabilities: readCapabilities(parsed),
       });
     } catch {
       // Ignore malformed status payloads.
@@ -330,6 +338,14 @@ const activateStardustDevice = async (
   if (manifest?.value) {
     try {
       const parsed = JSON.parse(decodeBase64(manifest.value)) as Record<string, unknown>;
+      await upsertDevice(db, {
+        id: readyDevice.id,
+        name: readyDevice.name ?? STARDUST_DEVICE_NAME,
+        status: "connected",
+        protocolVersion:
+          typeof parsed.protocolVersion === "string" ? parsed.protocolVersion : undefined,
+        capabilities: readCapabilities(parsed),
+      });
       await createDeviceEvent(db, {
         id: manifestEventId(readyDevice.id, manifest.value, parsed),
         deviceId: readyDevice.id,

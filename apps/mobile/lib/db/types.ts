@@ -110,6 +110,8 @@ export type DeviceRecord = {
   lastSeenAt?: string;
   batteryLevel?: number;
   firmwareVersion?: string;
+  protocolVersion?: string;
+  capabilities?: string[];
   eventCount: number;
   pendingReviewCount: number;
   lastEventAt?: string;
