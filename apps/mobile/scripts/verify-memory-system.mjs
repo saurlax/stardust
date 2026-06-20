@@ -195,6 +195,10 @@ assertIncludes(inboxScreen, "inbox.openLoopBadge", "Saved inbox memories must la
 assertIncludes(knowledge, "listEntityRelationKnowledge", "Retrieval must include entity graph knowledge.");
 assertIncludes(knowledge, 'source: "entity" as const', "Entity graph retrieval results must be typed.");
 assertIncludes(knowledge, 'source: "relation" as const', "Relation graph retrieval results must be typed.");
+assertIncludes(knowledge, "memory_candidates.kind AS candidate_kind", "Retrieval must retain memory candidate kinds.");
+assertIncludes(knowledge, 'candidate_kind === "open_loop" ? "open_loop"', "Retrieval must label confirmed open loops.");
+assertIncludes(knowledge, 'candidate_kind === "open_loop" ? -0.35 : 0', "Retrieval must prioritize confirmed open loops.");
+assertIncludes(knowledge, "nodeId: `memory-${item.id}`", "Memory retrieval results must carry graph navigation ids.");
 assertIncludes(knowledge, "nodeId: `relation-${item.id}`", "Relation retrieval must navigate to relation graph nodes.");
 assertIncludes(knowledge, "nodeId:", "Entity and relation retrieval results must carry graph navigation ids.");
 

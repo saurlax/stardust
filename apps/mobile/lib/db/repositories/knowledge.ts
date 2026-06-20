@@ -170,7 +170,15 @@ export async function findRelevantKnowledge(
     const recentEpisodeLimit = Math.min(3, limit);
     const [memoryRows, episodeRows, reflectionRows, recentEpisodes, entityRows] = await Promise.all([
       db.getAllAsync<any>(
-        `SELECT memory_id AS id, type, content, created_at FROM memory_atoms WHERE status = 'active' AND ${like} LIMIT ?`,
+        `
+          SELECT memory_atoms.memory_id AS id, memory_atoms.type AS type,
+            memory_atoms.content AS content, memory_atoms.created_at AS created_at,
+            memory_candidates.kind AS candidate_kind
+          FROM memory_atoms
+          LEFT JOIN memory_candidates ON memory_candidates.candidate_id = memory_atoms.candidate_id
+          WHERE memory_atoms.status = 'active' AND ${like}
+          LIMIT ?
+        `,
         ...params,
         limit,
       ),
@@ -191,10 +199,13 @@ export async function findRelevantKnowledge(
       ...memoryRows.map((item) => ({
         id: item.id,
         source: "memory" as const,
-        type: item.type,
+        type: item.candidate_kind === "open_loop" ? "open_loop" : item.type,
         content: item.content,
         createdAt: item.created_at,
-        rank: rankByTokenMatches(`${item.type} ${item.content}`, tokens),
+        nodeId: `memory-${item.id}`,
+        rank:
+          rankByTokenMatches(`${item.type} ${item.content}`, tokens) +
+          (item.candidate_kind === "open_loop" ? -0.35 : 0),
       })),
       ...episodeRows.map((item) => ({
         id: item.id,
@@ -224,9 +235,11 @@ export async function findRelevantKnowledge(
       `
         SELECT memory_atoms.memory_id AS id, memory_atoms.type AS type,
           memory_atoms.content AS content, memory_atoms.created_at AS created_at,
+          memory_candidates.kind AS candidate_kind,
           bm25(memory_atoms_fts) AS rank
         FROM memory_atoms_fts
         JOIN memory_atoms ON memory_atoms.memory_id = memory_atoms_fts.memory_id
+        LEFT JOIN memory_candidates ON memory_candidates.candidate_id = memory_atoms.candidate_id
         WHERE memory_atoms.status = 'active' AND memory_atoms_fts MATCH ?
         ORDER BY rank
         LIMIT ?
@@ -270,10 +283,11 @@ export async function findRelevantKnowledge(
     ...memoryRows.map((item) => ({
       id: item.id,
       source: "memory" as const,
-      type: item.type,
+      type: item.candidate_kind === "open_loop" ? "open_loop" : item.type,
       content: item.content,
       createdAt: item.created_at,
-      rank: item.rank,
+      nodeId: `memory-${item.id}`,
+      rank: item.rank + (item.candidate_kind === "open_loop" ? -0.35 : 0),
     })),
     ...episodeRows.map((item) => ({
       id: item.id,
