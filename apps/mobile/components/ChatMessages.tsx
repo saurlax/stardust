@@ -39,6 +39,12 @@ const getCardTypeLabel = (type: string) => {
       return t("chat.cardTypeSaveMemory");
     case "append_journal":
       return t("chat.cardTypeAppendJournal");
+    case "link_entity":
+      return t("chat.cardTypeLinkEntity");
+    case "suggest_reflection":
+      return t("chat.cardTypeSuggestReflection");
+    case "mark_open_loop":
+      return t("chat.cardTypeMarkOpenLoop");
     default:
       return t("chat.cardTypeUnknown");
   }

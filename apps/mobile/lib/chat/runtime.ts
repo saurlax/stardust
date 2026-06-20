@@ -49,19 +49,26 @@ type ToolCardDefinition = {
   };
 };
 
-const SYSTEM_PROMPT = `You are Stardust, the user's local-first AI companion.
-Reply naturally, but use tools when you detect information that should be saved.
+const SYSTEM_PROMPT = `You are Stardust, the user's local-first memory companion.
+Reply naturally, but use tools when you detect information that should be reviewed by the user.
 
 Available tools:
 1. save_memory
-   Use when the user reveals a durable preference, memory, opinion, or task worth keeping long term.
+   Use when the user reveals a durable preference, fact, relationship, project, concern, goal, routine, memory, task, or opinion.
 2. append_journal
-   Use when the user shares a meaningful recent activity, moment, or observation that should be kept as a lightweight journal log.
+   Use when the user shares a meaningful recent activity, moment, or observation that should be kept as a lightweight episode.
+3. link_entity
+   Use when a person, project, place, topic, or object should become part of the user's relationship graph.
+4. suggest_reflection
+   Use when several signals imply a higher-level pattern about the user. Be careful and non-judgmental.
+5. mark_open_loop
+   Use when the user reveals an unresolved question, recurring concern, or decision that may need future follow-up.
 
 Rules:
 - Keep your visible reply natural and concise.
-- If something should be saved, emit the appropriate tool call.
+- If something should be saved or reviewed, emit the appropriate tool call.
 - Tool payload content must be short, specific, and user-facing.
+- Do not state a reflection as fact; phrase it as something to review.
 - Do not ask the user to repeat the same information just to save it.`;
 
 const buildSystemPrompt = (memoryContext?: string) =>
@@ -82,7 +89,18 @@ const toolDefinitions = [
           content: { type: "string" },
           memoryType: {
             type: "string",
-            enum: ["preference", "memory", "task", "opinion"],
+            enum: [
+              "preference",
+              "fact",
+              "relationship",
+              "project",
+              "concern",
+              "goal",
+              "routine",
+              "memory",
+              "task",
+              "opinion",
+            ],
           },
         },
         required: ["title", "content", "memoryType"],
@@ -101,6 +119,63 @@ const toolDefinitions = [
           content: { type: "string" },
         },
         required: ["title", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "link_entity",
+      description: "Propose adding an entity to the user's relationship graph.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          content: { type: "string" },
+          memoryType: {
+            type: "string",
+            enum: ["person", "project", "place", "topic", "object"],
+          },
+        },
+        required: ["title", "content", "memoryType"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "suggest_reflection",
+      description: "Propose a higher-level pattern or self-understanding for review.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          content: { type: "string" },
+          memoryType: {
+            type: "string",
+            enum: ["reflection"],
+          },
+        },
+        required: ["title", "content", "memoryType"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "mark_open_loop",
+      description: "Propose tracking an unresolved question, recurring concern, or future follow-up.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          content: { type: "string" },
+          memoryType: {
+            type: "string",
+            enum: ["concern", "goal", "project"],
+          },
+        },
+        required: ["title", "content", "memoryType"],
       },
     },
   },
@@ -238,66 +313,6 @@ const parseSSEStream = async (
       }
     }
   }
-};
-
-const sendCloudChatRequest = async ({
-  chatId,
-  config,
-  prompt,
-  onChatId,
-  onTextDelta,
-}: SendChatRequestOptions): Promise<SendChatRequestResult> => {
-  const response = await expoFetch(
-    `${resolveApiBaseUrl(config.cloud.apiBaseURL)}/api/v1/chat`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        chatId: chatId ?? undefined,
-        content: prompt,
-        stream: true,
-      }),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`);
-  }
-
-  let nextChatId = chatId ?? undefined;
-  let content = "";
-  let streamError: string | null = null;
-
-  await parseSSEStream(response, (event) => {
-    const eventType = typeof event.type === "string" ? event.type : "";
-    if (eventType === "data-chatId" && typeof event.data === "string") {
-      nextChatId = event.data;
-      onChatId?.(event.data);
-      return;
-    }
-
-    if (eventType === "text-delta" && typeof event.delta === "string") {
-      content += event.delta;
-      onTextDelta(event.delta);
-      return;
-    }
-
-    if (eventType === "error" && typeof event.errorText === "string") {
-      streamError = event.errorText;
-    }
-  });
-
-  if (streamError) {
-    throw new Error(streamError);
-  }
-
-  return {
-    chatId: nextChatId,
-    content: content.trim(),
-    toolCards: [],
-  };
 };
 
 const sendLocalChatRequest = async ({
@@ -462,10 +477,4 @@ const sendLocalChatRequest = async ({
 
 export const sendChatRequest = async (
   options: SendChatRequestOptions,
-): Promise<SendChatRequestResult> => {
-  if (options.config.runtimeMode === "cloud") {
-    return sendCloudChatRequest(options);
-  }
-
-  return sendLocalChatRequest(options);
-};
+): Promise<SendChatRequestResult> => sendLocalChatRequest(options);

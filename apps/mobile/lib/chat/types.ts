@@ -8,7 +8,12 @@ export type MessageStatus =
 
 export type MemoryCandidateStatus = "pending" | "accepted" | "dismissed";
 
-export type ToolCardType = "save_memory" | "append_journal";
+export type ToolCardType =
+  | "save_memory"
+  | "append_journal"
+  | "link_entity"
+  | "suggest_reflection"
+  | "mark_open_loop";
 
 export type ToolCardPayload = {
   content: string;
@@ -37,6 +42,7 @@ export type ChatMessage = {
     prompt: string;
     imageUri?: string;
     imageMimeType?: string;
+    episodeId?: string;
   };
   toolCards?: MessageToolCard[];
 };
