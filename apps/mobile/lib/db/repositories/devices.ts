@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
-import { createEpisode } from "@/lib/db/repositories/episodes";
+import { createEpisodeInCurrentTransaction } from "@/lib/db/repositories/episodes";
 import { parseJson, safeJson } from "@/lib/db/serialization";
 import { runInTransaction } from "@/lib/db/transactions";
 import type { CandidateStatus, DeviceEventRecord, DeviceRecord, DeviceStatus } from "@/lib/db/types";
@@ -146,7 +146,7 @@ export async function createDeviceEvent(
     inserted = result.changes > 0;
     if (!inserted) return;
 
-    await createEpisode(db, {
+    await createEpisodeInCurrentTransaction(db, {
       id: `episode-${eventId}`,
       source: "iot",
       title: input.eventType,

@@ -9,6 +9,7 @@ const repoRoot = path.join(mobileRoot, "..", "..");
 const read = (...parts) => fs.readFileSync(path.join(...parts), "utf8");
 const schema = read(mobileRoot, "lib", "db", "schema.ts");
 const devices = read(mobileRoot, "lib", "db", "repositories", "devices.ts");
+const episodes = read(mobileRoot, "lib", "db", "repositories", "episodes.ts");
 const memoryRecords = read(mobileRoot, "lib", "db", "repositories", "memoryRecords.ts");
 const ble = read(mobileRoot, "lib", "devices", "ble.ts");
 const config = read(mobileRoot, "lib", "config.ts");
@@ -28,6 +29,14 @@ const readQuotedConst = (source, name) => {
     throw new Error(`Missing constant: ${name}`);
   }
   return match[1];
+};
+
+const readExportedFunction = (source, name) => {
+  const match = new RegExp(`export async function ${name}\\s*\\(`).exec(source);
+  const start = match?.index ?? -1;
+  if (start < 0) return "";
+  const next = source.indexOf("\nexport async function ", start + 1);
+  return source.slice(start, next < 0 ? source.length : next);
 };
 
 const requiredTables = [
@@ -70,8 +79,7 @@ for (const functionName of [
   "updateStoredMemoryContent",
   "dismissStoredMemory",
 ]) {
-  const match = memoryRecords.match(new RegExp(`export async function ${functionName}[\\s\\S]*?\\n}`));
-  if (!match?.[0]?.includes("runInTransaction(db")) {
+  if (!readExportedFunction(memoryRecords, functionName).includes("runInTransaction(db")) {
     throw new Error(`${functionName} must keep record changes and FTS updates in one transaction.`);
   }
 }
@@ -87,8 +95,9 @@ for (const constraint of [
   assertIncludes(schema, constraint, `Missing schema integrity constraint: ${constraint}`);
 }
 
-assertIncludes(devices, "createEpisode(db", "Device events must create timeline episodes.");
+assertIncludes(devices, "createEpisodeInCurrentTransaction(db", "Device events must create timeline episodes.");
 assertIncludes(devices, 'source: "iot"', "Device event episodes must use the iot source.");
+assertIncludes(devices, "createEpisodeInCurrentTransaction", "Device events must create episodes inside their existing transaction.");
 assertIncludes(devices, "INSERT OR IGNORE INTO device_events", "Device events must be idempotent.");
 assertIncludes(devices, "promoteDeviceEventToCandidate", "Device events must be promotable to memory review.");
 assertIncludes(devices, "'memory', 'memory'", "Promoted device events must become pending memory candidates.");
@@ -110,6 +119,12 @@ for (const name of [
   const firmwareValue = readQuotedConst(iotSketch, name);
   if (mobileValue !== firmwareValue) {
     throw new Error(`BLE UUID mismatch for ${name}: ${mobileValue} !== ${firmwareValue}`);
+  }
+}
+
+for (const functionName of ["createEpisode", "updateJournalContent"]) {
+  if (!readExportedFunction(episodes, functionName).includes("runInTransaction(db")) {
+    throw new Error(`${functionName} must keep episode changes and FTS updates in one transaction.`);
   }
 }
 for (const command of ['"capture"', '"sync"', '"sleep"']) {

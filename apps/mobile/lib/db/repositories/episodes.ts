@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 import { isFtsAvailable } from "@/lib/db/schema";
 import { parseJson, safeJson } from "@/lib/db/serialization";
+import { runInTransaction } from "@/lib/db/transactions";
 import type { Episode, EpisodeSource, JournalRecord } from "@/lib/db/types";
 
 const nowIso = () => new Date().toISOString();
@@ -21,6 +22,36 @@ export async function insertEpisodeFts(db: SQLiteDatabase, episode: Episode) {
     episode.title ?? "",
     episode.content,
   );
+}
+
+export async function createEpisodeInCurrentTransaction(
+  db: SQLiteDatabase,
+  episode: Episode,
+) {
+  await db.runAsync(
+    `
+      INSERT INTO episodes (
+        episode_id, source, title, content, media_uri, metadata_json, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(episode_id) DO UPDATE SET
+        source = excluded.source,
+        title = excluded.title,
+        content = excluded.content,
+        media_uri = excluded.media_uri,
+        metadata_json = excluded.metadata_json,
+        updated_at = excluded.updated_at
+    `,
+    episode.id,
+    episode.source,
+    episode.title ?? null,
+    episode.content,
+    episode.mediaUri ?? null,
+    safeJson(episode.metadata),
+    episode.createdAt,
+    episode.createdAt,
+  );
+  await insertEpisodeFts(db, episode);
 }
 
 export async function createEpisode(
@@ -46,30 +77,9 @@ export async function createEpisode(
   };
   if (!episode.content) return episode;
 
-  await db.runAsync(
-    `
-      INSERT INTO episodes (
-        episode_id, source, title, content, media_uri, metadata_json, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(episode_id) DO UPDATE SET
-        source = excluded.source,
-        title = excluded.title,
-        content = excluded.content,
-        media_uri = excluded.media_uri,
-        metadata_json = excluded.metadata_json,
-        updated_at = excluded.updated_at
-    `,
-    episode.id,
-    episode.source,
-    episode.title ?? null,
-    episode.content,
-    episode.mediaUri ?? null,
-    safeJson(episode.metadata),
-    episode.createdAt,
-    episode.createdAt,
-  );
-  await insertEpisodeFts(db, episode);
+  await runInTransaction(db, async () => {
+    await createEpisodeInCurrentTransaction(db, episode);
+  });
   return episode;
 }
 
@@ -138,26 +148,28 @@ export async function updateJournalContent(
     `,
     episodeId,
   );
-  await db.runAsync(
-    `
-      UPDATE episodes
-      SET content = ?, updated_at = ?
-      WHERE episode_id = ?
-    `,
-    trimmed,
-    updatedAt,
-    episodeId,
-  );
+  await runInTransaction(db, async () => {
+    await db.runAsync(
+      `
+        UPDATE episodes
+        SET content = ?, updated_at = ?
+        WHERE episode_id = ?
+      `,
+      trimmed,
+      updatedAt,
+      episodeId,
+    );
 
-  if (episode) {
-    await insertEpisodeFts(db, {
-      id: episode.episode_id,
-      source: episode.source,
-      title: episode.title ?? undefined,
-      content: trimmed,
-      mediaUri: episode.media_uri ?? undefined,
-      metadata: parseJson(episode.metadata_json),
-      createdAt: episode.created_at,
-    });
-  }
+    if (episode) {
+      await insertEpisodeFts(db, {
+        id: episode.episode_id,
+        source: episode.source,
+        title: episode.title ?? undefined,
+        content: trimmed,
+        mediaUri: episode.media_uri ?? undefined,
+        metadata: parseJson(episode.metadata_json),
+        createdAt: episode.created_at,
+      });
+    }
+  });
 }
