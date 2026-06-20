@@ -186,6 +186,7 @@ export type JournalEntry = {
   note: string;
   source: EpisodeSource | "memory";
   mediaUri?: string;
+  metadata?: Record<string, unknown>;
   nodeId?: string;
 };
 

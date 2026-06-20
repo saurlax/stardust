@@ -109,10 +109,14 @@ assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be 
 assertIncludes(journalScreen, "sourceCounts", "Episode timeline source filters must expose counts.");
 assertIncludes(journalScreen, "sourceCounts[source]", "Episode timeline source filter labels must display counts.");
 assertIncludes(journalScreen, "entries.filter((entry) => entry.source === source).length", "Episode timeline source counts must be source-specific.");
+assertIncludes(journalScreen, "EntrySourceDetails", "Episode timeline entries must display structured source metadata.");
+assertIncludes(journalScreen, "journal.calendarLocation", "Episode timeline must surface calendar location metadata.");
+assertIncludes(journalScreen, "journal.captureSource", "Episode timeline must surface IoT capture source metadata.");
 assertIncludes(calendarScreen, "buildCalendarEpisodeContent(event)", "Calendar episodes must preserve searchable date and location context.");
 assertIncludes(calendarScreen, "calendar.location", "Calendar episode content must label locations.");
 assertIncludes(timeline, "title: episode.title", "Episode timeline entries must preserve episode titles.");
 assertIncludes(timeline, "mediaUri: episode.mediaUri", "Episode timeline entries must preserve media URIs.");
+assertIncludes(timeline, "metadata: episode.metadata", "Episode timeline entries must preserve source metadata.");
 assertIncludes(knowledge, "hasMedia: !!item.media_uri", "Knowledge retrieval must expose media-bearing episodes.");
 assertIncludes(timeline, 'title: memory.candidateKind === "open_loop"', "Memory timeline entries must preserve memory type labels.");
 assertIncludes(timeline, "nodeId: `memory-${memory.id}`", "Memory timeline entries must carry graph node ids.");

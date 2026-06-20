@@ -13,6 +13,7 @@ import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMonthDay, formatTime, t } from "@/lib/i18n";
 import {
+  getDeviceEventTypeLabel,
   getEpisodeTitleLabel,
   getKnowledgeTypeLabel,
   getMemoryTypeLabel,
@@ -59,6 +60,58 @@ function EpisodeMediaPreview({ entry }: { entry: JournalDay["entries"][number] }
       accessibilityLabel={entryTitle(entry) ?? t("journal.mediaPreview")}
       className="mt-1 h-36 w-full rounded-md bg-muted"
     />
+  );
+}
+
+const getStringMetadata = (metadata: Record<string, unknown> | undefined, key: string) => {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+};
+
+function getEntrySourceDetailLines(entry: JournalDay["entries"][number]) {
+  const metadata = entry.metadata;
+  if (entry.source === "calendar") {
+    const startDate = getStringMetadata(metadata, "startDate");
+    const endDate = getStringMetadata(metadata, "endDate");
+    const location = getStringMetadata(metadata, "location");
+
+    return [
+      startDate && endDate
+        ? `${t("journal.calendarTime")}: ${formatMonthDay(new Date(startDate))} ${formatTime(new Date(startDate))} - ${formatTime(
+            new Date(endDate),
+          )}`
+        : undefined,
+      location ? `${t("journal.calendarLocation")}: ${location}` : undefined,
+    ].filter((line): line is string => !!line);
+  }
+
+  if (entry.source === "iot") {
+    const deviceTimestamp = getStringMetadata(metadata, "deviceTimestamp");
+    const captureSource = getStringMetadata(metadata, "source");
+    const deviceId = getStringMetadata(metadata, "deviceId");
+
+    return [
+      deviceTimestamp ? `${t("journal.deviceTime")}: ${deviceTimestamp}` : undefined,
+      captureSource ? `${t("journal.captureSource")}: ${getDeviceEventTypeLabel(captureSource)}` : undefined,
+      deviceId ? `${t("journal.deviceId")}: ${deviceId}` : undefined,
+    ].filter((line): line is string => !!line);
+  }
+
+  return [];
+}
+
+function EntrySourceDetails({ entry }: { entry: JournalDay["entries"][number] }) {
+  const visibleLines = getEntrySourceDetailLines(entry);
+  if (!visibleLines.length) return null;
+
+  return (
+    <View className="gap-0.5 rounded-md border border-border/70 bg-muted/40 px-2.5 py-2">
+      {visibleLines.map((line) => (
+        <Text key={line} className="text-xs leading-4 text-muted-foreground">
+          {line}
+        </Text>
+      ))}
+    </View>
   );
 }
 
@@ -365,6 +418,7 @@ export default function JournalScreen() {
                 <Text className="text-sm font-semibold">{entryTitle(selectedEntry)}</Text>
               ) : null}
               <EpisodeMediaPreview entry={selectedEntry} />
+              <EntrySourceDetails entry={selectedEntry} />
               <Text className="text-sm leading-5">{selectedEntry.note}</Text>
             </CardContent>
           </Card>
@@ -522,6 +576,7 @@ export default function JournalScreen() {
                         <Text className="text-sm font-semibold">{entryTitle(entry)}</Text>
                       ) : null}
                       <EpisodeMediaPreview entry={entry} />
+                      <EntrySourceDetails entry={entry} />
                       <Text className="text-sm leading-5">{entry.note}</Text>
                       {entry.source === "memory" && entry.nodeId ? (
                         <Button

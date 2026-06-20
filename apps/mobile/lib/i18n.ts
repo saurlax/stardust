@@ -348,6 +348,11 @@ const translations = {
       openTimeline: "Open timeline",
       openMemoryGraph: "Open memory graph",
       mediaPreview: "Episode media preview",
+      calendarTime: "Calendar time",
+      calendarLocation: "Location",
+      deviceTime: "Device time",
+      captureSource: "Capture source",
+      deviceId: "Device ID",
       journalsTitle: "Journal",
       source: {
         all: "All",
@@ -718,6 +723,11 @@ const translations = {
       openTimeline: "打开时间线",
       openMemoryGraph: "打开记忆星图",
       mediaPreview: "碎片媒体预览",
+      calendarTime: "日历时间",
+      calendarLocation: "地点",
+      deviceTime: "设备时间",
+      captureSource: "捕获来源",
+      deviceId: "设备 ID",
       journalsTitle: "日志",
       source: {
         all: "全部",
