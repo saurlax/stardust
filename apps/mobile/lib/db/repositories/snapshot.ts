@@ -8,6 +8,7 @@ export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalS
     pendingRow,
     openLoopRow,
     episodeRow,
+    screenOffEpisodeRow,
     journalRow,
     reflectionRow,
     entityRow,
@@ -29,6 +30,9 @@ export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalS
         WHERE memory_atoms.status = 'active' AND memory_candidates.kind = 'open_loop'
       `),
       db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM episodes"),
+      db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM episodes WHERE source = 'iot'",
+      ),
       db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM episodes WHERE source = 'journal'",
       ),
@@ -64,6 +68,7 @@ export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalS
     openLoopCount: openLoopRow?.count ?? 0,
     journalEntries: journalRow?.count ?? 0,
     episodeCount: episodeRow?.count ?? 0,
+    screenOffEpisodeCount: screenOffEpisodeRow?.count ?? 0,
     reflectionCount: reflectionRow?.count ?? 0,
     entityCount: entityRow?.count ?? 0,
     relationCount: relationRow?.count ?? 0,

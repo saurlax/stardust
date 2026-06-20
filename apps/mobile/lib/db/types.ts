@@ -165,6 +165,7 @@ export type PersonalSnapshot = {
   openLoopCount: number;
   journalEntries: number;
   episodeCount: number;
+  screenOffEpisodeCount: number;
   reflectionCount: number;
   entityCount: number;
   relationCount: number;

@@ -284,6 +284,9 @@ assertIncludes(memoryLabels, "devices.eventType.button", "Device event labels mu
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM entities", "Personal snapshot must expose entity graph growth.");
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal snapshot must expose relation graph growth.");
 assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snapshot must expose confirmed open loops.");
+assertIncludes(snapshot, "source = 'iot'", "Personal snapshot must count screen-off IoT episodes.");
+assertIncludes(personalScreen, "snapshot.screenOffEpisodeCount", "Personal page must show screen-off episode counts.");
+assertIncludes(personalDrawer, "snapshot.screenOffEpisodeCount", "Personal drawer must show screen-off episode counts.");
 assertIncludes(memoryRecords, "memory_candidates.kind AS candidate_kind", "Stored memories must retain their source candidate kind.");
 assertIncludes(memoryRecords, "episodes.source AS source_kind", "Stored memories must retain source episode kinds.");
 assertIncludes(memoryLabels, "getEpisodeTitleLabel", "Episode source titles must use shared user-facing labels.");

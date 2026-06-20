@@ -30,6 +30,7 @@ const emptySnapshot: PersonalSnapshot = {
   openLoopCount: 0,
   journalEntries: 0,
   episodeCount: 0,
+  screenOffEpisodeCount: 0,
   reflectionCount: 0,
   entityCount: 0,
   relationCount: 0,
@@ -133,6 +134,10 @@ export default function PersonalScreen() {
           <Card className="flex-1 gap-2 px-4 py-4">
             <CardDescription>{t("personal.episodeCount")}</CardDescription>
             <Text className="text-2xl font-semibold">{snapshot.episodeCount}</Text>
+          </Card>
+          <Card className="flex-1 gap-2 px-4 py-4">
+            <CardDescription>{t("personal.screenOffEpisodeCount")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.screenOffEpisodeCount}</Text>
           </Card>
         </View>
 
