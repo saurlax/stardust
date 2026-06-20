@@ -396,6 +396,11 @@ export default function MemoryScreen() {
             </Card>
           </View>
 
+          <Card className="self-start px-3 py-3">
+            <CardDescription>{t("memory.relationCount")}</CardDescription>
+            <Text className="text-2xl font-semibold">{relations.length}</Text>
+          </Card>
+
           {selectedNode ? (
             <Card className="gap-3 py-4">
               <CardHeader className="gap-1">

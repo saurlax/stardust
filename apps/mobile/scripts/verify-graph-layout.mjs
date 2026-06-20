@@ -79,5 +79,6 @@ assertIncludes(memoryScreen, "function OpenSourceButton", "Memory graph details 
 assertIncludes(memoryScreen, "<OpenSourceButton episodeId={memory.episodeId} />", "Saved memory cards must link to source episodes.");
 assertIncludes(memoryScreen, "setErrorMessage(t(\"memory.loadFailed\"))", "Memory graph load failures must be visible.");
 assertIncludes(memoryScreen, ".catch(onError)", "Saved memory actions must surface failures.");
+assertIncludes(memoryScreen, "{relations.length}", "Memory graph must expose relation counts.");
 
 console.log("Memory graph layout invariants look valid.");
