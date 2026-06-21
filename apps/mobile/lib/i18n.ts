@@ -6,6 +6,13 @@ export const supportedLocales = ["en", "zh-Hans"] as const;
 export type AppLocale = (typeof supportedLocales)[number];
 const translations = {
   en: {
+    navigation: {
+      chat: "Chat",
+      inbox: "Memory Inbox",
+      memory: "Memory Graph",
+      journal: "Timeline",
+      calendar: "Calendar",
+    },
     chat: {
       assistantGreeting: "Hi! How can I help?",
       title: "Chat",
@@ -416,6 +423,13 @@ const translations = {
     },
   },
   "zh-Hans": {
+    navigation: {
+      chat: "聊天",
+      inbox: "记忆收件箱",
+      memory: "记忆星图",
+      journal: "时间线",
+      calendar: "日历",
+    },
     chat: {
       assistantGreeting: "你好！我能帮你什么？",
       title: "聊天",

@@ -112,6 +112,10 @@ assertIncludes(chatScreen, 'memory.source === "memory" && memory.type === "open_
 assertIncludes(chatScreen, 'memory.source === "memory" && memory.type !== "open_loop"', "Chat context saved memories must exclude open loops.");
 assertIncludes(chatScreen, "Relationship graph", "Chat context must include retrieved relationship graph knowledge.");
 assertIncludes(chatScreen, "memory.title", "Chat prompt context must preserve retrieved knowledge titles.");
+assertIncludes(layout, 'drawerLabel: t("navigation.inbox")', "Drawer must expose Memory Inbox as a localized primary entry.");
+assertIncludes(layout, 'drawerIcon: (props) => drawerIconColor(props).inbox', "Drawer must show an icon for the Memory Inbox entry.");
+assertIncludes(layout, 'drawerLabel: t("navigation.memory")', "Drawer must expose the Memory graph as a localized entry.");
+assertIncludes(layout, 'drawerLabel: t("navigation.journal")', "Drawer must expose the episode timeline as a localized entry.");
 assertIncludes(chatMessages, "item.nodeId", "Chat memory context must use graph node ids when available.");
 assertIncludes(chatMessages, 'item.source === "relation"', "Chat memory context must handle relation graph results.");
 assertIncludes(chatMessages, "getContextTypeLabel", "Chat memory context must label special memory types.");

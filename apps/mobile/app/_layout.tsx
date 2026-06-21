@@ -14,6 +14,7 @@ import { PersonalDrawerContent } from "@/components/PersonalDrawerContent";
 import { DeviceSubscriptionRestorer } from "@/components/DeviceSubscriptionRestorer";
 import { ConfigProvider } from "@/context/config";
 import { DATABASE_NAME, migrateDbIfNeeded } from "@/lib/db";
+import { t } from "@/lib/i18n";
 import { NAV_THEME } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import "../global.css";
@@ -46,6 +47,13 @@ export default function RootLayout() {
   const detailScreenOptions = {
     headerLeft: () => <HeaderBackButton color={navTheme.colors.text} />,
   };
+  const drawerIconColor = ({ color, size }: { color: string; size: number }) => ({
+    index: <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />,
+    inbox: <Ionicons name="file-tray-full-outline" size={size} color={color} />,
+    memory: <Ionicons name="git-network-outline" size={size} color={color} />,
+    journal: <Ionicons name="journal-outline" size={size} color={color} />,
+    calendar: <Ionicons name="calendar-outline" size={size} color={color} />,
+  });
 
   return (
     <GestureHandlerRootView style={styles.root}>
@@ -74,8 +82,22 @@ export default function RootLayout() {
                     swipeEdgeWidth: 64,
                   }}
                 >
-                  <Drawer.Screen name="index" options={{ headerShown: false }} />
-                  <Drawer.Screen name="inbox" options={detailScreenOptions} />
+                  <Drawer.Screen
+                    name="index"
+                    options={{
+                      headerShown: false,
+                      drawerLabel: t("navigation.chat"),
+                      drawerIcon: (props) => drawerIconColor(props).index,
+                    }}
+                  />
+                  <Drawer.Screen
+                    name="inbox"
+                    options={{
+                      ...detailScreenOptions,
+                      drawerLabel: t("navigation.inbox"),
+                      drawerIcon: (props) => drawerIconColor(props).inbox,
+                    }}
+                  />
                   <Drawer.Screen
                     name="settings"
                     options={{
@@ -84,9 +106,30 @@ export default function RootLayout() {
                       swipeEnabled: false,
                     }}
                   />
-                  <Drawer.Screen name="memory" options={detailScreenOptions} />
-                  <Drawer.Screen name="journal" options={detailScreenOptions} />
-                  <Drawer.Screen name="calendar" options={detailScreenOptions} />
+                  <Drawer.Screen
+                    name="memory"
+                    options={{
+                      ...detailScreenOptions,
+                      drawerLabel: t("navigation.memory"),
+                      drawerIcon: (props) => drawerIconColor(props).memory,
+                    }}
+                  />
+                  <Drawer.Screen
+                    name="journal"
+                    options={{
+                      ...detailScreenOptions,
+                      drawerLabel: t("navigation.journal"),
+                      drawerIcon: (props) => drawerIconColor(props).journal,
+                    }}
+                  />
+                  <Drawer.Screen
+                    name="calendar"
+                    options={{
+                      ...detailScreenOptions,
+                      drawerLabel: t("navigation.calendar"),
+                      drawerIcon: (props) => drawerIconColor(props).calendar,
+                    }}
+                  />
                   <Drawer.Screen
                     name="personal"
                     options={{
