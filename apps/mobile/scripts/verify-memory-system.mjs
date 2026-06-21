@@ -313,6 +313,10 @@ assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snaps
 assertIncludes(snapshot, "source = 'iot'", "Personal snapshot must count screen-off IoT episodes.");
 assertIncludes(personalScreen, "snapshot.screenOffEpisodeCount", "Personal page must show screen-off episode counts.");
 assertIncludes(personalDrawer, "snapshot.screenOffEpisodeCount", "Personal drawer must show screen-off episode counts.");
+assertIncludes(personalScreen, "getMemorySummaryLabel(memory)", "Personal page recent memories must show importance and source labels.");
+assertIncludes(personalDrawer, "getMemorySummaryLabel(memory)", "Personal drawer recent memories must show importance and source labels.");
+assertIncludes(personalScreen, "memory.rationale", "Personal page recent memories must expose accepted rationales.");
+assertIncludes(personalDrawer, "memory.rationale", "Personal drawer recent memories must expose accepted rationales.");
 assertIncludes(memoryRecords, "memory_candidates.kind AS candidate_kind", "Stored memories must retain their source candidate kind.");
 assertIncludes(memoryRecords, "episodes.source AS source_kind", "Stored memories must retain source episode kinds.");
 assertIncludes(memoryRecords, "memory_candidates.metadata_json AS candidate_metadata_json", "Confirmed records must retain candidate rationale metadata.");

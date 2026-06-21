@@ -46,6 +46,15 @@ const getEpisodeTitle = (episode: Episode) => {
   return getEpisodeTitleLabel(episode.source, episode.title);
 };
 
+const getMemorySummaryLabel = (memory: StoredMemory) =>
+  [
+    memory.candidateKind === "open_loop" ? getMemoryTypeLabel("open_loop") : getMemoryTypeLabel(memory.type),
+    `${t("personal.importance")} ${memory.importance}`,
+    memory.sourceKind === "iot" ? t("personal.screenOffEpisodeCount") : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
 function EpisodeMediaPreview({ episode }: { episode: Episode }) {
   if (!episode.mediaUri) return null;
 
@@ -199,9 +208,12 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
                 }
               >
                 <Text className="text-xs uppercase text-muted-foreground">
-                  {getMemoryTypeLabel(memory.candidateKind === "open_loop" ? "open_loop" : memory.type)}
+                  {getMemorySummaryLabel(memory)}
                 </Text>
                 <Text className="text-sm leading-5">{memory.content}</Text>
+                {memory.rationale ? (
+                  <Text className="text-xs leading-4 text-muted-foreground">{memory.rationale}</Text>
+                ) : null}
               </Pressable>
             ))
           ) : (
