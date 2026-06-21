@@ -110,6 +110,7 @@ assertIncludes(knowledge, 'isScreenOff: item.type === "iot"', "Knowledge retriev
 assertIncludes(chatMessages, "item.isScreenOff", "Chat memory context summaries must flag screen-off episodes.");
 assertIncludes(chatScreen, "[screen-off capture]", "Chat prompt context must flag screen-off episodes.");
 assertIncludes(journalScreen, "result.isScreenOff", "Journal search results must flag screen-off episodes.");
+assertIncludes(journalScreen, "result.importance", "Journal search results must display memory importance.");
 assertIncludes(journalScreen, "setErrorMessage(t(\"journal.loadFailed\"))", "Episode timeline load failures must be visible.");
 assertIncludes(journalScreen, ".catch(onError)", "Journal edit failures must be visible.");
 assertIncludes(journalScreen, "sourceCounts", "Episode timeline source filters must expose counts.");

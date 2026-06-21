@@ -103,7 +103,7 @@ Stardust 目前是一个 local-first 的融合记忆原型：
 - **屏幕内捕获**：聊天、分享、图片、日历和日志都会先进入本地 `episodes`。
 - **记忆收件箱**：AI 只提出候选记忆、反思和实体线索，用户确认后才会进入长期记忆。
 - **记忆星图**：已确认记忆、反思和实体通过 Skia + force layout 形成可探索的本地图谱。
-- **屏幕外捕获**：`iot` 子项目面向 Seeed Studio XIAO ESP32S3 Sense，作为 BLE 外设 `Stardust Sense` 上报轻量事件、manifest、能力声明和捕获指令。
+- **屏幕外捕获**：`iot` 目录面向 Seeed Studio XIAO ESP32S3 Sense，作为 BLE 外设 `Stardust Sense` 上报轻量事件、manifest、能力声明和捕获指令。
 
 Cloud 模式、云同步和大文件无线传输仍是未来计划；当前不作为可用功能提供。
 

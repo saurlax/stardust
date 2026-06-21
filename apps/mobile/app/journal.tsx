@@ -246,6 +246,7 @@ export default function JournalScreen() {
       content: string;
       createdAt: string;
       isScreenOff?: boolean;
+      importance?: number;
       nodeId?: string;
       rank: number;
     }[]
@@ -457,6 +458,9 @@ export default function JournalScreen() {
                             ? t("journal.relationEntryPrefix")
                           : t("journal.episodeEntryPrefix")}
                     {result.type ? ` · ${getKnowledgeTypeLabel(result.source, result.type)}` : ""}
+                    {result.source === "memory" && typeof result.importance === "number"
+                      ? ` · ${t("journal.importance")} ${result.importance}`
+                      : ""}
                     {result.isScreenOff ? ` · ${t("journal.screenOffResult")}` : ""}
                   </CardDescription>
                   {result.title ? (
