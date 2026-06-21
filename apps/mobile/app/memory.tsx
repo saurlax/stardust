@@ -401,7 +401,7 @@ export default function MemoryScreen() {
     if (entity) {
       const related = relations.filter(
         (relation) => relation.sourceEntityId === entity.id || relation.targetEntityId === entity.id,
-      );
+      ).sort((a, b) => b.weight - a.weight || Date.parse(b.updatedAt ?? b.createdAt) - Date.parse(a.updatedAt ?? a.createdAt));
       const relationSource = related.find((relation) => relation.sourceContent);
       const relationLines = related.map((relation) => {
         const isSource = relation.sourceEntityId === entity.id;
@@ -412,7 +412,7 @@ export default function MemoryScreen() {
       });
       return {
         title: entity.name,
-        description: `${t("memory.entityNodeDescription")} · ${getEntityTypeLabel(entity.type)}`,
+        description: `${t("memory.entityNodeDescription")} · ${getEntityTypeLabel(entity.type)} · ${t("memory.relatedRelations")} ${related.length}`,
         content: relationLines.length ? relationLines.join("\n") : t("memory.entityNodeEmpty"),
         sourceTitle: relationSource?.sourceTitle,
         sourceKind: relationSource?.sourceKind,

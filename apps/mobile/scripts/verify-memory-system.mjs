@@ -330,6 +330,8 @@ assertIncludes(memoryScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTi
 assertIncludes(memoryScreen, "memory.importance", "Memory management cards must display importance.");
 assertIncludes(memoryScreen, "memory.rationale", "Memory management cards must display accepted candidate rationales.");
 assertIncludes(memoryScreen, "selectedNode.rationale", "Memory graph details must display accepted candidate rationales.");
+assertIncludes(memoryScreen, "b.weight - a.weight", "Entity graph details must prioritize stronger relations.");
+assertIncludes(memoryScreen, "memory.relatedRelations", "Entity graph details must show related relation counts.");
 assertIncludes(memoryScreen, "getSourcePrefix(reflections[0].sourceKind, reflections[0].sourceTitle)", "Memory reflection summaries must expose source episode titles.");
 assertIncludes(memoryScreen, "OpenSourceButton episodeId={reflections[0].episodeId}", "Memory reflection summaries must open source episodes.");
 assertIncludes(memoryScreen, '"open_loop"', "Memory screen must expose an open-loop filter.");
