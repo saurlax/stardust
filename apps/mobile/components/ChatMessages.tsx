@@ -139,6 +139,9 @@ function MemoryContextSummary({ message }: { message: ChatMessage }) {
                     {getContextSourceLabel(item)} ·{" "}
                     {getKnowledgeTypeLabel(item.source, item.type) ||
                       getContextTypeLabel(item.type)}{" "}
+                    {item.source === "memory" && typeof item.importance === "number"
+                      ? `· ${t("inbox.importance")} ${item.importance}`
+                      : ""}
                     {item.hasMedia ? `· ${t("chat.memoryContextMedia")}` : ""}
                     {item.isScreenOff ? `· ${t("chat.memoryContextScreenOff")}` : ""}
                     · {item.createdAt.slice(0, 10)}

@@ -215,6 +215,7 @@ export async function findRelevantKnowledge(
         source: "memory" as const,
         type: item.candidate_kind === "open_loop" ? "open_loop" : item.type,
         content: item.content,
+        importance: item.importance,
         createdAt: item.created_at,
         nodeId: `memory-${item.id}`,
         rank:
@@ -309,6 +310,7 @@ export async function findRelevantKnowledge(
       source: "memory" as const,
       type: item.candidate_kind === "open_loop" ? "open_loop" : item.type,
       content: item.content,
+      importance: item.importance,
       createdAt: item.created_at,
       nodeId: `memory-${item.id}`,
       rank:
