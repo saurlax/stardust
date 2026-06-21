@@ -28,6 +28,11 @@ const importanceBoost = (importance?: number) =>
     ? -Math.max(0, Math.min(5, importance)) * 0.04
     : 0;
 
+const relationWeightBoost = (weight?: number) =>
+  typeof weight === "number" && Number.isFinite(weight)
+    ? -Math.max(0, Math.min(8, weight)) * 0.03
+    : 0;
+
 const readRationale = (value: string | null) => {
   const metadata = parseJson(value);
   return typeof metadata?.rationale === "string" ? metadata.rationale : undefined;
@@ -217,7 +222,7 @@ async function listEntityRelationKnowledge(
       rank: rankByTokenMatches(
         `${item.type} ${item.source_name ?? ""} ${item.target_name ?? ""}`,
         tokens,
-      ) + 0.15,
+      ) + 0.15 + relationWeightBoost(item.weight),
     })),
   ];
 }

@@ -426,6 +426,7 @@ assertIncludes(knowledge, "memory_atoms.importance AS importance", "Retrieval mu
 assertIncludes(knowledge, "memory_candidates.metadata_json AS candidate_metadata_json", "Retrieval must retain memory candidate rationale metadata.");
 assertIncludes(knowledge, "readRationale(item.candidate_metadata_json)", "Retrieval results must expose memory rationales.");
 assertIncludes(knowledge, "importanceBoost(item.importance)", "Retrieval ranking must account for memory importance.");
+assertIncludes(knowledge, "relationWeightBoost(item.weight)", "Retrieval ranking must account for relation strength.");
 assertIncludes(knowledge, "importance: item.importance", "Retrieval results must expose memory importance.");
 assertIncludes(knowledge, "rationale: readRationale(item.candidate_metadata_json)", "Retrieval results must map memory rationales.");
 assertIncludes(knowledge, 'candidate_kind === "open_loop" ? "open_loop"', "Retrieval must label confirmed open loops.");
