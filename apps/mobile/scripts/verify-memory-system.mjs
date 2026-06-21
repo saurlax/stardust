@@ -360,6 +360,8 @@ assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal sn
 assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snapshot must expose confirmed open loops.");
 assertIncludes(snapshot, "source = 'iot'", "Personal snapshot must count screen-off IoT episodes.");
 assertIncludes(snapshot, "FROM device_events", "Personal snapshot must count device review work.");
+assertIncludes(snapshot, "lower(device_events.event_type) IN ('capture', 'button', 'serial')", "Personal snapshot device review counts must focus on promotable capture events.");
+assertIncludes(snapshot, "device_events.candidate_id IS NULL OR memory_candidates.status = 'pending'", "Personal snapshot device review counts must include unpromoted and pending device captures.");
 assertIncludes(snapshot, "pendingDeviceReviewCount", "Personal snapshot must expose pending device review counts.");
 assertIncludes(personalScreen, "snapshot.screenOffEpisodeCount", "Personal page must show screen-off episode counts.");
 assertIncludes(personalDrawer, "snapshot.screenOffEpisodeCount", "Personal drawer must show screen-off episode counts.");

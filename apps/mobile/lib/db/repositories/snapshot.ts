@@ -27,8 +27,9 @@ export async function getPersonalSnapshot(db: SQLiteDatabase): Promise<PersonalS
       db.getFirstAsync<{ count: number }>(`
         SELECT COUNT(*) AS count
         FROM device_events
-        JOIN memory_candidates ON memory_candidates.candidate_id = device_events.candidate_id
-        WHERE memory_candidates.status = 'pending'
+        LEFT JOIN memory_candidates ON memory_candidates.candidate_id = device_events.candidate_id
+        WHERE lower(device_events.event_type) IN ('capture', 'button', 'serial')
+          AND (device_events.candidate_id IS NULL OR memory_candidates.status = 'pending')
       `),
       db.getFirstAsync<{ count: number }>(`
         SELECT COUNT(*) AS count
