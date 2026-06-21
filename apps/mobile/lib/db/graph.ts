@@ -115,7 +115,7 @@ export const buildMemoryTree = (
         title: truncateLabel(options.relationTypeLabel?.(relation.type) ?? relation.type, 18),
         linksTo: linksTo.length ? linksTo : ["root"],
         size: 4.6 + Math.min(relation.weight, 6) * 0.18 - Math.min(index, 18) * 0.04,
-        accent: "relation",
+        accent: relation.sourceKind === "iot" ? "iot" : "relation",
       });
     });
 

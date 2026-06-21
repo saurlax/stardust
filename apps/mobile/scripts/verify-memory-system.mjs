@@ -407,6 +407,8 @@ assertIncludes(memoryScreen, "setSelectedNodeId(\"root\")", "Memory screen must 
 assertIncludes(memoryGraph, "accent:", "Memory graph must assign node accents.");
 assertIncludes(memoryGraph, '? "iot"', "Memory graph must accent IoT-sourced memories.");
 assertIncludes(memoryGraph, 'memory.sourceKind === "iot"', "Memory graph must identify screen-off memory sources.");
+assertIncludes(memoryGraph, 'relation.sourceKind === "iot"', "Memory graph must accent IoT-sourced relations.");
+assertIncludes(memoryScreen, 'relations.filter((relation) => relation.sourceKind === "iot").length', "Memory graph legend must count IoT-sourced relations.");
 assertIncludes(nebulaView, "accentColors", "Nebula graph must render node accents.");
 assertIncludes(inboxScreen, "inbox.openLoopBadge", "Saved inbox memories must label confirmed open loops.");
 assertIncludes(knowledge, "listEntityRelationKnowledge", "Retrieval must include entity graph knowledge.");

@@ -298,13 +298,15 @@ export default function MemoryScreen() {
       memory: memories.filter(
         (memory) => memory.candidateKind !== "open_loop" && memory.sourceKind !== "iot",
       ).length,
-      iot: memories.filter((memory) => memory.sourceKind === "iot").length,
+      iot:
+        memories.filter((memory) => memory.sourceKind === "iot").length +
+        relations.filter((relation) => relation.sourceKind === "iot").length,
       reflection: reflections.length,
       entity: entities.length,
       relation: relations.length,
       open_loop: openLoopCount,
     }),
-    [entities.length, memories, openLoopCount, reflections.length, relations.length],
+    [entities.length, memories, openLoopCount, reflections.length, relations],
   );
   const filterCounts = useMemo(
     () =>
