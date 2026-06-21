@@ -43,6 +43,7 @@ type RequestContext = {
 };
 
 type PromptSource = "chat" | "share" | "image";
+type PromptMetadata = Record<string, unknown>;
 
 const createGreetingMessage = (): ChatMessage => ({
   id: GREETING_ID,
@@ -376,6 +377,7 @@ export default function Index() {
       imageUri?: string,
       imageMimeType?: string,
       sourceOverride?: PromptSource,
+      metadata?: PromptMetadata,
     ) => {
       const trimmed = prompt.trim();
       const effectivePrompt = trimmed || (imageUri ? DEFAULT_IMAGE_PROMPT : "");
@@ -396,6 +398,7 @@ export default function Index() {
       const episodeMetadata = {
         sessionId: sessionIdRef.current,
         ...(sourceOverride !== undefined ? { shareIntent: true } : {}),
+        ...(metadata ?? {}),
       };
 
       const request: NonNullable<ChatMessage["request"]> = {
@@ -614,15 +617,28 @@ export default function Index() {
 
     const sharedImage = shareIntent.files?.find((file) => file.mimeType.startsWith("image/"));
     const sharedText = shareIntent.text || shareIntent.webUrl || "";
+    const shareMetadata = {
+      webUrl: shareIntent.webUrl,
+      rawText: shareIntent.text,
+      meta: shareIntent.meta,
+    };
     if (sharedImage?.path) {
       sendPrompt(
         sharedText || t("chat.sharedImageEpisodeTitle"),
         sharedImage.path,
         sharedImage.mimeType || "image/jpeg",
         "image",
+        {
+          ...shareMetadata,
+          mimeType: sharedImage.mimeType,
+          fileName: sharedImage.fileName,
+          fileSize: sharedImage.size,
+          width: sharedImage.width,
+          height: sharedImage.height,
+        },
       );
     } else if (sharedText) {
-      sendPrompt(sharedText, undefined, undefined, "share");
+      sendPrompt(sharedText, undefined, undefined, "share", shareMetadata);
     }
     resetShareIntent();
   }, [hasShareIntent, ready, resetShareIntent, sendPrompt, sending, sessionReady, shareIntent]);

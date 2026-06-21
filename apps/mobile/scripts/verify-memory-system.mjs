@@ -95,9 +95,15 @@ assertIncludes(chatScreen, 'type PromptSource = "chat" | "share" | "image"', "Ch
 assertIncludes(chatScreen, "const episodeSource = sourceOverride ??", "Chat prompt pipeline must allow shared captures to keep their source.");
 assertIncludes(chatScreen, "const persistCapture = (snapshotMessages: ChatMessage[])", "Chat prompt pipeline must persist captures before AI requests.");
 assertIncludes(chatScreen, "void persistCapture(capturedMessages)", "Chat prompt pipeline must preserve captures even when AI config is incomplete.");
-assertIncludes(chatScreen, 'sendPrompt(sharedText, undefined, undefined, "share")', "Shared text must enter the AI candidate pipeline.");
+assertIncludes(chatScreen, "type PromptMetadata = Record<string, unknown>", "Chat prompt pipeline must accept source metadata.");
+assertIncludes(chatScreen, "metadata?: PromptMetadata", "Chat prompt pipeline must preserve source metadata.");
+assertIncludes(chatScreen, 'sendPrompt(sharedText, undefined, undefined, "share", shareMetadata)', "Shared text must enter the AI candidate pipeline.");
 assertIncludes(chatScreen, 'sharedImage.path', "Shared images must enter the AI candidate pipeline with media.");
 assertIncludes(chatScreen, "sourceOverride !== undefined ? { shareIntent: true }", "Shared captures must preserve share intent metadata.");
+assertIncludes(chatScreen, "webUrl: shareIntent.webUrl", "Shared captures must preserve web URLs.");
+assertIncludes(chatScreen, "rawText: shareIntent.text", "Shared captures must preserve raw shared text.");
+assertIncludes(chatScreen, "fileName: sharedImage.fileName", "Shared image captures must preserve filenames.");
+assertIncludes(chatScreen, "fileSize: sharedImage.size", "Shared image captures must preserve file sizes.");
 assertIncludes(chatScreen, "setChatError(getErrorMessage(error))", "Chat persistence failures must be visible.");
 assertIncludes(chatScreen, "void updateCandidateStatus(db, cardId, status, nextContent)", "Chat candidate review must persist before updating local cards.");
 assertIncludes(chatScreen, "savedToolCards = []", "Assistant replies must survive candidate persistence failures without showing unsaved cards.");
