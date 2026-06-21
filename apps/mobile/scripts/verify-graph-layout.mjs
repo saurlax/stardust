@@ -13,6 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const mobileRoot = path.join(__dirname, "..");
 const graphSource = fs.readFileSync(path.join(mobileRoot, "lib", "db", "graph.ts"), "utf8");
 const memoryScreen = fs.readFileSync(path.join(mobileRoot, "app", "memory.tsx"), "utf8");
+const nebulaView = fs.readFileSync(path.join(mobileRoot, "components", "NebulaView.tsx"), "utf8");
 
 const assertIncludes = (source, value, message) => {
   if (!source.includes(value)) {
@@ -79,6 +80,18 @@ assertIncludes(graphSource, 'memory.candidateKind === "open_loop" ? "open_loop"'
 assertIncludes(memoryScreen, "memoryTypeLabel: getMemoryTypeLabel", "Memory graph screen must localize type node labels.");
 assertIncludes(memoryScreen, "relationTypeLabel: getRelationTypeLabel", "Memory graph screen must localize relation node labels.");
 assertIncludes(memoryScreen, "matchesMemoryType(memory, type)", "Memory graph type details must include open-loop grouped memories.");
+assertIncludes(nebulaView, "@shopify/react-native-skia", "Memory graph renderer must use Skia.");
+assertIncludes(nebulaView, 'from "d3-force"', "Memory graph renderer must use d3-force.");
+assertIncludes(nebulaView, "forceSimulation(forceNodes)", "Memory graph renderer must run a force simulation over graph nodes.");
+assertIncludes(nebulaView, "forceLink<ForceNode, ForceLink>(forceLinks)", "Memory graph renderer must use forceLink for graph edges.");
+assertIncludes(nebulaView, "forceManyBody().strength", "Memory graph renderer must use many-body spacing.");
+assertIncludes(nebulaView, "forceCollide<ForceNode>()", "Memory graph renderer must avoid node overlap.");
+assertIncludes(nebulaView, ".stop()", "Memory graph renderer must stop d3's internal timer for React rendering.");
+assertIncludes(nebulaView, ".tick(Math.min(180", "Memory graph renderer must manually tick bounded layouts.");
+assertIncludes(nebulaView, "Gesture.Pan()", "Memory graph renderer must support native pan.");
+assertIncludes(nebulaView, "Gesture.Pinch()", "Memory graph renderer must support native pinch zoom.");
+assertIncludes(nebulaView, "onWheel", "Memory graph renderer must support web zoom.");
+assertIncludes(nebulaView, "onPointerMove", "Memory graph renderer must support web pan.");
 for (const prefix of ["type-", "memory-", "reflection-", "entity-", "relation-"]) {
   assertIncludes(graphSource, prefix, `Memory graph is missing ${prefix} nodes.`);
 }
