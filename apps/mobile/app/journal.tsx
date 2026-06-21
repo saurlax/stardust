@@ -284,6 +284,7 @@ export default function JournalScreen() {
       createdAt: string;
       isScreenOff?: boolean;
       importance?: number;
+      rationale?: string;
       nodeId?: string;
       rank: number;
     }[]
@@ -504,6 +505,11 @@ export default function JournalScreen() {
                     <Text className="text-sm font-semibold leading-5">{result.title}</Text>
                   ) : null}
                   <Text className="text-sm leading-5">{result.content}</Text>
+                  {result.rationale ? (
+                    <Text className="text-xs leading-4 text-muted-foreground">
+                      {t("journal.rationale")}: {result.rationale}
+                    </Text>
+                  ) : null}
                   {result.source === "episode" ? (
                     <Button
                       variant="outline"
