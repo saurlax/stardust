@@ -421,6 +421,7 @@ assertIncludes(knowledge, 'source: "relation" as const', "Relation graph retriev
 assertIncludes(knowledge, "episodes.source AS source_kind", "Relation retrieval must preserve source episode kinds.");
 assertIncludes(knowledge, 'item.source_kind === "iot"', "Relation retrieval must flag screen-off graph context.");
 assertIncludes(chatScreen, "memory.contextNote", "Chat prompt context must include source notes for graph results.");
+assertIncludes(knowledge, "ORDER BY relations.weight DESC, relations.updated_at DESC", "Relation retrieval must select stronger graph relations before applying limits.");
 assertIncludes(knowledge, "memory_candidates.kind AS candidate_kind", "Retrieval must retain memory candidate kinds.");
 assertIncludes(knowledge, "memory_atoms.importance AS importance", "Retrieval must retain memory importance.");
 assertIncludes(knowledge, "memory_candidates.metadata_json AS candidate_metadata_json", "Retrieval must retain memory candidate rationale metadata.");

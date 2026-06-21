@@ -191,6 +191,7 @@ async function listEntityRelationKnowledge(
         LEFT JOIN entities AS target_entities ON target_entities.entity_id = relations.target_entity_id
         LEFT JOIN episodes ON episodes.episode_id = relations.episode_id
         WHERE ${relationLike}
+        ORDER BY relations.weight DESC, relations.updated_at DESC
         LIMIT ?
       `,
       ...relationParams,
