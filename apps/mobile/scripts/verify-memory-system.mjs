@@ -128,6 +128,7 @@ assertIncludes(chatMessages, 'type === "open_loop"', "Chat memory context must l
 assertIncludes(chatMessages, "getKnowledgeTypeLabel(item.source, item.type)", "Chat memory context must use user-facing type labels.");
 assertIncludes(chatMessages, "getContextSourceLabel", "Chat memory context must use user-facing source labels.");
 assertIncludes(chatMessages, "item.title", "Chat memory context must display retrieved knowledge titles.");
+assertIncludes(chatMessages, '`/inbox?candidateId=${encodeURIComponent(card.id)}`', "Chat candidate cards must open their matching Inbox candidate.");
 assertIncludes(chatMessages, "item.hasMedia", "Chat memory context summaries must flag media episodes.");
 assertIncludes(chatScreen, "[media attached]", "Chat prompt context must flag media episodes.");
 assertIncludes(knowledge, "episodeContextNote", "Knowledge retrieval must summarize episode source metadata.");

@@ -242,7 +242,17 @@ function ToolCardActions({
   }
 
   return (
-    <View className="flex-row gap-2">
+    <View className="flex-row flex-wrap gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onPress={() =>
+          router.push(`/inbox?candidateId=${encodeURIComponent(card.id)}` as Href)
+        }
+      >
+        <Ionicons name="file-tray-full-outline" size={14} />
+        <Text>{t("chat.cardOpenInbox")}</Text>
+      </Button>
       <Button
         variant="outline"
         size="sm"
