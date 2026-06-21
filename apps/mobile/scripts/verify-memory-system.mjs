@@ -361,8 +361,11 @@ assertIncludes(knowledge, 'source: "entity" as const', "Entity graph retrieval r
 assertIncludes(knowledge, 'source: "relation" as const', "Relation graph retrieval results must be typed.");
 assertIncludes(knowledge, "memory_candidates.kind AS candidate_kind", "Retrieval must retain memory candidate kinds.");
 assertIncludes(knowledge, "memory_atoms.importance AS importance", "Retrieval must retain memory importance.");
+assertIncludes(knowledge, "memory_candidates.metadata_json AS candidate_metadata_json", "Retrieval must retain memory candidate rationale metadata.");
+assertIncludes(knowledge, "readRationale(item.candidate_metadata_json)", "Retrieval results must expose memory rationales.");
 assertIncludes(knowledge, "importanceBoost(item.importance)", "Retrieval ranking must account for memory importance.");
 assertIncludes(knowledge, "importance: item.importance", "Retrieval results must expose memory importance.");
+assertIncludes(knowledge, "rationale: readRationale(item.candidate_metadata_json)", "Retrieval results must map memory rationales.");
 assertIncludes(knowledge, 'candidate_kind === "open_loop" ? "open_loop"', "Retrieval must label confirmed open loops.");
 assertIncludes(knowledge, 'candidate_kind === "open_loop" ? -0.35 : 0', "Retrieval must prioritize confirmed open loops.");
 assertIncludes(knowledge, "nodeId: `memory-${item.id}`", "Memory retrieval results must carry graph navigation ids.");
@@ -372,9 +375,13 @@ assertIncludes(knowledge, "episodes.title AS title", "Episode retrieval must pre
 assertIncludes(knowledge, "reflections.title AS title", "Reflection retrieval must preserve titles for chat context.");
 assertIncludes(knowledge, "title LIKE ? OR content LIKE ?", "Reflection fallback retrieval must search titles and content.");
 assertIncludes(chatTypes, "importance?: number", "Chat memory context must carry memory importance.");
+assertIncludes(chatTypes, "rationale?: string", "Chat memory context must carry memory rationales.");
 assertIncludes(dbTypes, "importance?: number", "Relevant knowledge must carry memory importance.");
+assertIncludes(dbTypes, "rationale?: string", "Relevant knowledge must carry memory rationales.");
 assertIncludes(chatScreen, "[importance", "Chat prompt context must include memory importance.");
+assertIncludes(chatScreen, "[why:", "Chat prompt context must include memory rationales.");
 assertIncludes(chatMessages, 't("inbox.importance")', "Chat context cards must display memory importance.");
+assertIncludes(chatMessages, 'item.rationale', "Chat context cards must display memory rationales.");
 
 assertIncludes(ble, "Stardust Sense", "BLE device name must match Stardust Sense.");
 assertIncludes(ble, "sendStardustDeviceCommand", "Mobile BLE commands are missing.");

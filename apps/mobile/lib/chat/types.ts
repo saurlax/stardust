@@ -43,6 +43,7 @@ export type MessageMemoryContext = {
   hasMedia?: boolean;
   isScreenOff?: boolean;
   importance?: number;
+  rationale?: string;
   createdAt: string;
   nodeId?: string;
 };

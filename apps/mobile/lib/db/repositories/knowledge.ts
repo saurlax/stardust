@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
 import { isFtsAvailable } from "@/lib/db/schema";
+import { parseJson } from "@/lib/db/serialization";
 import type { RelevantKnowledge } from "@/lib/db/types";
 
 const tokenize = (value: string) =>
@@ -26,6 +27,11 @@ const importanceBoost = (importance?: number) =>
   typeof importance === "number" && Number.isFinite(importance)
     ? -Math.max(0, Math.min(5, importance)) * 0.04
     : 0;
+
+const readRationale = (value: string | null) => {
+  const metadata = parseJson(value);
+  return typeof metadata?.rationale === "string" ? metadata.rationale : undefined;
+};
 
 const mergeRelevantKnowledge = (items: RelevantKnowledge[], limit: number) => {
   const seen = new Set<string>();
@@ -186,7 +192,8 @@ export async function findRelevantKnowledge(
           SELECT memory_atoms.memory_id AS id, memory_atoms.type AS type,
             memory_atoms.content AS content, memory_atoms.created_at AS created_at,
             memory_atoms.importance AS importance,
-            memory_candidates.kind AS candidate_kind
+            memory_candidates.kind AS candidate_kind,
+            memory_candidates.metadata_json AS candidate_metadata_json
           FROM memory_atoms
           LEFT JOIN memory_candidates ON memory_candidates.candidate_id = memory_atoms.candidate_id
           WHERE memory_atoms.status = 'active' AND ${like}
@@ -216,6 +223,7 @@ export async function findRelevantKnowledge(
         type: item.candidate_kind === "open_loop" ? "open_loop" : item.type,
         content: item.content,
         importance: item.importance,
+        rationale: readRationale(item.candidate_metadata_json),
         createdAt: item.created_at,
         nodeId: `memory-${item.id}`,
         rank:
@@ -257,6 +265,7 @@ export async function findRelevantKnowledge(
           memory_atoms.content AS content, memory_atoms.created_at AS created_at,
           memory_atoms.importance AS importance,
           memory_candidates.kind AS candidate_kind,
+          memory_candidates.metadata_json AS candidate_metadata_json,
           bm25(memory_atoms_fts) AS rank
         FROM memory_atoms_fts
         JOIN memory_atoms ON memory_atoms.memory_id = memory_atoms_fts.memory_id
@@ -311,6 +320,7 @@ export async function findRelevantKnowledge(
       type: item.candidate_kind === "open_loop" ? "open_loop" : item.type,
       content: item.content,
       importance: item.importance,
+      rationale: readRationale(item.candidate_metadata_json),
       createdAt: item.created_at,
       nodeId: `memory-${item.id}`,
       rank:

@@ -154,6 +154,11 @@ function MemoryContextSummary({ message }: { message: ChatMessage }) {
                   <Text className="text-xs leading-4 text-muted-foreground">
                     {item.content.length > 120 ? `${item.content.slice(0, 120)}...` : item.content}
                   </Text>
+                  {item.rationale ? (
+                    <Text className="text-[11px] leading-4 text-muted-foreground">
+                      {t("inbox.rationale")}: {item.rationale}
+                    </Text>
+                  ) : null}
                 </View>
               </Button>
             </View>

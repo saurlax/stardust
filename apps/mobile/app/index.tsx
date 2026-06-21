@@ -58,6 +58,7 @@ const buildMemoryContext = (
     hasMedia?: boolean;
     isScreenOff?: boolean;
     importance?: number;
+    rationale?: string;
     createdAt: string;
   }[],
 ) => {
@@ -102,7 +103,11 @@ const buildMemoryContext = (
                 memory.source === "memory" && typeof memory.importance === "number"
                   ? ` [importance ${memory.importance}]`
                   : "";
-              return `${index + 1}. [${label}${importanceSuffix}${mediaSuffix}${screenOffSuffix}] ${memory.content} (${memory.createdAt.slice(0, 10)})`;
+              const rationaleSuffix =
+                memory.source === "memory" && memory.rationale
+                  ? ` [why: ${memory.rationale}]`
+                  : "";
+              return `${index + 1}. [${label}${importanceSuffix}${rationaleSuffix}${mediaSuffix}${screenOffSuffix}] ${memory.content} (${memory.createdAt.slice(0, 10)})`;
             },
           )
           .join("\n")}`,
