@@ -133,6 +133,22 @@ function RationaleBlock({ rationale }: { rationale?: string }) {
   );
 }
 
+function ScreenOffBadge({ sourceKind }: { sourceKind?: StoredMemory["sourceKind"] }) {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#67E8F9" : "#0E7490";
+
+  if (sourceKind !== "iot") return null;
+
+  return (
+    <View className="self-start flex-row items-center gap-1.5 rounded-md border border-cyan-700/30 bg-cyan-700/10 px-2 py-1">
+      <Ionicons name="radio-outline" size={13} color={iconColor} />
+      <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-200">
+        {t("memory.screenOffSource")}
+      </Text>
+    </View>
+  );
+}
+
 function MemoryEditor({
   memory,
   onRefresh,
@@ -162,6 +178,7 @@ function MemoryEditor({
           />
         ) : (
           <View className="gap-2">
+            <ScreenOffBadge sourceKind={memory.sourceKind} />
             <CardTitle className="text-sm leading-5">{memory.content}</CardTitle>
             {memory.sourceContent ? (
               <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
@@ -379,6 +396,7 @@ export default function MemoryScreen() {
         content: memory.content,
         sourceTitle: memory.sourceTitle,
         sourceKind: memory.sourceKind,
+        isScreenOff: memory.sourceKind === "iot",
         source: memory.sourceContent,
         sourceEpisodeId: memory.episodeId,
         rationale: memory.rationale,
@@ -393,6 +411,7 @@ export default function MemoryScreen() {
         content: reflection.content,
         sourceTitle: reflection.sourceTitle,
         sourceKind: reflection.sourceKind,
+        isScreenOff: reflection.sourceKind === "iot",
         source: reflection.sourceContent,
         sourceEpisodeId: reflection.episodeId,
         rationale: reflection.rationale,
@@ -418,6 +437,7 @@ export default function MemoryScreen() {
         content: relationLines.length ? relationLines.join("\n") : t("memory.entityNodeEmpty"),
         sourceTitle: relationSource?.sourceTitle,
         sourceKind: relationSource?.sourceKind,
+        isScreenOff: relationSource?.sourceKind === "iot",
         source: relationSource?.sourceContent,
         sourceEpisodeId: relationSource?.episodeId,
         rationale: relationSource?.rationale,
@@ -434,6 +454,7 @@ export default function MemoryScreen() {
         }\n${t("memory.relationWeight")} ${relation.weight}`,
         sourceTitle: relation.sourceTitle,
         sourceKind: relation.sourceKind,
+        isScreenOff: relation.sourceKind === "iot",
         source: relation.sourceContent,
         sourceEpisodeId: relation.episodeId,
         rationale: relation.rationale,
@@ -571,6 +592,9 @@ export default function MemoryScreen() {
                 <CardTitle className="text-base">{selectedNode.title}</CardTitle>
               </CardHeader>
               <CardContent className="gap-2">
+                {"isScreenOff" in selectedNode ? (
+                  <ScreenOffBadge sourceKind={selectedNode.isScreenOff ? "iot" : undefined} />
+                ) : null}
                 <Text className="text-sm leading-5">{selectedNode.content || t("memory.nodeEmpty")}</Text>
                 {"source" in selectedNode && selectedNode.source ? (
                   <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">

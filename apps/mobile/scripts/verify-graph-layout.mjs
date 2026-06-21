@@ -96,6 +96,10 @@ for (const prefix of ["type-", "memory-", "reflection-", "entity-", "relation-"]
   assertIncludes(graphSource, prefix, `Memory graph is missing ${prefix} nodes.`);
 }
 assertIncludes(memoryScreen, "function OpenSourceButton", "Memory graph details must expose source episode navigation.");
+assertIncludes(memoryScreen, "function ScreenOffBadge", "Memory graph details must expose screen-off capture badges.");
+assertIncludes(memoryScreen, "<ScreenOffBadge sourceKind={memory.sourceKind} />", "Saved memory cards must show screen-off capture badges.");
+assertIncludes(memoryScreen, "isScreenOff: memory.sourceKind === \"iot\"", "Selected memory details must preserve screen-off source state.");
+assertIncludes(memoryScreen, "selectedNode.isScreenOff", "Selected graph node details must show screen-off capture badges.");
 assertIncludes(memoryScreen, "<OpenSourceButton episodeId={memory.episodeId} />", "Saved memory cards must link to source episodes.");
 assertIncludes(memoryScreen, "sourceTitle: memory.sourceTitle", "Selected memory details must retain source titles.");
 assertIncludes(memoryScreen, "relationSource?.episodeId", "Entity graph details must link relation source episodes.");
