@@ -374,6 +374,16 @@ export function ChatMessages({
                                 <Text className="text-sm leading-5">
                                   {card.payload.content}
                                 </Text>
+                                {typeof card.payload.importance === "number" ? (
+                                  <View className="gap-1 rounded-md bg-muted/70 px-2.5 py-2">
+                                    <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                      {t("inbox.importance")}
+                                    </Text>
+                                    <Text className="text-xs leading-4 text-muted-foreground">
+                                      {card.payload.importance}
+                                    </Text>
+                                  </View>
+                                ) : null}
                                 {card.payload.rationale ? (
                                   <View className="gap-1 rounded-md bg-muted/70 px-2.5 py-2">
                                     <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">

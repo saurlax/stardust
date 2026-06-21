@@ -340,6 +340,7 @@ assertIncludes(candidates, "candidate.metadata?.rationale", "Candidate metadata 
 assertIncludes(candidates, "normalizeImportance", "Accepted memories must use bounded suggested importance.");
 assertIncludes(candidates, "candidate.metadata?.importance", "Accepted memories must read suggested importance metadata.");
 assertIncludes(chatMessages, "card.payload.rationale", "Chat candidate cards must display rationales.");
+assertIncludes(chatMessages, 'typeof card.payload.importance === "number"', "Chat candidate cards must display suggested importance.");
 assertIncludes(inboxScreen, "candidate.metadata?.rationale", "Inbox candidates must display stored rationales.");
 assertIncludes(inboxScreen, "card.payload.importance", "Inbox candidates must display suggested importance.");
 assertIncludes(inboxScreen, "getDeviceCandidateContextLines(candidate)", "Device candidates must show screen-off source context.");
