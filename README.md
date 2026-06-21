@@ -105,7 +105,7 @@ Stardust 目前是一个 local-first 的融合记忆原型：
 - **记忆星图**：已确认记忆、反思和实体通过 Skia + force layout 形成可探索的本地图谱。
 - **屏幕外捕获**：`iot` 目录面向 Seeed Studio XIAO ESP32S3 Sense，作为 BLE 外设 `Stardust Sense` 上报轻量事件、manifest、能力声明和捕获指令。
 
-Cloud 模式、云同步和大文件无线传输仍是未来计划；当前不作为可用功能提供。
+云端同步和大文件无线传输仍是未来计划；当前不作为可用功能提供。
 
 ## 开始使用
 
