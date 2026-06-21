@@ -132,6 +132,11 @@ const getCommandLabel = (
   }
 };
 
+const getReviewDeviceEventsLabel = (device: DeviceRecord) =>
+  device.pendingReviewCount
+    ? `${t("settings.reviewDeviceEvents")} (${device.pendingReviewCount})`
+    : t("settings.reviewDeviceEvents");
+
 const openDeviceInbox = () => {
   router.push("/inbox?tab=devices" as Href);
 };
@@ -488,7 +493,7 @@ export function SettingsContent() {
                         size="sm"
                         onPress={() => openDeviceInboxForDevice(device.id)}
                       >
-                        <Text>{t("settings.reviewDeviceEvents")}</Text>
+                        <Text>{getReviewDeviceEventsLabel(device)}</Text>
                       </Button>
                     </View>
                   </View>

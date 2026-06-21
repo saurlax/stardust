@@ -193,6 +193,8 @@ assertIncludes(devices, "lower(device_events.event_type) IN ('capture', 'button'
 assertIncludes(devices, "device_events.candidate_id IS NULL OR memory_candidates.status = 'pending'", "Device lists must count unpromoted captures as pending review work.");
 assertIncludes(inboxScreen, "device.reviewedEventCount", "Device inbox cards must display reviewed capture counts.");
 assertIncludes(settings, "device.reviewedEventCount", "Settings device cards must display reviewed capture counts.");
+assertIncludes(settings, "getReviewDeviceEventsLabel", "Settings device review buttons must summarize pending review counts.");
+assertIncludes(settings, "device.pendingReviewCount", "Settings device review buttons must use pending review counts.");
 assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");
 assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty state must open Settings.");
 assertIncludes(inboxScreen, "pendingKindFilters", "Pending inbox must expose candidate kind filters.");
