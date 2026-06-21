@@ -9,6 +9,10 @@ import type { CandidateKind, CandidateStatus, MemoryCandidate } from "@/lib/db/t
 
 const SELF_ENTITY_ID = "entity-self";
 const nowIso = () => new Date().toISOString();
+const normalizeImportance = (value: unknown, fallback: number) =>
+  typeof value === "number" && Number.isFinite(value)
+    ? Math.max(1, Math.min(5, Math.round(value)))
+    : fallback;
 const createEntityId = (type: string, name: string, fallbackId: string) =>
   `entity-${type}-${name.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-").replace(/^-+|-+$/g, "") || fallbackId}`;
 
@@ -136,6 +140,10 @@ const candidateToToolCard = (candidate: MemoryCandidate): MessageToolCard => ({
       typeof candidate.metadata?.rationale === "string"
         ? candidate.metadata.rationale
         : undefined,
+    importance:
+      typeof candidate.metadata?.importance === "number"
+        ? normalizeImportance(candidate.metadata.importance, 3)
+        : undefined,
   },
 });
 
@@ -215,6 +223,10 @@ export async function updateCandidateStatus(
 
     if (candidate.kind === "memory" || candidate.kind === "open_loop") {
       const type = candidate.kind === "open_loop" ? "concern" : candidate.type || "memory";
+      const importance = normalizeImportance(
+        candidate.metadata?.importance,
+        candidate.kind === "open_loop" ? 4 : 3,
+      );
       await db.runAsync(
         `
           INSERT OR REPLACE INTO memory_atoms (
@@ -230,7 +242,7 @@ export async function updateCandidateStatus(
         candidate.messageId ?? null,
         type,
         content,
-        candidate.kind === "open_loop" ? 4 : 3,
+        importance,
         updatedAt,
         updatedAt,
       );

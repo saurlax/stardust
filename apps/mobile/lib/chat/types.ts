@@ -22,6 +22,7 @@ export type ToolCardPayload = {
   relationTargetType?: string;
   relationType?: string;
   rationale?: string;
+  importance?: number;
 };
 
 export type MessageToolCard = {

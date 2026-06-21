@@ -45,6 +45,7 @@ type ToolCardDefinition = {
     relationTargetType?: string;
     relationType?: string;
     rationale?: string;
+    importance?: number;
   };
 };
 
@@ -104,6 +105,7 @@ const toolDefinitions = [
             ],
           },
           rationale: { type: "string" },
+          importance: { type: "number", minimum: 1, maximum: 5 },
         },
         required: ["title", "content", "memoryType", "rationale"],
       },
@@ -186,6 +188,7 @@ const toolDefinitions = [
             enum: ["concern", "goal", "project"],
           },
           rationale: { type: "string" },
+          importance: { type: "number", minimum: 1, maximum: 5 },
         },
         required: ["title", "content", "memoryType", "rationale"],
       },
@@ -274,6 +277,7 @@ const normalizeToolCards = (cards: ToolCardDefinition[]): MessageToolCard[] =>
       relationTargetType: card.payload.relationTargetType,
       relationType: card.payload.relationType,
       rationale: card.payload.rationale,
+      importance: card.payload.importance,
     },
     status: "pending",
   }));
@@ -453,6 +457,7 @@ const sendLocalChatRequest = async ({
           relationTargetType?: string;
           relationType?: string;
           rationale?: string;
+          importance?: number;
         };
 
         const cardContent = args.content?.trim();
@@ -470,6 +475,7 @@ const sendLocalChatRequest = async ({
               relationTargetType: args.relationTargetType?.trim(),
               relationType: args.relationType?.trim(),
               rationale: args.rationale?.trim(),
+              importance: args.importance,
             },
           },
         ];

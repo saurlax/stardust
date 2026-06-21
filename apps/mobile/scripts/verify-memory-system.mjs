@@ -274,9 +274,14 @@ assertIncludes(inboxScreen, "getCandidateTitle(candidate)", "Pending candidates 
 assertIncludes(inboxScreen, 'candidate.metadata?.source === "device_event"', "Device candidates must format titles from metadata.");
 assertIncludes(chatRuntime, "Include a short rationale", "Chat tools must request candidate rationales.");
 assertIncludes(chatTypes, "rationale?: string", "Tool cards must carry candidate rationales.");
+assertIncludes(chatTypes, "importance?: number", "Tool cards must carry suggested importance.");
+assertIncludes(chatRuntime, "minimum: 1, maximum: 5", "Memory tools must ask for bounded suggested importance.");
 assertIncludes(candidates, "candidate.metadata?.rationale", "Candidate metadata must preserve rationales.");
+assertIncludes(candidates, "normalizeImportance", "Accepted memories must use bounded suggested importance.");
+assertIncludes(candidates, "candidate.metadata?.importance", "Accepted memories must read suggested importance metadata.");
 assertIncludes(chatMessages, "card.payload.rationale", "Chat candidate cards must display rationales.");
 assertIncludes(inboxScreen, "candidate.metadata?.rationale", "Inbox candidates must display stored rationales.");
+assertIncludes(inboxScreen, "card.payload.importance", "Inbox candidates must display suggested importance.");
 assertIncludes(inboxScreen, "getDeviceCandidateContextLines(candidate)", "Device candidates must show screen-off source context.");
 assertIncludes(inboxScreen, "inbox.deviceContext", "Device candidate context must have a localized heading.");
 assertIncludes(inboxScreen, "eventMetadata?.deviceTimestamp", "Device candidate context must expose device timestamps.");

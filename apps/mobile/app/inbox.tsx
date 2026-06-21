@@ -301,6 +301,8 @@ function CandidateCard({
     : undefined;
   const rationale =
     typeof candidate.metadata?.rationale === "string" ? candidate.metadata.rationale : undefined;
+  const suggestedImportance =
+    typeof card.payload.importance === "number" ? card.payload.importance : undefined;
   const deviceContextLines = getDeviceCandidateContextLines(candidate);
 
   return (
@@ -308,6 +310,7 @@ function CandidateCard({
       <CardHeader className="gap-1">
         <CardDescription>
           {getCandidateKindLabel(candidate.kind)} · {getMemoryTypeLabel(candidate.type)}
+          {suggestedImportance ? ` · ${t("inbox.importance")} ${suggestedImportance}` : ""}
         </CardDescription>
         <Text className="text-xs leading-4 text-muted-foreground">
           {t("inbox.suggestedAt")} · {new Date(candidate.createdAt).toLocaleString()}
