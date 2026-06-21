@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
-export const DATABASE_VERSION = 17;
+export const DATABASE_VERSION = 18;
 
 let ftsAvailable: boolean | undefined;
 
@@ -177,7 +177,8 @@ async function createCurrentTables(db: SQLiteDatabase) {
         episode_id UNINDEXED,
         source,
         title,
-        content
+        content,
+        metadata
       );
 
       CREATE VIRTUAL TABLE IF NOT EXISTS memory_atoms_fts USING fts5(

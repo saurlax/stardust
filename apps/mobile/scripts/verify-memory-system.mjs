@@ -229,7 +229,9 @@ for (const functionName of [
 }
 
 assertIncludes(schema, "episode_id TEXT", "Reflections must preserve source episodes.");
-assertIncludes(schema, "export const DATABASE_VERSION = 17", "Database version must reflect the current schema.");
+assertIncludes(schema, "export const DATABASE_VERSION = 18", "Database version must reflect the current schema.");
+assertIncludes(schema, "metadata", "Episode FTS must include source metadata.");
+assertIncludes(episodes, "safeJson(episode.metadata)", "Episode FTS must index source metadata.");
 for (const check of [
   "CHECK(source IN ('chat', 'share', 'image', 'calendar', 'iot', 'journal'))",
   "CHECK(kind IN ('memory', 'journal', 'reflection', 'entity', 'open_loop'))",

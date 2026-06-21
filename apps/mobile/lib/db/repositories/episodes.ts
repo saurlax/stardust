@@ -14,13 +14,14 @@ export async function insertEpisodeFts(db: SQLiteDatabase, episode: Episode) {
   await db.runAsync("DELETE FROM episodes_fts WHERE episode_id = ?", episode.id);
   await db.runAsync(
     `
-      INSERT INTO episodes_fts (episode_id, source, title, content)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO episodes_fts (episode_id, source, title, content, metadata)
+      VALUES (?, ?, ?, ?, ?)
     `,
     episode.id,
     episode.source,
     episode.title ?? "",
     episode.content,
+    safeJson(episode.metadata) ?? "",
   );
 }
 
