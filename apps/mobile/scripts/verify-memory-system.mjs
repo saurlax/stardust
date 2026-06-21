@@ -394,7 +394,9 @@ assertIncludes(memoryRecords, "episodes.source AS source_kind", "Stored memories
 assertIncludes(memoryRecords, "memory_candidates.metadata_json AS candidate_metadata_json", "Confirmed records must retain candidate rationale metadata.");
 assertIncludes(memoryRecords, "readRationale(row.candidate_metadata_json)", "Confirmed records must expose candidate rationales.");
 assertIncludes(memoryLabels, "getEpisodeTitleLabel", "Episode source titles must use shared user-facing labels.");
+assertIncludes(inboxScreen, "function ScreenOffBadge", "Inbox saved records must expose screen-off source badges.");
 assertIncludes(inboxScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Inbox saved memory sources must use user-facing episode titles.");
+assertIncludes(inboxScreen, "<ScreenOffBadge sourceKind={memory.sourceKind} />", "Inbox saved memories must show screen-off source badges.");
 assertIncludes(inboxScreen, "memory.importance", "Inbox saved memories must display importance.");
 assertIncludes(inboxScreen, "memory.rationale", "Inbox saved memories must display accepted candidate rationales.");
 assertIncludes(inboxScreen, 'params: { nodeId: `memory-${memory.id}` }', "Inbox saved memories must open their Memory graph nodes.");
@@ -403,6 +405,7 @@ assertIncludes(inboxScreen, "candidate.sourceCreatedAt", "Pending candidate sour
 assertIncludes(inboxScreen, "candidate.content", "Inbox accept must persist the reviewed candidate content.");
 assertIncludes(inboxScreen, "draft.trim() || candidate.content", "Inbox edited candidates must not save blank content.");
 assertIncludes(inboxScreen, "getSourcePrefix(reflection.sourceKind, reflection.sourceTitle)", "Inbox reflection sources must use user-facing episode titles.");
+assertIncludes(inboxScreen, "<ScreenOffBadge sourceKind={reflection.sourceKind} />", "Inbox reflections must show screen-off source badges.");
 assertIncludes(inboxScreen, 'params: { nodeId: `reflection-${reflection.id}` }', "Inbox reflections must open their Memory graph nodes.");
 assertIncludes(memoryScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Memory management sources must use user-facing episode titles.");
 assertIncludes(memoryScreen, "memory.importance", "Memory management cards must display importance.");

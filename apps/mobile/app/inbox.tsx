@@ -294,6 +294,22 @@ function RationaleBlock({ rationale }: { rationale?: string }) {
   );
 }
 
+function ScreenOffBadge({ sourceKind }: { sourceKind?: StoredMemory["sourceKind"] }) {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#67E8F9" : "#0E7490";
+
+  if (sourceKind !== "iot") return null;
+
+  return (
+    <View className="self-start flex-row items-center gap-1.5 rounded-md border border-cyan-700/30 bg-cyan-700/10 px-2 py-1">
+      <Ionicons name="radio-outline" size={13} color={iconColor} />
+      <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-200">
+        {t("inbox.screenOffSource")}
+      </Text>
+    </View>
+  );
+}
+
 function CandidateCard({
   candidate,
   highlighted,
@@ -474,7 +490,10 @@ function MemoryCard({
             className="min-h-24 rounded-md bg-background"
           />
         ) : (
-          <Text className="text-sm leading-5">{memory.content}</Text>
+          <View className="gap-2">
+            <ScreenOffBadge sourceKind={memory.sourceKind} />
+            <Text className="text-sm leading-5">{memory.content}</Text>
+          </View>
         )}
         {memory.sourceContent ? (
           <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
@@ -583,7 +602,10 @@ function ReflectionCard({
             className="min-h-24 rounded-md bg-background"
           />
         ) : (
-          <Text className="text-sm leading-5">{reflection.content}</Text>
+          <View className="gap-2">
+            <ScreenOffBadge sourceKind={reflection.sourceKind} />
+            <Text className="text-sm leading-5">{reflection.content}</Text>
+          </View>
         )}
         {reflection.sourceContent ? (
           <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
