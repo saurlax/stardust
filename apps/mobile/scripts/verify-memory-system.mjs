@@ -395,6 +395,7 @@ assertIncludes(inboxScreen, "candidate.sourceCreatedAt", "Pending candidate sour
 assertIncludes(inboxScreen, "candidate.content", "Inbox accept must persist the reviewed candidate content.");
 assertIncludes(inboxScreen, "draft.trim() || candidate.content", "Inbox edited candidates must not save blank content.");
 assertIncludes(inboxScreen, "getSourcePrefix(reflection.sourceKind, reflection.sourceTitle)", "Inbox reflection sources must use user-facing episode titles.");
+assertIncludes(inboxScreen, 'params: { nodeId: `reflection-${reflection.id}` }', "Inbox reflections must open their Memory graph nodes.");
 assertIncludes(memoryScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Memory management sources must use user-facing episode titles.");
 assertIncludes(memoryScreen, "memory.importance", "Memory management cards must display importance.");
 assertIncludes(memoryScreen, "memory.rationale", "Memory management cards must display accepted candidate rationales.");
