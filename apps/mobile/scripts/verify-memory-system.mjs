@@ -403,6 +403,12 @@ assertIncludes(personalScreen, 'params: { nodeId: `reflection-${reflection.id}` 
 assertIncludes(personalDrawer, 'params: { nodeId: `reflection-${reflection.id}` }', "Personal drawer recent reflections must open the memory graph.");
 assertIncludes(personalScreen, "reflection.rationale", "Personal page recent reflections must expose rationales.");
 assertIncludes(personalDrawer, "reflection.rationale", "Personal drawer recent reflections must expose rationales.");
+assertIncludes(personalScreen, "recentRelations", "Personal page must surface recent confirmed relations.");
+assertIncludes(personalDrawer, "recentRelations", "Personal drawer must surface recent confirmed relations.");
+assertIncludes(personalScreen, 'params: { nodeId: `relation-${relation.id}` }', "Personal page recent relations must open relation graph nodes.");
+assertIncludes(personalDrawer, 'params: { nodeId: `relation-${relation.id}` }', "Personal drawer recent relations must open relation graph nodes.");
+assertIncludes(personalScreen, "getRelationTypeLabel(relation.type)", "Personal page recent relations must use user-facing relation labels.");
+assertIncludes(personalDrawer, "getRelationTypeLabel(relation.type)", "Personal drawer recent relations must use user-facing relation labels.");
 assertIncludes(memoryRecords, "memory_candidates.kind AS candidate_kind", "Stored memories must retain their source candidate kind.");
 assertIncludes(memoryRecords, "episodes.source AS source_kind", "Stored memories must retain source episode kinds.");
 assertIncludes(memoryRecords, "memory_candidates.metadata_json AS candidate_metadata_json", "Confirmed records must retain candidate rationale metadata.");

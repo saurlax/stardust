@@ -20,10 +20,11 @@ import {
   type Episode,
   type PersonalSnapshot,
   type ReflectionRecord,
+  type RelationRecord,
   type StoredMemory,
 } from "@/lib/db";
 import { t } from "@/lib/i18n";
-import { getEpisodeTitleLabel, getMemoryTypeLabel } from "@/lib/memoryLabels";
+import { getEpisodeTitleLabel, getMemoryTypeLabel, getRelationTypeLabel } from "@/lib/memoryLabels";
 
 const emptySnapshot: PersonalSnapshot = {
   acceptedMemories: 0,
@@ -73,6 +74,7 @@ export default function PersonalScreen() {
   const [memoryTree, setMemoryTree] = useState(buildMemoryTree([]));
   const [recentMemories, setRecentMemories] = useState<StoredMemory[]>([]);
   const [recentReflections, setRecentReflections] = useState<ReflectionRecord[]>([]);
+  const [recentRelations, setRecentRelations] = useState<RelationRecord[]>([]);
   const [recentEpisodes, setRecentEpisodes] = useState<Episode[]>([]);
 
   useFocusEffect(
@@ -93,6 +95,7 @@ export default function PersonalScreen() {
           setMemoryTree(buildMemoryTree(memories, reflections, entities, relations));
           setRecentMemories(memories.slice(0, 3));
           setRecentReflections(reflections.slice(0, 2));
+          setRecentRelations(relations.slice(0, 3));
           setRecentEpisodes(episodes);
         })
         .catch(() => {
@@ -101,6 +104,7 @@ export default function PersonalScreen() {
           setMemoryTree(buildMemoryTree([]));
           setRecentMemories([]);
           setRecentReflections([]);
+          setRecentRelations([]);
           setRecentEpisodes([]);
         });
 
@@ -230,6 +234,44 @@ export default function PersonalScreen() {
               ))
             ) : (
               <Text className="text-sm text-muted-foreground">{t("personal.noRecentMemories")}</Text>
+            )}
+          </Card>
+
+          <Card className="gap-3 px-4 py-4">
+            <View className="gap-1">
+              <Text className="text-base font-semibold">{t("personal.recentRelationsTitle")}</Text>
+              <Text className="text-xs text-muted-foreground">
+                {t("personal.recentRelationsDescription")}
+              </Text>
+            </View>
+            {recentRelations.length ? (
+              recentRelations.map((relation) => (
+                <Pressable
+                  key={relation.id}
+                  accessibilityRole="button"
+                  className="gap-1 rounded-lg bg-muted/50 px-3 py-3"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/memory",
+                      params: { nodeId: `relation-${relation.id}` },
+                    } as Href)
+                  }
+                >
+                  <Text className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {getRelationTypeLabel(relation.type)} · {t("memory.relationWeight")} {relation.weight}
+                  </Text>
+                  <Text className="text-sm leading-5">
+                    {relation.sourceEntityName ?? relation.sourceEntityId} ·{" "}
+                    {getRelationTypeLabel(relation.type)} ·{" "}
+                    {relation.targetEntityName ?? relation.targetEntityId}
+                  </Text>
+                  {relation.rationale ? (
+                    <Text className="text-xs leading-4 text-muted-foreground">{relation.rationale}</Text>
+                  ) : null}
+                </Pressable>
+              ))
+            ) : (
+              <Text className="text-sm text-muted-foreground">{t("personal.noRecentRelations")}</Text>
             )}
           </Card>
 
