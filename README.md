@@ -185,6 +185,7 @@ stardust/
 ├── apps/
 │   ├── mobile/        # Expo / React Native 移动端应用
 │   └── api/           # Go Fiber API 服务
+├── iot/               # XIAO ESP32S3 Sense BLE 固件
 ├── packages/          # 共享包
 └── AGENTS.md         # 项目开发指南
 ```
