@@ -273,7 +273,20 @@ export async function findRelevantKnowledge(
         limit,
       ),
       db.getAllAsync<any>(
-        `SELECT reflection_id AS id, 'reflection' AS type, title, content, created_at FROM reflections WHERE status = 'active' AND (title LIKE ? OR content LIKE ?) LIMIT ?`,
+        `
+          SELECT reflections.reflection_id AS id, 'reflection' AS type,
+            reflections.title AS title,
+            reflections.content AS content,
+            reflections.created_at AS created_at,
+            episodes.source AS source_kind,
+            episodes.title AS source_title,
+            memory_candidates.metadata_json AS candidate_metadata_json
+          FROM reflections
+          LEFT JOIN episodes ON episodes.episode_id = reflections.episode_id
+          LEFT JOIN memory_candidates ON memory_candidates.candidate_id = reflections.candidate_id
+          WHERE reflections.status = 'active' AND (reflections.title LIKE ? OR reflections.content LIKE ?)
+          LIMIT ?
+        `,
         `%${query}%`,
         `%${query}%`,
         limit,
@@ -316,7 +329,15 @@ export async function findRelevantKnowledge(
         type: item.type,
         title: item.title ?? undefined,
         content: item.content,
+        contextNote: item.source_title
+          ? `source ${item.source_title}`
+          : item.source_kind === "iot"
+            ? "source episode screen-off capture"
+            : undefined,
+        isScreenOff: item.source_kind === "iot",
+        rationale: readRationale(item.candidate_metadata_json),
         createdAt: item.created_at,
+        nodeId: `reflection-${item.id}`,
         rank: rankByTokenMatches(item.content, tokens) - 0.2,
       })),
       ...entityRows,
@@ -367,10 +388,16 @@ export async function findRelevantKnowledge(
       `
         SELECT reflections.reflection_id AS id, 'reflection' AS type,
           reflections.title AS title,
-          reflections.content AS content, reflections.created_at AS created_at,
+          reflections.content AS content,
+          reflections.created_at AS created_at,
+          episodes.source AS source_kind,
+          episodes.title AS source_title,
+          memory_candidates.metadata_json AS candidate_metadata_json,
           bm25(reflections_fts) AS rank
         FROM reflections_fts
         JOIN reflections ON reflections.reflection_id = reflections_fts.reflection_id
+        LEFT JOIN episodes ON episodes.episode_id = reflections.episode_id
+        LEFT JOIN memory_candidates ON memory_candidates.candidate_id = reflections.candidate_id
         WHERE reflections.status = 'active' AND reflections_fts MATCH ?
         ORDER BY rank
         LIMIT ?
@@ -415,7 +442,15 @@ export async function findRelevantKnowledge(
       type: item.type,
       title: item.title ?? undefined,
       content: item.content,
+      contextNote: item.source_title
+        ? `source ${item.source_title}`
+        : item.source_kind === "iot"
+          ? "source episode screen-off capture"
+          : undefined,
+      isScreenOff: item.source_kind === "iot",
+      rationale: readRationale(item.candidate_metadata_json),
       createdAt: item.created_at,
+      nodeId: `reflection-${item.id}`,
       rank: item.rank - 0.2,
     })),
     ...entityRows,
