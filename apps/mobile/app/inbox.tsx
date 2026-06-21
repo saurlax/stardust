@@ -390,7 +390,7 @@ function CandidateCard({
               <Button
                 size="sm"
                 onPress={() => {
-                  void updateCandidateStatus(db, candidate.id, "accepted", draft)
+                  void updateCandidateStatus(db, candidate.id, "accepted", draft.trim() || candidate.content)
                     .then(onRefresh)
                     .catch(onError);
                 }}
@@ -421,7 +421,7 @@ function CandidateCard({
                     db,
                     candidate.id,
                     "accepted",
-                    card.payload.content,
+                    candidate.content,
                   )
                     .then(onRefresh)
                     .catch(onError);

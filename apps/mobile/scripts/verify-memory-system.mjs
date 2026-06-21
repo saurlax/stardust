@@ -313,6 +313,8 @@ assertIncludes(inboxScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTit
 assertIncludes(inboxScreen, "memory.importance", "Inbox saved memories must display importance.");
 assertIncludes(inboxScreen, "candidate.createdAt", "Pending candidate cards must expose candidate timestamps.");
 assertIncludes(inboxScreen, "candidate.sourceCreatedAt", "Pending candidate source blocks must expose source timestamps.");
+assertIncludes(inboxScreen, "candidate.content", "Inbox accept must persist the reviewed candidate content.");
+assertIncludes(inboxScreen, "draft.trim() || candidate.content", "Inbox edited candidates must not save blank content.");
 assertIncludes(inboxScreen, "getSourcePrefix(reflection.sourceKind, reflection.sourceTitle)", "Inbox reflection sources must use user-facing episode titles.");
 assertIncludes(memoryScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Memory management sources must use user-facing episode titles.");
 assertIncludes(memoryScreen, "memory.importance", "Memory management cards must display importance.");
