@@ -147,6 +147,7 @@ assertIncludes(timeline, "title: episode.title", "Episode timeline entries must 
 assertIncludes(timeline, "mediaUri: episode.mediaUri", "Episode timeline entries must preserve media URIs.");
 assertIncludes(timeline, "metadata: episode.metadata", "Episode timeline entries must preserve source metadata.");
 assertIncludes(knowledge, "hasMedia: !!item.media_uri", "Knowledge retrieval must expose media-bearing episodes.");
+assertIncludes(journalScreen, "result.hasMedia", "Journal search results must flag media-bearing episodes.");
 assertIncludes(timeline, 'title: memory.candidateKind === "open_loop"', "Memory timeline entries must preserve memory type labels.");
 assertIncludes(timeline, "importance: memory.importance", "Memory timeline entries must expose importance metadata.");
 assertIncludes(timeline, "rationale: memory.rationale", "Memory timeline entries must expose rationale metadata.");

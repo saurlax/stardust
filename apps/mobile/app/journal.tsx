@@ -282,6 +282,7 @@ export default function JournalScreen() {
       title?: string;
       content: string;
       createdAt: string;
+      hasMedia?: boolean;
       isScreenOff?: boolean;
       importance?: number;
       rationale?: string;
@@ -499,6 +500,7 @@ export default function JournalScreen() {
                     {result.source === "memory" && typeof result.importance === "number"
                       ? ` · ${t("journal.importance")} ${result.importance}`
                       : ""}
+                    {result.hasMedia ? ` · ${t("journal.media")}` : ""}
                     {result.isScreenOff ? ` · ${t("journal.screenOffResult")}` : ""}
                   </CardDescription>
                   {result.title ? (
