@@ -395,6 +395,10 @@ assertIncludes(personalScreen, '"/inbox?tab=devices" as Href', "Personal page mu
 assertIncludes(personalDrawer, '"/inbox?tab=devices" as Href', "Personal drawer must open the device review inbox.");
 assertIncludes(personalScreen, "getMemorySummaryLabel(memory)", "Personal page recent memories must show importance and source labels.");
 assertIncludes(personalDrawer, "getMemorySummaryLabel(memory)", "Personal drawer recent memories must show importance and source labels.");
+assertIncludes(personalScreen, "function ScreenOffBadge", "Personal page must expose screen-off source badges.");
+assertIncludes(personalDrawer, "function ScreenOffBadge", "Personal drawer must expose screen-off source badges.");
+assertIncludes(personalScreen, 'memory.sourceKind === "iot" ? <ScreenOffBadge />', "Personal page recent memories must show screen-off badges.");
+assertIncludes(personalDrawer, 'memory.sourceKind === "iot" ? <ScreenOffBadge />', "Personal drawer recent memories must show screen-off badges.");
 assertIncludes(personalScreen, "memory.rationale", "Personal page recent memories must expose accepted rationales.");
 assertIncludes(personalDrawer, "memory.rationale", "Personal drawer recent memories must expose accepted rationales.");
 assertIncludes(personalScreen, "recentReflections", "Personal page must surface recent confirmed reflections.");
@@ -409,6 +413,8 @@ assertIncludes(personalScreen, 'params: { nodeId: `relation-${relation.id}` }', 
 assertIncludes(personalDrawer, 'params: { nodeId: `relation-${relation.id}` }', "Personal drawer recent relations must open relation graph nodes.");
 assertIncludes(personalScreen, "getRelationTypeLabel(relation.type)", "Personal page recent relations must use user-facing relation labels.");
 assertIncludes(personalDrawer, "getRelationTypeLabel(relation.type)", "Personal drawer recent relations must use user-facing relation labels.");
+assertIncludes(personalScreen, 'relation.sourceKind === "iot" ? <ScreenOffBadge />', "Personal page recent relations must show screen-off badges.");
+assertIncludes(personalDrawer, 'relation.sourceKind === "iot" ? <ScreenOffBadge />', "Personal drawer recent relations must show screen-off badges.");
 assertIncludes(memoryRecords, "memory_candidates.kind AS candidate_kind", "Stored memories must retain their source candidate kind.");
 assertIncludes(memoryRecords, "episodes.source AS source_kind", "Stored memories must retain source episode kinds.");
 assertIncludes(memoryRecords, "memory_candidates.metadata_json AS candidate_metadata_json", "Confirmed records must retain candidate rationale metadata.");

@@ -71,6 +71,20 @@ function EpisodeMediaPreview({ episode }: { episode: Episode }) {
   );
 }
 
+function ScreenOffBadge() {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#67E8F9" : "#0E7490";
+
+  return (
+    <View className="self-start flex-row items-center gap-1.5 rounded-md border border-cyan-700/30 bg-cyan-700/10 px-2 py-1">
+      <Ionicons name="radio-outline" size={13} color={iconColor} />
+      <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-200">
+        {t("personal.screenOffSource")}
+      </Text>
+    </View>
+  );
+}
+
 export function PersonalDrawerContent({ navigation }: DrawerContentComponentProps) {
   const db = useSQLiteContext();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
@@ -230,6 +244,7 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
                 <Text className="text-xs uppercase text-muted-foreground">
                   {getMemorySummaryLabel(memory)}
                 </Text>
+                {memory.sourceKind === "iot" ? <ScreenOffBadge /> : null}
                 <Text className="text-sm leading-5">{memory.content}</Text>
                 {memory.rationale ? (
                   <Text className="text-xs leading-4 text-muted-foreground">{memory.rationale}</Text>
@@ -264,6 +279,7 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
                 <Text className="text-xs uppercase text-muted-foreground">
                   {getRelationTypeLabel(relation.type)} · {t("memory.relationWeight")} {relation.weight}
                 </Text>
+                {relation.sourceKind === "iot" ? <ScreenOffBadge /> : null}
                 <Text className="text-sm leading-5">
                   {relation.sourceEntityName ?? relation.sourceEntityId} ·{" "}
                   {getRelationTypeLabel(relation.type)} ·{" "}
