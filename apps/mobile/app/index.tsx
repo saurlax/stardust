@@ -381,16 +381,22 @@ export default function Index() {
       const effectivePrompt = trimmed || (imageUri ? DEFAULT_IMAGE_PROMPT : "");
       if (!effectivePrompt || sending || !ready) return;
 
-      const validationKey = getConfigValidationError(configRef.current);
-      if (validationKey) {
-        Alert.alert(t("settings.title"), t(validationKey));
-        return;
-      }
-
       const timestamp = Date.now();
       const createdAt = new Date(timestamp).toISOString();
       const episodeId = `episode-user-${timestamp}`;
       const episodeSource = sourceOverride ?? (imageUri ? "image" : "chat");
+      const episodeTitle =
+        episodeSource === "share"
+          ? t("chat.sharedTextEpisodeTitle")
+          : episodeSource === "image" && sourceOverride === "image"
+            ? t("chat.sharedImageEpisodeTitle")
+            : imageUri
+              ? t("chat.imageEpisodeTitle")
+              : t("chat.chatEpisodeTitle");
+      const episodeMetadata = {
+        sessionId: sessionIdRef.current,
+        ...(sourceOverride !== undefined ? { shareIntent: true } : {}),
+      };
 
       const request: NonNullable<ChatMessage["request"]> = {
         prompt: effectivePrompt,
@@ -415,6 +421,34 @@ export default function Index() {
         createdAt,
         request,
       };
+      const persistCapture = (snapshotMessages: ChatMessage[]) =>
+        createEpisode(db, {
+          id: episodeId,
+          source: episodeSource,
+          title: episodeTitle,
+          content: effectivePrompt,
+          mediaUri: imageUri,
+          metadata: episodeMetadata,
+          createdAt,
+        }).then(() =>
+          saveChatSessionSnapshot(db, {
+            sessionId: sessionIdRef.current,
+            remoteChatId: chatIdRef.current,
+            messages: snapshotMessages,
+          }),
+        );
+      const validationKey = getConfigValidationError(configRef.current);
+      if (validationKey) {
+        const capturedMessages = [...messagesRef.current, userMessage];
+        setMessages(capturedMessages);
+        setText("");
+        setSelectedImageUri(undefined);
+        setSelectedImageMimeType(undefined);
+        Alert.alert(t("settings.title"), t(validationKey));
+        void persistCapture(capturedMessages).catch((error) => setChatError(getErrorMessage(error)));
+        return;
+      }
+
       const sourceMessages = [...createTransportMessages(), userMessage];
       const nextMessages = [...messagesRef.current, userMessage, assistantMessage];
 
@@ -430,27 +464,7 @@ export default function Index() {
 
       void (async () => {
         try {
-          await createEpisode(db, {
-            id: episodeId,
-            source: episodeSource,
-            title:
-              episodeSource === "share"
-                ? t("chat.sharedTextEpisodeTitle")
-                : episodeSource === "image" && sourceOverride === "image"
-                  ? t("chat.sharedImageEpisodeTitle")
-                  : imageUri
-                    ? t("chat.imageEpisodeTitle")
-                    : t("chat.chatEpisodeTitle"),
-            content: effectivePrompt,
-            mediaUri: imageUri,
-            metadata: { sessionId: sessionIdRef.current, shareIntent: sourceOverride !== undefined },
-            createdAt,
-          });
-          await saveChatSessionSnapshot(db, {
-            sessionId: sessionIdRef.current,
-            remoteChatId: chatIdRef.current,
-            messages: nextMessages,
-          });
+          await persistCapture(nextMessages);
           setChatError(null);
           await runRequest({
             assistantId: assistantMessage.id,
