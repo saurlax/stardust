@@ -649,6 +649,52 @@ function DeviceCard({ device }: { device: DeviceRecord }) {
   );
 }
 
+function DeviceSelectionSummary({
+  selectedDevice,
+  deviceCount,
+  eventCount,
+  pendingReviewCount,
+}: {
+  selectedDevice?: DeviceRecord;
+  deviceCount: number;
+  eventCount: number;
+  pendingReviewCount: number;
+}) {
+  const detailLines = selectedDevice
+    ? [
+        `${t("inbox.deviceStatusLabel")}: ${getDeviceStatusLabel(selectedDevice.status)}`,
+        `${t("inbox.deviceEventCount")}: ${selectedDevice.eventCount}`,
+        `${t("inbox.pendingReviews")}: ${selectedDevice.pendingReviewCount}`,
+        selectedDevice.reviewedEventCount
+          ? `${t("inbox.reviewedEvents")}: ${selectedDevice.reviewedEventCount}`
+          : undefined,
+        selectedDevice.lastEventAt
+          ? `${t("inbox.lastEvent")}: ${new Date(selectedDevice.lastEventAt).toLocaleString()}`
+          : undefined,
+      ]
+    : [
+        `${t("inbox.deviceCount")}: ${deviceCount}`,
+        `${t("inbox.deviceEventCount")}: ${eventCount}`,
+        `${t("inbox.pendingReviews")}: ${pendingReviewCount}`,
+      ];
+
+  return (
+    <Card className="gap-2 border-primary/30 bg-primary/5 py-4">
+      <CardContent className="gap-2">
+        <CardDescription>{t("inbox.deviceReviewScope")}</CardDescription>
+        <Text className="text-base font-semibold">
+          {selectedDevice ? selectedDevice.name : t("inbox.allDevices")}
+        </Text>
+        {detailLines.filter(Boolean).map((line) => (
+          <Text key={line} className="text-sm text-muted-foreground">
+            {line}
+          </Text>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 function DeviceEventCard({
   event,
   onPromoted,
@@ -1009,6 +1055,17 @@ export default function InboxScreen() {
     },
     [deviceEvents, selectedDeviceId],
   );
+  const selectedDevice = useMemo(
+    () => devices.find((device) => device.id === selectedDeviceId),
+    [devices, selectedDeviceId],
+  );
+  const selectedDeviceEventCount = useMemo(
+    () =>
+      selectedDeviceId === "all"
+        ? deviceEvents.length
+        : deviceEvents.filter((event) => event.deviceId === selectedDeviceId).length,
+    [deviceEvents, selectedDeviceId],
+  );
   const pendingDeviceReviews = useMemo(
     () => deviceEvents.filter((event) => event.promotable && !event.candidateStatus).length,
     [deviceEvents],
@@ -1157,6 +1214,12 @@ export default function InboxScreen() {
         {tab === "devices" && deviceEvents.length ? (
           <View className="gap-2">
             <Text className="px-0.5 text-lg font-semibold">{t("inbox.deviceEvents")}</Text>
+            <DeviceSelectionSummary
+              selectedDevice={selectedDevice}
+              deviceCount={devices.length}
+              eventCount={selectedDeviceEventCount}
+              pendingReviewCount={deviceEventFilterCounts.promotable}
+            />
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row gap-2 pr-4">
                 <Button

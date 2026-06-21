@@ -165,6 +165,9 @@ assertIncludes(inboxScreen, "deviceEventFilters", "Device inbox must expose devi
 assertIncludes(inboxScreen, "deviceEventFilter", "Device inbox must apply device event filters.");
 assertIncludes(inboxScreen, "deviceEventFilterCounts", "Device inbox filters must expose event counts.");
 assertIncludes(inboxScreen, "deviceEventFilterCounts[filter]", "Device inbox filter labels must display counts.");
+assertIncludes(inboxScreen, "DeviceSelectionSummary", "Device inbox must summarize the selected review scope.");
+assertIncludes(inboxScreen, "selectedDeviceId === \"all\"", "Device inbox summary must handle all-device review scope.");
+assertIncludes(inboxScreen, "devices.find((device) => device.id === selectedDeviceId)", "Device inbox summary must identify deep-linked devices.");
 assertIncludes(inboxScreen, "event.promotable && !event.candidateStatus", "Device inbox must separate promotable capture events.");
 assertIncludes(inboxScreen, "emptyFilteredDeviceEvents", "Device inbox must explain empty filtered event lists.");
 assertIncludes(inboxScreen, "emptyDeviceEvents", "Device inbox must explain paired devices with no events.");
