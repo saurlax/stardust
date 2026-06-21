@@ -152,6 +152,26 @@ function EntrySourceDetails({ entry }: { entry: JournalDay["entries"][number] })
   );
 }
 
+function isScreenOffEntry(entry: JournalDay["entries"][number]) {
+  return entry.source === "iot" || getStringMetadata(entry.metadata, "sourceKind") === "iot";
+}
+
+function ScreenOffBadge({ entry }: { entry: JournalDay["entries"][number] }) {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#67E8F9" : "#0E7490";
+
+  if (!isScreenOffEntry(entry)) return null;
+
+  return (
+    <View className="self-start flex-row items-center gap-1.5 rounded-md border border-cyan-700/30 bg-cyan-700/10 px-2 py-1">
+      <Ionicons name="radio-outline" size={13} color={iconColor} />
+      <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-200">
+        {t("journal.screenOffResult")}
+      </Text>
+    </View>
+  );
+}
+
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message) return error.message;
   return t("journal.actionFailed");
@@ -459,6 +479,7 @@ export default function JournalScreen() {
               {entryTitle(selectedEntry) ? (
                 <Text className="text-sm font-semibold">{entryTitle(selectedEntry)}</Text>
               ) : null}
+              <ScreenOffBadge entry={selectedEntry} />
               <EpisodeMediaPreview entry={selectedEntry} />
               <EntrySourceDetails entry={selectedEntry} />
               <Text className="text-sm leading-5">{selectedEntry.note}</Text>
@@ -632,6 +653,7 @@ export default function JournalScreen() {
                       {entryTitle(entry) ? (
                         <Text className="text-sm font-semibold">{entryTitle(entry)}</Text>
                       ) : null}
+                      <ScreenOffBadge entry={entry} />
                       <EpisodeMediaPreview entry={entry} />
                       <EntrySourceDetails entry={entry} />
                       <Text className="text-sm leading-5">{entry.note}</Text>

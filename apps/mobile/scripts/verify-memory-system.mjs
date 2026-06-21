@@ -162,6 +162,10 @@ assertIncludes(timeline, "metadata: episode.metadata", "Episode timeline entries
 assertIncludes(knowledge, "hasMedia: !!item.media_uri", "Knowledge retrieval must expose media-bearing episodes.");
 assertIncludes(journalScreen, "result.hasMedia", "Journal search results must flag media-bearing episodes.");
 assertIncludes(journalScreen, "result.contextNote", "Journal search results must show episode source notes.");
+assertIncludes(journalScreen, "function ScreenOffBadge", "Journal timeline must expose screen-off source badges.");
+assertIncludes(journalScreen, 'entry.source === "iot"', "Journal screen-off badges must cover IoT episodes.");
+assertIncludes(journalScreen, 'getStringMetadata(entry.metadata, "sourceKind") === "iot"', "Journal screen-off badges must cover memories sourced from IoT episodes.");
+assertIncludes(journalScreen, "<ScreenOffBadge entry={entry} />", "Journal timeline cards must render screen-off source badges.");
 assertIncludes(timeline, 'title: memory.candidateKind === "open_loop"', "Memory timeline entries must preserve memory type labels.");
 assertIncludes(timeline, "importance: memory.importance", "Memory timeline entries must expose importance metadata.");
 assertIncludes(timeline, "rationale: memory.rationale", "Memory timeline entries must expose rationale metadata.");
