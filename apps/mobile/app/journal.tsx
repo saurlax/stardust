@@ -73,11 +73,36 @@ const getNumberMetadata = (metadata: Record<string, unknown> | undefined, key: s
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 };
 
+const formatFileSize = (value?: number) => {
+  if (!value) return undefined;
+  if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 function getEntrySourceDetailLines(entry: JournalDay["entries"][number]) {
   const metadata = entry.metadata;
   const rationale = getStringMetadata(metadata, "rationale");
   const importance = getNumberMetadata(metadata, "importance");
   const sourceKind = getStringMetadata(metadata, "sourceKind");
+  if (entry.source === "share" || entry.source === "image") {
+    const webUrl = getStringMetadata(metadata, "webUrl");
+    const rawText = getStringMetadata(metadata, "rawText");
+    const fileName = getStringMetadata(metadata, "fileName");
+    const mimeType = getStringMetadata(metadata, "mimeType");
+    const fileSize = getNumberMetadata(metadata, "fileSize");
+    const width = getNumberMetadata(metadata, "width");
+    const height = getNumberMetadata(metadata, "height");
+
+    return [
+      webUrl ? `${t("journal.sharedUrl")}: ${webUrl}` : undefined,
+      rawText && rawText !== webUrl ? `${t("journal.sharedText")}: ${rawText}` : undefined,
+      fileName ? `${t("journal.fileName")}: ${fileName}` : undefined,
+      mimeType ? `${t("journal.mimeType")}: ${mimeType}` : undefined,
+      fileSize ? `${t("journal.fileSize")}: ${formatFileSize(fileSize)}` : undefined,
+      width && height ? `${t("journal.imageDimensions")}: ${width} x ${height}` : undefined,
+    ].filter((line): line is string => !!line);
+  }
+
   if (entry.source === "calendar") {
     const startDate = getStringMetadata(metadata, "startDate");
     const endDate = getStringMetadata(metadata, "endDate");

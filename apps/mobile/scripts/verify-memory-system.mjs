@@ -133,6 +133,10 @@ assertIncludes(journalScreen, "sourceCounts[source]", "Episode timeline source f
 assertIncludes(journalScreen, "entries.filter((entry) => entry.source === source).length", "Episode timeline source counts must be source-specific.");
 assertIncludes(journalScreen, "EntrySourceDetails", "Episode timeline entries must display structured source metadata.");
 assertIncludes(journalScreen, "journal.calendarLocation", "Episode timeline must surface calendar location metadata.");
+assertIncludes(journalScreen, "journal.sharedUrl", "Episode timeline must surface shared URLs.");
+assertIncludes(journalScreen, "journal.fileName", "Episode timeline must surface shared file names.");
+assertIncludes(journalScreen, "formatFileSize", "Episode timeline must summarize shared file sizes.");
+assertIncludes(journalScreen, "journal.imageDimensions", "Episode timeline must surface shared image dimensions.");
 assertIncludes(journalScreen, "journal.captureSource", "Episode timeline must surface IoT capture source metadata.");
 assertIncludes(journalScreen, "journal.rationale", "Episode timeline must surface accepted journal rationales.");
 assertIncludes(candidates, "rationale:", "Journal candidate episodes must retain accepted rationales.");
