@@ -393,6 +393,12 @@ assertIncludes(personalScreen, "getMemorySummaryLabel(memory)", "Personal page r
 assertIncludes(personalDrawer, "getMemorySummaryLabel(memory)", "Personal drawer recent memories must show importance and source labels.");
 assertIncludes(personalScreen, "memory.rationale", "Personal page recent memories must expose accepted rationales.");
 assertIncludes(personalDrawer, "memory.rationale", "Personal drawer recent memories must expose accepted rationales.");
+assertIncludes(personalScreen, "recentReflections", "Personal page must surface recent confirmed reflections.");
+assertIncludes(personalDrawer, "recentReflections", "Personal drawer must surface recent confirmed reflections.");
+assertIncludes(personalScreen, 'params: { nodeId: `reflection-${reflection.id}` }', "Personal page recent reflections must open the memory graph.");
+assertIncludes(personalDrawer, 'params: { nodeId: `reflection-${reflection.id}` }', "Personal drawer recent reflections must open the memory graph.");
+assertIncludes(personalScreen, "reflection.rationale", "Personal page recent reflections must expose rationales.");
+assertIncludes(personalDrawer, "reflection.rationale", "Personal drawer recent reflections must expose rationales.");
 assertIncludes(memoryRecords, "memory_candidates.kind AS candidate_kind", "Stored memories must retain their source candidate kind.");
 assertIncludes(memoryRecords, "episodes.source AS source_kind", "Stored memories must retain source episode kinds.");
 assertIncludes(memoryRecords, "memory_candidates.metadata_json AS candidate_metadata_json", "Confirmed records must retain candidate rationale metadata.");

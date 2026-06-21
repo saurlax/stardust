@@ -19,6 +19,7 @@ import {
   listStoredMemories,
   type Episode,
   type PersonalSnapshot,
+  type ReflectionRecord,
   type StoredMemory,
 } from "@/lib/db";
 import { t } from "@/lib/i18n";
@@ -71,6 +72,7 @@ export default function PersonalScreen() {
   const [snapshot, setSnapshot] = useState<PersonalSnapshot>(emptySnapshot);
   const [memoryTree, setMemoryTree] = useState(buildMemoryTree([]));
   const [recentMemories, setRecentMemories] = useState<StoredMemory[]>([]);
+  const [recentReflections, setRecentReflections] = useState<ReflectionRecord[]>([]);
   const [recentEpisodes, setRecentEpisodes] = useState<Episode[]>([]);
 
   useFocusEffect(
@@ -90,6 +92,7 @@ export default function PersonalScreen() {
           setSnapshot(nextSnapshot);
           setMemoryTree(buildMemoryTree(memories, reflections, entities, relations));
           setRecentMemories(memories.slice(0, 3));
+          setRecentReflections(reflections.slice(0, 2));
           setRecentEpisodes(episodes);
         })
         .catch(() => {
@@ -97,6 +100,7 @@ export default function PersonalScreen() {
           setSnapshot(emptySnapshot);
           setMemoryTree(buildMemoryTree([]));
           setRecentMemories([]);
+          setRecentReflections([]);
           setRecentEpisodes([]);
         });
 
@@ -226,6 +230,41 @@ export default function PersonalScreen() {
               ))
             ) : (
               <Text className="text-sm text-muted-foreground">{t("personal.noRecentMemories")}</Text>
+            )}
+          </Card>
+
+          <Card className="gap-3 px-4 py-4">
+            <View className="gap-1">
+              <Text className="text-base font-semibold">{t("personal.recentReflectionsTitle")}</Text>
+              <Text className="text-xs text-muted-foreground">
+                {t("personal.recentReflectionsDescription")}
+              </Text>
+            </View>
+            {recentReflections.length ? (
+              recentReflections.map((reflection) => (
+                <Pressable
+                  key={reflection.id}
+                  accessibilityRole="button"
+                  className="gap-1 rounded-lg bg-muted/50 px-3 py-3"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/memory",
+                      params: { nodeId: `reflection-${reflection.id}` },
+                    } as Href)
+                  }
+                >
+                  <Text className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {new Date(reflection.createdAt).toLocaleDateString()}
+                  </Text>
+                  <Text className="text-sm font-semibold leading-5">{reflection.title}</Text>
+                  <Text className="text-sm leading-5">{reflection.content}</Text>
+                  {reflection.rationale ? (
+                    <Text className="text-xs leading-4 text-muted-foreground">{reflection.rationale}</Text>
+                  ) : null}
+                </Pressable>
+              ))
+            ) : (
+              <Text className="text-sm text-muted-foreground">{t("personal.noRecentReflections")}</Text>
             )}
           </Card>
 
