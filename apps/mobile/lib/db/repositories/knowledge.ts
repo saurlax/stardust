@@ -22,6 +22,11 @@ const rankByTokenMatches = (value: string, tokens: string[]) => {
   return -tokens.filter((token) => normalized.includes(token.toLowerCase())).length;
 };
 
+const importanceBoost = (importance?: number) =>
+  typeof importance === "number" && Number.isFinite(importance)
+    ? -Math.max(0, Math.min(5, importance)) * 0.04
+    : 0;
+
 const mergeRelevantKnowledge = (items: RelevantKnowledge[], limit: number) => {
   const seen = new Set<string>();
   return items
@@ -180,6 +185,7 @@ export async function findRelevantKnowledge(
         `
           SELECT memory_atoms.memory_id AS id, memory_atoms.type AS type,
             memory_atoms.content AS content, memory_atoms.created_at AS created_at,
+            memory_atoms.importance AS importance,
             memory_candidates.kind AS candidate_kind
           FROM memory_atoms
           LEFT JOIN memory_candidates ON memory_candidates.candidate_id = memory_atoms.candidate_id
@@ -213,7 +219,8 @@ export async function findRelevantKnowledge(
         nodeId: `memory-${item.id}`,
         rank:
           rankByTokenMatches(`${item.type} ${item.content}`, tokens) +
-          (item.candidate_kind === "open_loop" ? -0.35 : 0),
+          (item.candidate_kind === "open_loop" ? -0.35 : 0) +
+          importanceBoost(item.importance),
       })),
       ...episodeRows.map((item) => ({
         id: item.id,
@@ -247,6 +254,7 @@ export async function findRelevantKnowledge(
       `
         SELECT memory_atoms.memory_id AS id, memory_atoms.type AS type,
           memory_atoms.content AS content, memory_atoms.created_at AS created_at,
+          memory_atoms.importance AS importance,
           memory_candidates.kind AS candidate_kind,
           bm25(memory_atoms_fts) AS rank
         FROM memory_atoms_fts
@@ -303,7 +311,10 @@ export async function findRelevantKnowledge(
       content: item.content,
       createdAt: item.created_at,
       nodeId: `memory-${item.id}`,
-      rank: item.rank + (item.candidate_kind === "open_loop" ? -0.35 : 0),
+      rank:
+        item.rank +
+        (item.candidate_kind === "open_loop" ? -0.35 : 0) +
+        importanceBoost(item.importance),
     })),
     ...episodeRows.map((item) => ({
       id: item.id,
