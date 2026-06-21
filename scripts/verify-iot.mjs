@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -6,9 +6,21 @@ const root = join(import.meta.dirname, "..");
 const sketchPath = join(root, "iot", "iot.ino");
 const arduinoConfigPath = join(root, "iot", "arduino-cli.yaml");
 const mobileBlePath = join(root, "apps", "mobile", "lib", "devices", "ble.ts");
+const gitmodulesPath = join(root, ".gitmodules");
 
 const sketch = readFileSync(sketchPath, "utf8");
+const arduinoConfig = readFileSync(arduinoConfigPath, "utf8");
 const mobileBle = readFileSync(mobileBlePath, "utf8");
+
+if (existsSync(gitmodulesPath)) {
+  throw new Error("IoT firmware must live in the main repository, not in a git submodule.");
+}
+
+assertIncludes(
+  arduinoConfig,
+  "https://espressif.github.io/arduino-esp32/package_esp32_index.json",
+  "IoT Arduino CLI config must include the ESP32 board manager URL.",
+);
 
 const expected = {
   STARDUST_DEVICE_NAME: "Stardust Sense",
