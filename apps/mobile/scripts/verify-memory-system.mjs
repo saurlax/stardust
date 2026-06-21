@@ -207,6 +207,9 @@ assertIncludes(inboxScreen, "device.reviewedEventCount", "Device inbox cards mus
 assertIncludes(settings, "device.reviewedEventCount", "Settings device cards must display reviewed capture counts.");
 assertIncludes(settings, "getReviewDeviceEventsLabel", "Settings device review buttons must summarize pending review counts.");
 assertIncludes(settings, "device.pendingReviewCount", "Settings device review buttons must use pending review counts.");
+assertIncludes(settings, "onRestoreDeviceSubscriptions", "Settings must expose a manual BLE subscription restore action.");
+assertIncludes(settings, "restoreStardustDeviceSubscriptions(db)", "Settings manual restore must reconnect device event subscriptions.");
+assertIncludes(settings, "deviceSubscriptionsRestored", "Settings manual restore must show user feedback.");
 assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");
 assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty state must open Settings.");
 assertIncludes(inboxScreen, "pendingKindFilters", "Pending inbox must expose candidate kind filters.");

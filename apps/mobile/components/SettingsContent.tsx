@@ -154,6 +154,7 @@ export function SettingsContent() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [restoringDevices, setRestoringDevices] = useState(false);
   const [bleStatus, setBleStatus] = useState<StardustBleStatus>("unavailable");
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
   const [toast, setToast] = useState<ToastState>({
@@ -316,6 +317,25 @@ export function SettingsContent() {
     }
   };
 
+  const onRestoreDeviceSubscriptions = async () => {
+    setRestoringDevices(true);
+    try {
+      const nextBleStatus = await getStardustBleStatus();
+      setBleStatus(nextBleStatus);
+      if (nextBleStatus !== "poweredOn") {
+        showToast(getBleStatusLabel(nextBleStatus), "error");
+        return;
+      }
+      await restoreStardustDeviceSubscriptions(db);
+      await refreshDeviceState();
+      showToast(t("settings.deviceSubscriptionsRestored"), "success");
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    } finally {
+      setRestoringDevices(false);
+    }
+  };
+
   const onCaptureDevice = async (device: DeviceRecord) => {
     try {
       await sendStardustDeviceCommand(db, device.id, "capture");
@@ -435,6 +455,19 @@ export function SettingsContent() {
               <Button variant="outline" onPress={openDeviceInbox} className="w-full">
                 <Ionicons name="file-tray-full-outline" size={16} color={iconColor} />
                 <Text>{t("settings.openDeviceInbox")}</Text>
+              </Button>
+              <Button
+                variant="outline"
+                onPress={() => void onRestoreDeviceSubscriptions()}
+                disabled={restoringDevices || bleStatus !== "poweredOn"}
+                className="w-full"
+              >
+                <Ionicons name="refresh-outline" size={16} color={iconColor} />
+                <Text>
+                  {restoringDevices
+                    ? t("settings.restoringDeviceSubscriptions")
+                    : t("settings.restoreDeviceSubscriptions")}
+                </Text>
               </Button>
 
               {devices.length ? (
