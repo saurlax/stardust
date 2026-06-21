@@ -128,7 +128,12 @@ assertIncludes(timeline, "mediaUri: episode.mediaUri", "Episode timeline entries
 assertIncludes(timeline, "metadata: episode.metadata", "Episode timeline entries must preserve source metadata.");
 assertIncludes(knowledge, "hasMedia: !!item.media_uri", "Knowledge retrieval must expose media-bearing episodes.");
 assertIncludes(timeline, 'title: memory.candidateKind === "open_loop"', "Memory timeline entries must preserve memory type labels.");
+assertIncludes(timeline, "importance: memory.importance", "Memory timeline entries must expose importance metadata.");
+assertIncludes(timeline, "rationale: memory.rationale", "Memory timeline entries must expose rationale metadata.");
+assertIncludes(timeline, "sourceKind: memory.sourceKind", "Memory timeline entries must expose source kind metadata.");
 assertIncludes(timeline, "nodeId: `memory-${memory.id}`", "Memory timeline entries must carry graph node ids.");
+assertIncludes(journalScreen, 'getNumberMetadata(metadata, "importance")', "Journal timeline must render memory importance metadata.");
+assertIncludes(journalScreen, 'sourceKind === "iot"', "Journal timeline must flag screen-off memory entries.");
 assertIncludes(journalScreen, "function entryTitle", "Journal timeline must render user-facing entry titles.");
 assertIncludes(journalScreen, "function EpisodeMediaPreview", "Journal timeline must render media previews.");
 assertIncludes(journalScreen, "source={{ uri: entry.mediaUri }}", "Journal media previews must use episode media URIs.");

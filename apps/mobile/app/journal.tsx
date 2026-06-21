@@ -68,9 +68,16 @@ const getStringMetadata = (metadata: Record<string, unknown> | undefined, key: s
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 };
 
+const getNumberMetadata = (metadata: Record<string, unknown> | undefined, key: string) => {
+  const value = metadata?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+};
+
 function getEntrySourceDetailLines(entry: JournalDay["entries"][number]) {
   const metadata = entry.metadata;
   const rationale = getStringMetadata(metadata, "rationale");
+  const importance = getNumberMetadata(metadata, "importance");
+  const sourceKind = getStringMetadata(metadata, "sourceKind");
   if (entry.source === "calendar") {
     const startDate = getStringMetadata(metadata, "startDate");
     const endDate = getStringMetadata(metadata, "endDate");
@@ -99,6 +106,8 @@ function getEntrySourceDetailLines(entry: JournalDay["entries"][number]) {
   }
 
   return [
+    importance ? `${t("journal.importance")}: ${importance}` : undefined,
+    sourceKind === "iot" ? t("journal.screenOffResult") : undefined,
     rationale ? `${t("journal.rationale")}: ${rationale}` : undefined,
   ].filter((line): line is string => !!line);
 }
