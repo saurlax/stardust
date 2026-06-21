@@ -8,6 +8,8 @@ import type { CandidateStatus, DeviceEventRecord, DeviceRecord, DeviceStatus } f
 const nowIso = () => new Date().toISOString();
 const createId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+const scopedDeviceEventId = (deviceId: string, eventId: string) =>
+  eventId.startsWith(`${deviceId}:`) ? eventId : `${deviceId}:${eventId}`;
 const promotableDeviceEventTypes = new Set(["capture", "button", "serial"]);
 const isPromotableDeviceEvent = (eventType: string) =>
   promotableDeviceEventTypes.has(eventType.toLowerCase());
@@ -156,7 +158,7 @@ export async function createDeviceEvent(
   },
 ): Promise<boolean> {
   const createdAt = input.createdAt ?? nowIso();
-  const eventId = input.id ?? createId("device-event");
+  const eventId = scopedDeviceEventId(input.deviceId, input.id ?? createId("device-event"));
   let inserted = false;
 
   await runInTransaction(db, async () => {

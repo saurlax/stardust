@@ -158,7 +158,6 @@ async function createCurrentTables(db: SQLiteDatabase) {
       content TEXT NOT NULL,
       metadata_json TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(device_id, device_event_id),
       FOREIGN KEY (candidate_id) REFERENCES memory_candidates(candidate_id) ON DELETE SET NULL,
       FOREIGN KEY (device_id) REFERENCES devices(device_id) ON DELETE CASCADE
     );

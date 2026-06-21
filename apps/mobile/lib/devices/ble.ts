@@ -237,9 +237,9 @@ const stableHash = (value: string) => {
 
 const scopedDeviceEventId = (deviceId: string, eventId?: string, fallbackValue?: string) =>
   eventId
-    ? `${deviceId}:${eventId}`
+    ? eventId
     : fallbackValue
-      ? `${deviceId}:event-${stableHash(fallbackValue)}`
+      ? `event-${stableHash(fallbackValue)}`
       : undefined;
 
 const manifestEventId = (deviceId: string, manifestValue: string, manifest: Record<string, unknown>) => {

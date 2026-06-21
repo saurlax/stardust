@@ -231,6 +231,11 @@ assertIncludes(devices, "createEpisodeInCurrentTransaction(db", "Device events m
 assertIncludes(devices, 'source: "iot"', "Device event episodes must use the iot source.");
 assertIncludes(devices, "createEpisodeInCurrentTransaction", "Device events must create episodes inside their existing transaction.");
 assertIncludes(devices, "INSERT OR IGNORE INTO device_events", "Device events must be idempotent.");
+assertIncludes(devices, "scopedDeviceEventId(input.deviceId", "Device event ids must be scoped by device in the repository.");
+assertIncludes(devices, "eventId.startsWith(`${deviceId}:`)", "Device event ids must not double-scope already scoped ids.");
+if (schema.includes("UNIQUE(device_id, device_event_id)")) {
+  throw new Error("Device event primary ids are already device-scoped; schema must not carry a redundant composite unique constraint.");
+}
 assertIncludes(devices, "promoteDeviceEventToCandidate", "Device events must be promotable to memory review.");
 assertIncludes(devices, "'memory', 'memory'", "Promoted device events must become pending memory candidates.");
 assertIncludes(schema, "candidate_id TEXT", "Device events must retain promoted candidate ids.");
