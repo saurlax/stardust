@@ -104,7 +104,7 @@ const buildMemoryContext = (
               const mediaSuffix = memory.hasMedia ? " [media attached]" : "";
               const screenOffSuffix = memory.isScreenOff ? " [screen-off capture]" : "";
               const contextSuffix =
-                memory.source === "episode" && memory.contextNote
+                memory.contextNote
                   ? ` [source: ${memory.contextNote}]`
                   : "";
               const importanceSuffix =

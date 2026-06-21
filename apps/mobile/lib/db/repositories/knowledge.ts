@@ -166,6 +166,7 @@ async function listEntityRelationKnowledge(
       source_entity_id: string;
       target_name: string | null;
       target_entity_id: string;
+      source_kind: string | null;
       weight: number;
       created_at: string;
     }>(
@@ -177,11 +178,13 @@ async function listEntityRelationKnowledge(
           relations.target_entity_id AS target_entity_id,
           source_entities.name AS source_name,
           target_entities.name AS target_name,
+          episodes.source AS source_kind,
           relations.weight AS weight,
           relations.created_at AS created_at
         FROM relations
         LEFT JOIN entities AS source_entities ON source_entities.entity_id = relations.source_entity_id
         LEFT JOIN entities AS target_entities ON target_entities.entity_id = relations.target_entity_id
+        LEFT JOIN episodes ON episodes.episode_id = relations.episode_id
         WHERE ${relationLike}
         LIMIT ?
       `,
@@ -207,6 +210,8 @@ async function listEntityRelationKnowledge(
       type: item.type,
       title: item.type,
       content: `${item.source_name ?? "Unknown"} · ${item.type} · ${item.target_name ?? "Unknown"} (weight ${item.weight})`,
+      contextNote: item.source_kind === "iot" ? "source episode screen-off capture" : undefined,
+      isScreenOff: item.source_kind === "iot",
       createdAt: item.created_at,
       nodeId: `relation-${item.id}`,
       rank: rankByTokenMatches(
