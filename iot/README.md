@@ -35,3 +35,5 @@ Only capture-like events are meant to become memory candidates in the mobile app
 ## Upload
 
 Use Arduino IDE with the XIAO ESP32S3 board support installed, open `iot.ino`, select the XIAO ESP32S3 board and port, then upload.
+
+For command-line builds, this directory includes `arduino-cli.yaml` with the ESP32 board manager URL. From the repository root, run `pnpm verify:iot`; when Arduino CLI is available, the verifier compiles this sketch with the local config file.

@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 
 const root = join(import.meta.dirname, "..");
 const sketchPath = join(root, "iot", "iot.ino");
+const arduinoConfigPath = join(root, "iot", "arduino-cli.yaml");
 const mobileBlePath = join(root, "apps", "mobile", "lib", "devices", "ble.ts");
 
 const sketch = readFileSync(sketchPath, "utf8");
@@ -109,7 +110,7 @@ if (arduinoCli.status !== 0) {
 }
 
 const fqbn = process.env.STARDUST_IOT_FQBN ?? "esp32:esp32:XIAO_ESP32S3";
-const compile = spawnSync("arduino-cli", ["compile", "--fqbn", fqbn, sketchPath], {
+const compile = spawnSync("arduino-cli", ["--config-file", arduinoConfigPath, "compile", "--fqbn", fqbn, sketchPath], {
   encoding: "utf8",
   windowsHide: true,
 });
