@@ -281,6 +281,7 @@ export default function JournalScreen() {
       type?: string;
       title?: string;
       content: string;
+      contextNote?: string;
       createdAt: string;
       hasMedia?: boolean;
       isScreenOff?: boolean;
@@ -507,6 +508,11 @@ export default function JournalScreen() {
                     <Text className="text-sm font-semibold leading-5">{result.title}</Text>
                   ) : null}
                   <Text className="text-sm leading-5">{result.content}</Text>
+                  {result.contextNote ? (
+                    <Text className="text-xs leading-4 text-muted-foreground">
+                      {result.contextNote}
+                    </Text>
+                  ) : null}
                   {result.rationale ? (
                     <Text className="text-xs leading-4 text-muted-foreground">
                       {t("journal.rationale")}: {result.rationale}

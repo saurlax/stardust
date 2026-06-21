@@ -33,6 +33,50 @@ const readRationale = (value: string | null) => {
   return typeof metadata?.rationale === "string" ? metadata.rationale : undefined;
 };
 
+const getStringMetadata = (metadata: Record<string, unknown> | undefined, key: string) => {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+};
+
+const episodeContextNote = (type: string, metadataJson: string | null) => {
+  const metadata = parseJson(metadataJson);
+  if (!metadata) return undefined;
+
+  if (type === "share" || type === "image") {
+    const webUrl = getStringMetadata(metadata, "webUrl");
+    const fileName = getStringMetadata(metadata, "fileName");
+    return [webUrl ? `shared url ${webUrl}` : undefined, fileName ? `file ${fileName}` : undefined]
+      .filter(Boolean)
+      .join("; ") || undefined;
+  }
+
+  if (type === "calendar") {
+    const startDate = getStringMetadata(metadata, "startDate");
+    const endDate = getStringMetadata(metadata, "endDate");
+    const location = getStringMetadata(metadata, "location");
+    return [
+      startDate ? `starts ${startDate}` : undefined,
+      endDate ? `ends ${endDate}` : undefined,
+      location ? `location ${location}` : undefined,
+    ]
+      .filter(Boolean)
+      .join("; ") || undefined;
+  }
+
+  if (type === "iot") {
+    const deviceTimestamp = getStringMetadata(metadata, "deviceTimestamp");
+    const source = getStringMetadata(metadata, "source");
+    return [
+      deviceTimestamp ? `device time ${deviceTimestamp}` : undefined,
+      source ? `capture source ${source}` : undefined,
+    ]
+      .filter(Boolean)
+      .join("; ") || undefined;
+  }
+
+  return undefined;
+};
+
 const mergeRelevantKnowledge = (items: RelevantKnowledge[], limit: number) => {
   const seen = new Set<string>();
   return items
@@ -56,10 +100,11 @@ async function listRecentEpisodeKnowledge(
     title: string | null;
     content: string;
     media_uri: string | null;
+    metadata_json: string | null;
     created_at: string;
   }>(
     `
-      SELECT episode_id AS id, source AS type, title, content, media_uri, created_at
+      SELECT episode_id AS id, source AS type, title, content, media_uri, metadata_json, created_at
       FROM episodes
       ORDER BY created_at DESC
       LIMIT ?
@@ -73,6 +118,7 @@ async function listRecentEpisodeKnowledge(
     type: item.type,
     title: item.title ?? undefined,
     content: item.content,
+    contextNote: episodeContextNote(item.type, item.metadata_json),
     hasMedia: !!item.media_uri,
     isScreenOff: item.type === "iot",
     createdAt: item.created_at,
@@ -203,7 +249,7 @@ export async function findRelevantKnowledge(
         limit,
       ),
       db.getAllAsync<any>(
-        `SELECT episode_id AS id, source AS type, title, content, media_uri, created_at FROM episodes WHERE ${episodeLike} LIMIT ?`,
+        `SELECT episode_id AS id, source AS type, title, content, media_uri, metadata_json, created_at FROM episodes WHERE ${episodeLike} LIMIT ?`,
         ...params,
         limit,
       ),
@@ -237,6 +283,7 @@ export async function findRelevantKnowledge(
         type: item.type,
         title: item.title ?? undefined,
         content: item.content,
+        contextNote: episodeContextNote(item.type, item.metadata_json),
         hasMedia: !!item.media_uri,
         isScreenOff: item.type === "iot",
         createdAt: item.created_at,
@@ -283,6 +330,7 @@ export async function findRelevantKnowledge(
           episodes.title AS title,
           episodes.content AS content,
           episodes.media_uri AS media_uri,
+          episodes.metadata_json AS metadata_json,
           episodes.created_at AS created_at,
           bm25(episodes_fts) AS rank
         FROM episodes_fts
@@ -334,6 +382,7 @@ export async function findRelevantKnowledge(
       type: item.type,
       title: item.title ?? undefined,
       content: item.content,
+      contextNote: episodeContextNote(item.type, item.metadata_json),
       hasMedia: !!item.media_uri,
       isScreenOff: item.type === "iot",
       createdAt: item.created_at,

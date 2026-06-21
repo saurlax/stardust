@@ -121,6 +121,10 @@ assertIncludes(chatMessages, "getContextSourceLabel", "Chat memory context must 
 assertIncludes(chatMessages, "item.title", "Chat memory context must display retrieved knowledge titles.");
 assertIncludes(chatMessages, "item.hasMedia", "Chat memory context summaries must flag media episodes.");
 assertIncludes(chatScreen, "[media attached]", "Chat prompt context must flag media episodes.");
+assertIncludes(knowledge, "episodeContextNote", "Knowledge retrieval must summarize episode source metadata.");
+assertIncludes(knowledge, "metadata_json", "Knowledge retrieval must read episode metadata for context notes.");
+assertIncludes(chatScreen, "[source:", "Chat prompt context must include episode source notes.");
+assertIncludes(chatMessages, "item.contextNote", "Chat context cards must display episode source notes.");
 assertIncludes(knowledge, 'isScreenOff: item.type === "iot"', "Knowledge retrieval must flag screen-off IoT episodes.");
 assertIncludes(chatMessages, "item.isScreenOff", "Chat memory context summaries must flag screen-off episodes.");
 assertIncludes(chatScreen, "[screen-off capture]", "Chat prompt context must flag screen-off episodes.");
@@ -148,6 +152,7 @@ assertIncludes(timeline, "mediaUri: episode.mediaUri", "Episode timeline entries
 assertIncludes(timeline, "metadata: episode.metadata", "Episode timeline entries must preserve source metadata.");
 assertIncludes(knowledge, "hasMedia: !!item.media_uri", "Knowledge retrieval must expose media-bearing episodes.");
 assertIncludes(journalScreen, "result.hasMedia", "Journal search results must flag media-bearing episodes.");
+assertIncludes(journalScreen, "result.contextNote", "Journal search results must show episode source notes.");
 assertIncludes(timeline, 'title: memory.candidateKind === "open_loop"', "Memory timeline entries must preserve memory type labels.");
 assertIncludes(timeline, "importance: memory.importance", "Memory timeline entries must expose importance metadata.");
 assertIncludes(timeline, "rationale: memory.rationale", "Memory timeline entries must expose rationale metadata.");

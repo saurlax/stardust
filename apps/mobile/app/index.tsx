@@ -58,6 +58,7 @@ const buildMemoryContext = (
     type?: string;
     title?: string;
     content: string;
+    contextNote?: string;
     hasMedia?: boolean;
     isScreenOff?: boolean;
     importance?: number;
@@ -102,6 +103,10 @@ const buildMemoryContext = (
                 : memory.type ?? memory.source;
               const mediaSuffix = memory.hasMedia ? " [media attached]" : "";
               const screenOffSuffix = memory.isScreenOff ? " [screen-off capture]" : "";
+              const contextSuffix =
+                memory.source === "episode" && memory.contextNote
+                  ? ` [source: ${memory.contextNote}]`
+                  : "";
               const importanceSuffix =
                 memory.source === "memory" && typeof memory.importance === "number"
                   ? ` [importance ${memory.importance}]`
@@ -110,7 +115,7 @@ const buildMemoryContext = (
                 memory.source === "memory" && memory.rationale
                   ? ` [why: ${memory.rationale}]`
                   : "";
-              return `${index + 1}. [${label}${importanceSuffix}${rationaleSuffix}${mediaSuffix}${screenOffSuffix}] ${memory.content} (${memory.createdAt.slice(0, 10)})`;
+              return `${index + 1}. [${label}${importanceSuffix}${rationaleSuffix}${mediaSuffix}${screenOffSuffix}${contextSuffix}] ${memory.content} (${memory.createdAt.slice(0, 10)})`;
             },
           )
           .join("\n")}`,

@@ -206,6 +206,7 @@ export type RelevantKnowledge = {
   type?: string;
   title?: string;
   content: string;
+  contextNote?: string;
   hasMedia?: boolean;
   isScreenOff?: boolean;
   importance?: number;
