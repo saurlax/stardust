@@ -351,6 +351,11 @@ function CandidateCard({
               {candidate.sourceTitle ? `${candidate.sourceTitle} · ` : ""}
               {candidate.sourceContent}
             </Text>
+            {candidate.sourceCreatedAt ? (
+              <Text className="text-xs leading-4 text-muted-foreground">
+                {new Date(candidate.sourceCreatedAt).toLocaleString()}
+              </Text>
+            ) : null}
             <OpenEpisodeButton episodeId={candidate.episodeId} />
           </View>
         ) : null}
