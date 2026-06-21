@@ -229,8 +229,16 @@ export async function findRelevantKnowledge(
     const tokens = tokenize(query);
     if (!tokens.length) return [];
     const like = tokens.map(() => "(content LIKE ? OR type LIKE ?)").join(" OR ");
-    const episodeLike = tokens.map(() => "(content LIKE ? OR source LIKE ?)").join(" OR ");
+    const episodeLike = tokens
+      .map(() => "(title LIKE ? OR content LIKE ? OR source LIKE ? OR metadata_json LIKE ?)")
+      .join(" OR ");
     const params = tokens.flatMap((token) => [`%${token}%`, `%${token}%`]);
+    const episodeParams = tokens.flatMap((token) => [
+      `%${token}%`,
+      `%${token}%`,
+      `%${token}%`,
+      `%${token}%`,
+    ]);
     const recentEpisodeLimit = Math.min(3, limit);
     const [memoryRows, episodeRows, reflectionRows, recentEpisodes, entityRows] = await Promise.all([
       db.getAllAsync<any>(
@@ -250,7 +258,7 @@ export async function findRelevantKnowledge(
       ),
       db.getAllAsync<any>(
         `SELECT episode_id AS id, source AS type, title, content, media_uri, metadata_json, created_at FROM episodes WHERE ${episodeLike} LIMIT ?`,
-        ...params,
+        ...episodeParams,
         limit,
       ),
       db.getAllAsync<any>(
@@ -287,7 +295,9 @@ export async function findRelevantKnowledge(
         hasMedia: !!item.media_uri,
         isScreenOff: item.type === "iot",
         createdAt: item.created_at,
-        rank: rankByTokenMatches(`${item.type} ${item.content}`, tokens) + 0.2,
+        rank:
+          rankByTokenMatches(`${item.type} ${item.title ?? ""} ${item.content} ${item.metadata_json ?? ""}`, tokens) +
+          0.2,
       })),
       ...reflectionRows.map((item) => ({
         id: item.id,

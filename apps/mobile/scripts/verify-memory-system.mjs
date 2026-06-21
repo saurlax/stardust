@@ -415,6 +415,9 @@ assertIncludes(knowledge, "nodeId: `relation-${item.id}`", "Relation retrieval m
 assertIncludes(knowledge, "nodeId:", "Entity and relation retrieval results must carry graph navigation ids.");
 assertIncludes(knowledge, "episodes.title AS title", "Episode retrieval must preserve titles for chat context.");
 assertIncludes(knowledge, "reflections.title AS title", "Reflection retrieval must preserve titles for chat context.");
+assertIncludes(knowledge, "title LIKE ? OR content LIKE ? OR source LIKE ? OR metadata_json LIKE ?", "Episode fallback retrieval must search title, content, source, and metadata.");
+assertIncludes(knowledge, "...episodeParams", "Episode fallback retrieval must bind metadata search parameters separately from memory parameters.");
+assertIncludes(knowledge, 'item.metadata_json ?? ""', "Episode fallback ranking must account for metadata matches.");
 assertIncludes(knowledge, "title LIKE ? OR content LIKE ?", "Reflection fallback retrieval must search titles and content.");
 assertIncludes(chatTypes, "importance?: number", "Chat memory context must carry memory importance.");
 assertIncludes(chatTypes, "rationale?: string", "Chat memory context must carry memory rationales.");
