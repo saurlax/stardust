@@ -530,6 +530,19 @@ function MemoryCard({
               >
                 <Text>{t("inbox.archive")}</Text>
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={() =>
+                  router.push({
+                    pathname: "/memory",
+                    params: { nodeId: `memory-${memory.id}` },
+                  } as Href)
+                }
+              >
+                <Ionicons name="git-network-outline" size={14} />
+                <Text>{t("inbox.openMemoryGraph")}</Text>
+              </Button>
             </>
           )}
         </View>

@@ -389,6 +389,7 @@ assertIncludes(memoryLabels, "getEpisodeTitleLabel", "Episode source titles must
 assertIncludes(inboxScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Inbox saved memory sources must use user-facing episode titles.");
 assertIncludes(inboxScreen, "memory.importance", "Inbox saved memories must display importance.");
 assertIncludes(inboxScreen, "memory.rationale", "Inbox saved memories must display accepted candidate rationales.");
+assertIncludes(inboxScreen, 'params: { nodeId: `memory-${memory.id}` }', "Inbox saved memories must open their Memory graph nodes.");
 assertIncludes(inboxScreen, "candidate.createdAt", "Pending candidate cards must expose candidate timestamps.");
 assertIncludes(inboxScreen, "candidate.sourceCreatedAt", "Pending candidate source blocks must expose source timestamps.");
 assertIncludes(inboxScreen, "candidate.content", "Inbox accept must persist the reviewed candidate content.");
