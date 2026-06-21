@@ -27,6 +27,7 @@ import { getEpisodeTitleLabel, getMemoryTypeLabel } from "@/lib/memoryLabels";
 const emptySnapshot: PersonalSnapshot = {
   acceptedMemories: 0,
   pendingCards: 0,
+  pendingDeviceReviewCount: 0,
   openLoopCount: 0,
   journalEntries: 0,
   episodeCount: 0,
@@ -153,6 +154,17 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
           </Card>
         </View>
 
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigateFromDrawer(navigation, "/inbox?tab=devices" as Href)}
+          className="rounded-xl"
+        >
+          <Card className="gap-2 px-3 py-3">
+            <CardDescription>{t("personal.pendingDeviceReviews")}</CardDescription>
+            <Text className="text-2xl font-semibold">{snapshot.pendingDeviceReviewCount}</Text>
+          </Card>
+        </Pressable>
+
         <View className="flex-row gap-2">
           <Card className="flex-1 gap-2 px-3 py-3">
             <CardDescription>{t("personal.reflectionCount")}</CardDescription>
@@ -268,6 +280,18 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
               <CardHeader>
                 <CardTitle>{t("personal.inboxTitle")}</CardTitle>
                 <CardDescription>{t("personal.inboxDescription")}</CardDescription>
+              </CardHeader>
+            </Card>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigateFromDrawer(navigation, "/inbox?tab=devices" as Href)}
+            className="rounded-xl"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("personal.deviceInboxTitle")}</CardTitle>
+                <CardDescription>{t("personal.deviceInboxDescription")}</CardDescription>
               </CardHeader>
             </Card>
           </Pressable>

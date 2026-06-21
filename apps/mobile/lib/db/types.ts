@@ -165,6 +165,7 @@ export type DeviceEventRecord = {
 export type PersonalSnapshot = {
   acceptedMemories: number;
   pendingCards: number;
+  pendingDeviceReviewCount: number;
   openLoopCount: number;
   journalEntries: number;
   episodeCount: number;

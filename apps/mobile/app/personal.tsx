@@ -27,6 +27,7 @@ import { getEpisodeTitleLabel, getMemoryTypeLabel } from "@/lib/memoryLabels";
 const emptySnapshot: PersonalSnapshot = {
   acceptedMemories: 0,
   pendingCards: 0,
+  pendingDeviceReviewCount: 0,
   openLoopCount: 0,
   journalEntries: 0,
   episodeCount: 0,
@@ -148,6 +149,16 @@ export default function PersonalScreen() {
             <CardDescription>{t("personal.screenOffEpisodeCount")}</CardDescription>
             <Text className="text-2xl font-semibold">{snapshot.screenOffEpisodeCount}</Text>
           </Card>
+          <Pressable
+            accessibilityRole="button"
+            className="flex-1"
+            onPress={() => router.push("/inbox?tab=devices" as Href)}
+          >
+            <Card className="gap-2 px-4 py-4">
+              <CardDescription>{t("personal.pendingDeviceReviews")}</CardDescription>
+              <Text className="text-2xl font-semibold">{snapshot.pendingDeviceReviewCount}</Text>
+            </Card>
+          </Pressable>
         </View>
 
         <View className="flex-row gap-3">
@@ -262,6 +273,18 @@ export default function PersonalScreen() {
               <CardHeader>
                 <CardTitle>{t("personal.inboxTitle")}</CardTitle>
                 <CardDescription>{t("personal.inboxDescription")}</CardDescription>
+              </CardHeader>
+            </Card>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/inbox?tab=devices" as Href)}
+            className="rounded-xl"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("personal.deviceInboxTitle")}</CardTitle>
+                <CardDescription>{t("personal.deviceInboxDescription")}</CardDescription>
               </CardHeader>
             </Card>
           </Pressable>

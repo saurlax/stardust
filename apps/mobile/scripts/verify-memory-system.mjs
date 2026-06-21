@@ -359,8 +359,14 @@ assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM entities", "Personal sna
 assertIncludes(snapshot, "SELECT COUNT(*) AS count FROM relations", "Personal snapshot must expose relation graph growth.");
 assertIncludes(snapshot, "memory_candidates.kind = 'open_loop'", "Personal snapshot must expose confirmed open loops.");
 assertIncludes(snapshot, "source = 'iot'", "Personal snapshot must count screen-off IoT episodes.");
+assertIncludes(snapshot, "FROM device_events", "Personal snapshot must count device review work.");
+assertIncludes(snapshot, "pendingDeviceReviewCount", "Personal snapshot must expose pending device review counts.");
 assertIncludes(personalScreen, "snapshot.screenOffEpisodeCount", "Personal page must show screen-off episode counts.");
 assertIncludes(personalDrawer, "snapshot.screenOffEpisodeCount", "Personal drawer must show screen-off episode counts.");
+assertIncludes(personalScreen, "snapshot.pendingDeviceReviewCount", "Personal page must show pending device review counts.");
+assertIncludes(personalDrawer, "snapshot.pendingDeviceReviewCount", "Personal drawer must show pending device review counts.");
+assertIncludes(personalScreen, '"/inbox?tab=devices" as Href', "Personal page must open the device review inbox.");
+assertIncludes(personalDrawer, '"/inbox?tab=devices" as Href', "Personal drawer must open the device review inbox.");
 assertIncludes(personalScreen, "getMemorySummaryLabel(memory)", "Personal page recent memories must show importance and source labels.");
 assertIncludes(personalDrawer, "getMemorySummaryLabel(memory)", "Personal drawer recent memories must show importance and source labels.");
 assertIncludes(personalScreen, "memory.rationale", "Personal page recent memories must expose accepted rationales.");
