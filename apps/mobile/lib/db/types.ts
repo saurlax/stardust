@@ -190,7 +190,7 @@ export type JournalEntry = {
   timestamp: string;
   title?: string;
   note: string;
-  source: EpisodeSource | "memory";
+  source: EpisodeSource | "memory" | "reflection";
   mediaUri?: string;
   metadata?: Record<string, unknown>;
   nodeId?: string;

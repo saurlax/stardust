@@ -27,7 +27,17 @@ import {
   updateJournalContent,
 } from "@/lib/db";
 
-const sourceFilters = ["all", "chat", "share", "image", "calendar", "iot", "journal", "memory"] as const;
+const sourceFilters = [
+  "all",
+  "chat",
+  "share",
+  "image",
+  "calendar",
+  "iot",
+  "journal",
+  "memory",
+  "reflection",
+] as const;
 type SourceFilter = (typeof sourceFilters)[number];
 
 const sourceIcons: Record<Exclude<SourceFilter, "all">, keyof typeof Ionicons.glyphMap> = {
@@ -38,6 +48,7 @@ const sourceIcons: Record<Exclude<SourceFilter, "all">, keyof typeof Ionicons.gl
   iot: "hardware-chip-outline",
   journal: "create-outline",
   memory: "sparkles-outline",
+  reflection: "prism-outline",
 };
 
 function sourceLabel(source: SourceFilter) {
@@ -47,6 +58,7 @@ function sourceLabel(source: SourceFilter) {
 function entryTitle(entry: JournalDay["entries"][number]) {
   if (!entry.title) return undefined;
   if (entry.source === "memory") return getMemoryTypeLabel(entry.title);
+  if (entry.source === "reflection") return entry.title;
   return getEpisodeTitleLabel(entry.source, entry.title);
 }
 
@@ -403,6 +415,7 @@ export default function JournalScreen() {
           iot: 0,
           journal: 0,
           memory: 0,
+          reflection: 0,
         },
       );
     },
@@ -657,7 +670,7 @@ export default function JournalScreen() {
                       <EpisodeMediaPreview entry={entry} />
                       <EntrySourceDetails entry={entry} />
                       <Text className="text-sm leading-5">{entry.note}</Text>
-                      {entry.source === "memory" && entry.nodeId ? (
+                      {(entry.source === "memory" || entry.source === "reflection") && entry.nodeId ? (
                         <Button
                           variant="outline"
                           size="sm"
@@ -671,7 +684,7 @@ export default function JournalScreen() {
                         >
                           <Text>{t("journal.openMemoryGraph")}</Text>
                         </Button>
-                      ) : entry.source !== "memory" ? (
+                      ) : entry.source !== "memory" && entry.source !== "reflection" ? (
                         <Button
                           variant="outline"
                           size="sm"
