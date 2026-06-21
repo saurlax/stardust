@@ -229,6 +229,16 @@ export function SettingsContent() {
     }, 2400);
   };
 
+  const refreshDeviceState = useCallback(async () => {
+    const [nextDevices, nextBleStatus] = await Promise.all([
+      listDevices(db),
+      getStardustBleStatus(),
+    ]);
+    setDevices(nextDevices);
+    setBleStatus(nextBleStatus);
+    return { devices: nextDevices, bleStatus: nextBleStatus };
+  }, [db]);
+
   const updateLocalField = <K extends keyof AiConfig["local"]>(
     key: K,
     value: AiConfig["local"][K],
@@ -283,7 +293,7 @@ export function SettingsContent() {
         found.length ? t("settings.deviceScanFound") : t("settings.deviceScanEmpty"),
         found.length ? "success" : "error",
       );
-      setDevices(await listDevices(db));
+      await refreshDeviceState();
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     } finally {
@@ -295,7 +305,7 @@ export function SettingsContent() {
     try {
       await subscribeToStardustDevice(db, device.id);
       showToast(t("settings.deviceSubscribed"), "success");
-      setDevices(await listDevices(db));
+      await refreshDeviceState();
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     }
@@ -305,7 +315,7 @@ export function SettingsContent() {
     try {
       await sendStardustDeviceCommand(db, device.id, "capture");
       showToast(t("settings.deviceCaptureSent"), "success");
-      setDevices(await listDevices(db));
+      await refreshDeviceState();
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     }
@@ -315,7 +325,7 @@ export function SettingsContent() {
     try {
       await sendStardustDeviceCommand(db, device.id, "sync");
       showToast(t("settings.deviceSyncSent"), "success");
-      setDevices(await listDevices(db));
+      await refreshDeviceState();
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     }
@@ -326,7 +336,7 @@ export function SettingsContent() {
       await sendStardustDeviceCommand(db, device.id, "sleep");
       await disconnectStardustDevice(db, device.id);
       showToast(t("settings.deviceSleepSent"), "success");
-      setDevices(await listDevices(db));
+      await refreshDeviceState();
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     }
@@ -336,7 +346,7 @@ export function SettingsContent() {
     try {
       await disconnectStardustDevice(db, device.id);
       showToast(t("settings.deviceDisconnected"), "success");
-      setDevices(await listDevices(db));
+      await refreshDeviceState();
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     }

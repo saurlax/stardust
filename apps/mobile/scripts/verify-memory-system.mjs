@@ -301,6 +301,9 @@ assertIncludes(layout, "<DeviceSubscriptionRestorer />", "Root layout must resto
 assertIncludes(settings, "settings.capabilities", "Settings must display device capabilities.");
 assertIncludes(settings, "getDeviceCapabilitySummary(device.capabilities)", "Settings must show friendly capability labels.");
 assertIncludes(settings, "supportsDeviceCommand", "Settings device commands must respect advertised capabilities.");
+assertIncludes(settings, "const refreshDeviceState = useCallback", "Settings must share device and BLE refresh logic.");
+assertIncludes(settings, "getStardustBleStatus()", "Settings device refresh must include BLE state.");
+assertIncludes(settings, "await refreshDeviceState();", "Settings device actions must refresh device and BLE state.");
 assertIncludes(settings, "disabled={!supportsDeviceCommand(device, \"capture\")}", "Settings must disable unsupported capture commands.");
 assertIncludes(settings, "captureDeviceUnavailable", "Settings must explain unsupported capture commands.");
 assertIncludes(settings, "syncDeviceUnavailable", "Settings must explain unsupported sync commands.");
