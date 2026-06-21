@@ -6,11 +6,13 @@ const root = join(import.meta.dirname, "..");
 const sketchPath = join(root, "iot", "iot.ino");
 const arduinoConfigPath = join(root, "iot", "arduino-cli.yaml");
 const mobileBlePath = join(root, "apps", "mobile", "lib", "devices", "ble.ts");
+const readmePath = join(root, "README.md");
 const gitmodulesPath = join(root, ".gitmodules");
 
 const sketch = readFileSync(sketchPath, "utf8");
 const arduinoConfig = readFileSync(arduinoConfigPath, "utf8");
 const mobileBle = readFileSync(mobileBlePath, "utf8");
+const readme = readFileSync(readmePath, "utf8");
 
 if (existsSync(gitmodulesPath)) {
   throw new Error("IoT firmware must live in the main repository, not in a git submodule.");
@@ -21,6 +23,9 @@ assertIncludes(
   "https://espressif.github.io/arduino-esp32/package_esp32_index.json",
   "IoT Arduino CLI config must include the ESP32 board manager URL.",
 );
+assertIncludes(readme, "iot/iot.ino", "README must document the in-repo IoT firmware sketch.");
+assertIncludes(readme, "暂不走 BLE", "README must keep large media transfer out of BLE v1.");
+assertIncludes(readme, "Wi-Fi 局域网传输", "README must describe large media transfer as future Wi-Fi work.");
 
 const expected = {
   STARDUST_DEVICE_NAME: "Stardust Sense",
