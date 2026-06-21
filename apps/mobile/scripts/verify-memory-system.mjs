@@ -271,6 +271,11 @@ assertIncludes(inboxScreen, "getDeviceStatusLabel", "Device inbox must use local
 assertIncludes(inboxScreen, "getCandidateKindLabel(candidate.kind)", "Pending candidates must use user-facing kind labels.");
 assertIncludes(inboxScreen, "getCandidateTitle(candidate)", "Pending candidates must use user-facing titles.");
 assertIncludes(inboxScreen, 'candidate.metadata?.source === "device_event"', "Device candidates must format titles from metadata.");
+assertIncludes(chatRuntime, "Include a short rationale", "Chat tools must request candidate rationales.");
+assertIncludes(chatTypes, "rationale?: string", "Tool cards must carry candidate rationales.");
+assertIncludes(candidates, "candidate.metadata?.rationale", "Candidate metadata must preserve rationales.");
+assertIncludes(chatMessages, "card.payload.rationale", "Chat candidate cards must display rationales.");
+assertIncludes(inboxScreen, "candidate.metadata?.rationale", "Inbox candidates must display stored rationales.");
 assertIncludes(inboxScreen, "getDeviceCandidateContextLines(candidate)", "Device candidates must show screen-off source context.");
 assertIncludes(inboxScreen, "inbox.deviceContext", "Device candidate context must have a localized heading.");
 assertIncludes(inboxScreen, "eventMetadata?.deviceTimestamp", "Device candidate context must expose device timestamps.");

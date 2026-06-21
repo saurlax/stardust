@@ -39,6 +39,7 @@ const translations = {
       cardTypeSuggestReflection: "Reflection",
       cardTypeMarkOpenLoop: "Open loop",
       cardTypeUnknown: "Action",
+      cardRationale: "Why review",
       cardRelation: "Relation",
       cardRelationDefault: "related to",
       chatEpisodeTitle: "Chat capture",
@@ -223,6 +224,7 @@ const translations = {
       retry: "Retry",
       source: "Source",
       suggestedAt: "Suggested",
+      rationale: "Why review",
       importance: "Importance",
       openLoopBadge: "Open loop",
       pendingFilter: {
@@ -433,6 +435,7 @@ const translations = {
       cardTypeSuggestReflection: "反思",
       cardTypeMarkOpenLoop: "未解问题",
       cardTypeUnknown: "操作",
+      cardRationale: "建议原因",
       cardRelation: "关系",
       cardRelationDefault: "关联到",
       chatEpisodeTitle: "聊天捕获",
@@ -616,6 +619,7 @@ const translations = {
       retry: "重试",
       source: "来源",
       suggestedAt: "建议时间",
+      rationale: "建议原因",
       importance: "重要性",
       openLoopBadge: "未解问题",
       pendingFilter: {

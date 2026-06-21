@@ -21,6 +21,7 @@ export type ToolCardPayload = {
   relationTarget?: string;
   relationTargetType?: string;
   relationType?: string;
+  rationale?: string;
 };
 
 export type MessageToolCard = {

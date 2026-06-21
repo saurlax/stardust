@@ -44,6 +44,7 @@ type ToolCardDefinition = {
     relationTarget?: string;
     relationTargetType?: string;
     relationType?: string;
+    rationale?: string;
   };
 };
 
@@ -67,6 +68,7 @@ Rules:
 - Keep your visible reply natural and concise.
 - If something should be saved or reviewed, emit the appropriate tool call.
 - Tool payload content must be short, specific, and user-facing.
+- Include a short rationale explaining why the item deserves review.
 - Do not state a reflection as fact; phrase it as something to review.
 - Do not ask the user to repeat the same information just to save it.`;
 
@@ -101,8 +103,9 @@ const toolDefinitions = [
               "opinion",
             ],
           },
+          rationale: { type: "string" },
         },
-        required: ["title", "content", "memoryType"],
+        required: ["title", "content", "memoryType", "rationale"],
       },
     },
   },
@@ -116,8 +119,9 @@ const toolDefinitions = [
         properties: {
           title: { type: "string" },
           content: { type: "string" },
+          rationale: { type: "string" },
         },
-        required: ["title", "content"],
+        required: ["title", "content", "rationale"],
       },
     },
   },
@@ -141,8 +145,9 @@ const toolDefinitions = [
             enum: ["person", "project", "place", "topic", "object"],
           },
           relationType: { type: "string" },
+          rationale: { type: "string" },
         },
-        required: ["title", "content", "memoryType"],
+        required: ["title", "content", "memoryType", "rationale"],
       },
     },
   },
@@ -160,8 +165,9 @@ const toolDefinitions = [
             type: "string",
             enum: ["reflection"],
           },
+          rationale: { type: "string" },
         },
-        required: ["title", "content", "memoryType"],
+        required: ["title", "content", "memoryType", "rationale"],
       },
     },
   },
@@ -179,8 +185,9 @@ const toolDefinitions = [
             type: "string",
             enum: ["concern", "goal", "project"],
           },
+          rationale: { type: "string" },
         },
-        required: ["title", "content", "memoryType"],
+        required: ["title", "content", "memoryType", "rationale"],
       },
     },
   },
@@ -266,6 +273,7 @@ const normalizeToolCards = (cards: ToolCardDefinition[]): MessageToolCard[] =>
       relationTarget: card.payload.relationTarget,
       relationTargetType: card.payload.relationTargetType,
       relationType: card.payload.relationType,
+      rationale: card.payload.rationale,
     },
     status: "pending",
   }));
@@ -444,6 +452,7 @@ const sendLocalChatRequest = async ({
           relationTarget?: string;
           relationTargetType?: string;
           relationType?: string;
+          rationale?: string;
         };
 
         const cardContent = args.content?.trim();
@@ -460,6 +469,7 @@ const sendLocalChatRequest = async ({
               relationTarget: args.relationTarget?.trim(),
               relationTargetType: args.relationTargetType?.trim(),
               relationType: args.relationType?.trim(),
+              rationale: args.rationale?.trim(),
             },
           },
         ];

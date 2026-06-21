@@ -132,6 +132,10 @@ const candidateToToolCard = (candidate: MemoryCandidate): MessageToolCard => ({
       typeof candidate.metadata?.relationType === "string"
         ? candidate.metadata.relationType
         : undefined,
+    rationale:
+      typeof candidate.metadata?.rationale === "string"
+        ? candidate.metadata.rationale
+        : undefined,
   },
 });
 

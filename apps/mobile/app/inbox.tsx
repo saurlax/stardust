@@ -299,6 +299,8 @@ function CandidateCard({
   const relationSummary = card.payload.relationTarget
     ? `${card.payload.relationType ?? t("inbox.relatedTo")} · ${card.payload.relationTarget}`
     : undefined;
+  const rationale =
+    typeof candidate.metadata?.rationale === "string" ? candidate.metadata.rationale : undefined;
   const deviceContextLines = getDeviceCandidateContextLines(candidate);
 
   return (
@@ -329,6 +331,15 @@ function CandidateCard({
               {t("inbox.relation")}
             </Text>
             <Text className="text-xs leading-4 text-muted-foreground">{relationSummary}</Text>
+          </View>
+        ) : null}
+
+        {rationale ? (
+          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("inbox.rationale")}
+            </Text>
+            <Text className="text-xs leading-4 text-muted-foreground">{rationale}</Text>
           </View>
         ) : null}
 
