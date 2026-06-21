@@ -120,6 +120,19 @@ function OpenSourceButton({ episodeId }: { episodeId?: string }) {
   );
 }
 
+function RationaleBlock({ rationale }: { rationale?: string }) {
+  if (!rationale) return null;
+
+  return (
+    <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+      <Text className="text-xs font-semibold uppercase text-muted-foreground">
+        {t("memory.rationale")}
+      </Text>
+      <Text className="text-xs leading-4 text-muted-foreground">{rationale}</Text>
+    </View>
+  );
+}
+
 function MemoryEditor({
   memory,
   onRefresh,
@@ -162,6 +175,7 @@ function MemoryEditor({
                 <OpenSourceButton episodeId={memory.episodeId} />
               </View>
             ) : null}
+            <RationaleBlock rationale={memory.rationale} />
           </View>
         )}
       </CardHeader>
@@ -365,6 +379,7 @@ export default function MemoryScreen() {
         sourceKind: memory.sourceKind,
         source: memory.sourceContent,
         sourceEpisodeId: memory.episodeId,
+        rationale: memory.rationale,
       };
     }
 
@@ -378,6 +393,7 @@ export default function MemoryScreen() {
         sourceKind: reflection.sourceKind,
         source: reflection.sourceContent,
         sourceEpisodeId: reflection.episodeId,
+        rationale: reflection.rationale,
       };
     }
 
@@ -402,6 +418,7 @@ export default function MemoryScreen() {
         sourceKind: relationSource?.sourceKind,
         source: relationSource?.sourceContent,
         sourceEpisodeId: relationSource?.episodeId,
+        rationale: relationSource?.rationale,
       };
     }
 
@@ -417,6 +434,7 @@ export default function MemoryScreen() {
         sourceKind: relation.sourceKind,
         source: relation.sourceContent,
         sourceEpisodeId: relation.episodeId,
+        rationale: relation.rationale,
       };
     }
 
@@ -570,6 +588,9 @@ export default function MemoryScreen() {
                     />
                   </View>
                 ) : null}
+                {"rationale" in selectedNode ? (
+                  <RationaleBlock rationale={selectedNode.rationale} />
+                ) : null}
               </CardContent>
             </Card>
           ) : selectedNodeId ? (
@@ -615,6 +636,7 @@ export default function MemoryScreen() {
                     <OpenSourceButton episodeId={reflections[0].episodeId} />
                   </View>
                 ) : null}
+                <RationaleBlock rationale={reflections[0].rationale} />
               </CardContent>
             </Card>
           ) : null}

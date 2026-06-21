@@ -281,6 +281,19 @@ function OpenDeviceSettingsButton() {
   );
 }
 
+function RationaleBlock({ rationale }: { rationale?: string }) {
+  if (!rationale) return null;
+
+  return (
+    <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
+      <Text className="text-xs font-semibold uppercase text-muted-foreground">
+        {t("inbox.rationale")}
+      </Text>
+      <Text className="text-xs leading-4 text-muted-foreground">{rationale}</Text>
+    </View>
+  );
+}
+
 function CandidateCard({
   candidate,
   highlighted,
@@ -337,14 +350,7 @@ function CandidateCard({
           </View>
         ) : null}
 
-        {rationale ? (
-          <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
-            <Text className="text-xs font-semibold uppercase text-muted-foreground">
-              {t("inbox.rationale")}
-            </Text>
-            <Text className="text-xs leading-4 text-muted-foreground">{rationale}</Text>
-          </View>
-        ) : null}
+        <RationaleBlock rationale={rationale} />
 
         {deviceContextLines.length ? (
           <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
@@ -482,6 +488,7 @@ function MemoryCard({
             <OpenEpisodeButton episodeId={memory.episodeId} />
           </View>
         ) : null}
+        <RationaleBlock rationale={memory.rationale} />
         <View className="flex-row flex-wrap gap-2">
           {editing ? (
             <>
@@ -577,6 +584,7 @@ function ReflectionCard({
             <OpenEpisodeButton episodeId={reflection.episodeId} />
           </View>
         ) : null}
+        <RationaleBlock rationale={reflection.rationale} />
         <View className="flex-row flex-wrap gap-2">
           {editing ? (
             <>

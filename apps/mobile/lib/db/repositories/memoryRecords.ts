@@ -1,11 +1,16 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
 import { insertMemoryFts, insertReflectionFts } from "@/lib/db/fts";
+import { parseJson } from "@/lib/db/serialization";
 import { isFtsAvailable } from "@/lib/db/schema";
 import { runInTransaction } from "@/lib/db/transactions";
 import type { EntityRecord, ReflectionRecord, RelationRecord, StoredMemory } from "@/lib/db/types";
 
 const nowIso = () => new Date().toISOString();
+const readRationale = (value: string | null) => {
+  const metadata = parseJson(value);
+  return typeof metadata?.rationale === "string" ? metadata.rationale : undefined;
+};
 
 export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemory[]> {
   const rows = await db.getAllAsync<{
@@ -22,6 +27,7 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
     source_content: string | null;
     source_created_at: string | null;
     source_kind: StoredMemory["sourceKind"] | null;
+    candidate_metadata_json: string | null;
     created_at: string;
     updated_at: string;
   }>(`
@@ -40,7 +46,8 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
       episodes.title AS source_title,
       episodes.content AS source_content,
       episodes.source AS source_kind,
-      episodes.created_at AS source_created_at
+      episodes.created_at AS source_created_at,
+      memory_candidates.metadata_json AS candidate_metadata_json
     FROM memory_atoms
     LEFT JOIN episodes ON episodes.episode_id = memory_atoms.episode_id
     LEFT JOIN memory_candidates ON memory_candidates.candidate_id = memory_atoms.candidate_id
@@ -62,6 +69,7 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
     sourceContent: row.source_content ?? undefined,
     sourceCreatedAt: row.source_created_at ?? undefined,
     sourceKind: row.source_kind ?? undefined,
+    rationale: readRationale(row.candidate_metadata_json),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
@@ -79,6 +87,7 @@ export async function listReflections(db: SQLiteDatabase): Promise<ReflectionRec
     source_content: string | null;
     source_created_at: string | null;
     source_kind: ReflectionRecord["sourceKind"] | null;
+    candidate_metadata_json: string | null;
     created_at: string;
     updated_at: string;
   }>(`
@@ -94,9 +103,11 @@ export async function listReflections(db: SQLiteDatabase): Promise<ReflectionRec
       episodes.title AS source_title,
       episodes.content AS source_content,
       episodes.source AS source_kind,
-      episodes.created_at AS source_created_at
+      episodes.created_at AS source_created_at,
+      memory_candidates.metadata_json AS candidate_metadata_json
     FROM reflections
     LEFT JOIN episodes ON episodes.episode_id = reflections.episode_id
+    LEFT JOIN memory_candidates ON memory_candidates.candidate_id = reflections.candidate_id
     WHERE reflections.status = 'active'
     ORDER BY reflections.created_at DESC
   `);
@@ -112,6 +123,7 @@ export async function listReflections(db: SQLiteDatabase): Promise<ReflectionRec
     sourceContent: row.source_content ?? undefined,
     sourceCreatedAt: row.source_created_at ?? undefined,
     sourceKind: row.source_kind ?? undefined,
+    rationale: readRationale(row.candidate_metadata_json),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
@@ -202,6 +214,7 @@ export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[
     source_content: string | null;
     source_created_at: string | null;
     source_kind: RelationRecord["sourceKind"] | null;
+    candidate_metadata_json: string | null;
     type: string;
     weight: number;
     created_at: string;
@@ -219,6 +232,7 @@ export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[
       episodes.content AS source_content,
       episodes.source AS source_kind,
       episodes.created_at AS source_created_at,
+      memory_candidates.metadata_json AS candidate_metadata_json,
       relations.type AS type,
       relations.weight AS weight,
       relations.created_at AS created_at,
@@ -227,6 +241,7 @@ export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[
     LEFT JOIN entities AS source_entities ON source_entities.entity_id = relations.source_entity_id
     LEFT JOIN entities AS target_entities ON target_entities.entity_id = relations.target_entity_id
     LEFT JOIN episodes ON episodes.episode_id = relations.episode_id
+    LEFT JOIN memory_candidates ON memory_candidates.candidate_id = relations.candidate_id
     ORDER BY relations.weight DESC, relations.updated_at DESC
     LIMIT 120
   `);
@@ -243,6 +258,7 @@ export async function listRelations(db: SQLiteDatabase): Promise<RelationRecord[
     sourceContent: row.source_content ?? undefined,
     sourceCreatedAt: row.source_created_at ?? undefined,
     sourceKind: row.source_kind ?? undefined,
+    rationale: readRationale(row.candidate_metadata_json),
     type: row.type,
     weight: row.weight,
     createdAt: row.created_at,

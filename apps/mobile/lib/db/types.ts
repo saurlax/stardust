@@ -84,6 +84,7 @@ export type StoredMemory = {
   sourceContent?: string;
   sourceCreatedAt?: string;
   sourceKind?: EpisodeSource;
+  rationale?: string;
   createdAt: string;
   updatedAt?: string;
   candidateId?: string;
@@ -100,6 +101,7 @@ export type ReflectionRecord = {
   sourceContent?: string;
   sourceCreatedAt?: string;
   sourceKind?: EpisodeSource;
+  rationale?: string;
   createdAt: string;
   updatedAt?: string;
 };
@@ -140,6 +142,7 @@ export type RelationRecord = {
   sourceContent?: string;
   sourceCreatedAt?: string;
   sourceKind?: EpisodeSource;
+  rationale?: string;
   type: string;
   weight: number;
   createdAt: string;

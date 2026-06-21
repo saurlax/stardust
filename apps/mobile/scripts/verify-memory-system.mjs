@@ -313,9 +313,12 @@ assertIncludes(personalScreen, "snapshot.screenOffEpisodeCount", "Personal page 
 assertIncludes(personalDrawer, "snapshot.screenOffEpisodeCount", "Personal drawer must show screen-off episode counts.");
 assertIncludes(memoryRecords, "memory_candidates.kind AS candidate_kind", "Stored memories must retain their source candidate kind.");
 assertIncludes(memoryRecords, "episodes.source AS source_kind", "Stored memories must retain source episode kinds.");
+assertIncludes(memoryRecords, "memory_candidates.metadata_json AS candidate_metadata_json", "Confirmed records must retain candidate rationale metadata.");
+assertIncludes(memoryRecords, "readRationale(row.candidate_metadata_json)", "Confirmed records must expose candidate rationales.");
 assertIncludes(memoryLabels, "getEpisodeTitleLabel", "Episode source titles must use shared user-facing labels.");
 assertIncludes(inboxScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Inbox saved memory sources must use user-facing episode titles.");
 assertIncludes(inboxScreen, "memory.importance", "Inbox saved memories must display importance.");
+assertIncludes(inboxScreen, "memory.rationale", "Inbox saved memories must display accepted candidate rationales.");
 assertIncludes(inboxScreen, "candidate.createdAt", "Pending candidate cards must expose candidate timestamps.");
 assertIncludes(inboxScreen, "candidate.sourceCreatedAt", "Pending candidate source blocks must expose source timestamps.");
 assertIncludes(inboxScreen, "candidate.content", "Inbox accept must persist the reviewed candidate content.");
@@ -323,6 +326,8 @@ assertIncludes(inboxScreen, "draft.trim() || candidate.content", "Inbox edited c
 assertIncludes(inboxScreen, "getSourcePrefix(reflection.sourceKind, reflection.sourceTitle)", "Inbox reflection sources must use user-facing episode titles.");
 assertIncludes(memoryScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Memory management sources must use user-facing episode titles.");
 assertIncludes(memoryScreen, "memory.importance", "Memory management cards must display importance.");
+assertIncludes(memoryScreen, "memory.rationale", "Memory management cards must display accepted candidate rationales.");
+assertIncludes(memoryScreen, "selectedNode.rationale", "Memory graph details must display accepted candidate rationales.");
 assertIncludes(memoryScreen, "getSourcePrefix(reflections[0].sourceKind, reflections[0].sourceTitle)", "Memory reflection summaries must expose source episode titles.");
 assertIncludes(memoryScreen, "OpenSourceButton episodeId={reflections[0].episodeId}", "Memory reflection summaries must open source episodes.");
 assertIncludes(memoryScreen, '"open_loop"', "Memory screen must expose an open-loop filter.");
