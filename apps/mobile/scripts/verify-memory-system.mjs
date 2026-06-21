@@ -119,6 +119,8 @@ assertIncludes(journalScreen, "entries.filter((entry) => entry.source === source
 assertIncludes(journalScreen, "EntrySourceDetails", "Episode timeline entries must display structured source metadata.");
 assertIncludes(journalScreen, "journal.calendarLocation", "Episode timeline must surface calendar location metadata.");
 assertIncludes(journalScreen, "journal.captureSource", "Episode timeline must surface IoT capture source metadata.");
+assertIncludes(journalScreen, "journal.rationale", "Episode timeline must surface accepted journal rationales.");
+assertIncludes(candidates, "rationale:", "Journal candidate episodes must retain accepted rationales.");
 assertIncludes(calendarScreen, "buildCalendarEpisodeContent(event)", "Calendar episodes must preserve searchable date and location context.");
 assertIncludes(calendarScreen, "calendar.location", "Calendar episode content must label locations.");
 assertIncludes(timeline, "title: episode.title", "Episode timeline entries must preserve episode titles.");

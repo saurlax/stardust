@@ -70,6 +70,7 @@ const getStringMetadata = (metadata: Record<string, unknown> | undefined, key: s
 
 function getEntrySourceDetailLines(entry: JournalDay["entries"][number]) {
   const metadata = entry.metadata;
+  const rationale = getStringMetadata(metadata, "rationale");
   if (entry.source === "calendar") {
     const startDate = getStringMetadata(metadata, "startDate");
     const endDate = getStringMetadata(metadata, "endDate");
@@ -97,7 +98,9 @@ function getEntrySourceDetailLines(entry: JournalDay["entries"][number]) {
     ].filter((line): line is string => !!line);
   }
 
-  return [];
+  return [
+    rationale ? `${t("journal.rationale")}: ${rationale}` : undefined,
+  ].filter((line): line is string => !!line);
 }
 
 function EntrySourceDetails({ entry }: { entry: JournalDay["entries"][number] }) {

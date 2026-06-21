@@ -374,6 +374,7 @@ const translations = {
       deviceTime: "Device time",
       captureSource: "Capture source",
       deviceId: "Device ID",
+      rationale: "Why review",
       journalsTitle: "Journal",
       source: {
         all: "All",
@@ -770,6 +771,7 @@ const translations = {
       deviceTime: "设备时间",
       captureSource: "捕获来源",
       deviceId: "设备 ID",
+      rationale: "建议原因",
       journalsTitle: "日志",
       source: {
         all: "全部",

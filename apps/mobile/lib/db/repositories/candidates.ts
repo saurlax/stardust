@@ -259,7 +259,13 @@ export async function updateCandidateStatus(
         source: "journal",
         title: candidate.title,
         content,
-        metadata: { candidateId },
+        metadata: {
+          candidateId,
+          rationale:
+            typeof candidate.metadata?.rationale === "string"
+              ? candidate.metadata.rationale
+              : undefined,
+        },
         createdAt: updatedAt,
       });
     }
