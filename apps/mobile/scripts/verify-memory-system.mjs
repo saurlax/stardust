@@ -170,6 +170,8 @@ assertIncludes(journalScreen, "source={{ uri: entry.mediaUri }}", "Journal media
 assertIncludes(journalScreen, "getEpisodeTitleLabel(entry.source, entry.title)", "IoT timeline titles must use shared device event labels.");
 assertIncludes(journalScreen, 'entry.source === "memory" && entry.nodeId', "Memory timeline entries must expose graph navigation.");
 assertIncludes(journalScreen, "params: { nodeId: entry.nodeId }", "Memory timeline navigation must target the selected graph node.");
+assertIncludes(journalScreen, 'entry.source !== "memory"', "Episode timeline entries must expose source navigation.");
+assertIncludes(journalScreen, "params: { episodeId: entry.id }", "Episode timeline navigation must target the source episode.");
 assertIncludes(journalScreen, "entityEntryPrefix", "Journal search must label entity graph results.");
 assertIncludes(journalScreen, "relationEntryPrefix", "Journal search must label relation graph results.");
 assertIncludes(journalScreen, "result.title", "Journal search results must display retrieved knowledge titles.");

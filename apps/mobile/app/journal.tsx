@@ -649,6 +649,20 @@ export default function JournalScreen() {
                         >
                           <Text>{t("journal.openMemoryGraph")}</Text>
                         </Button>
+                      ) : entry.source !== "memory" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-1 self-start"
+                          onPress={() =>
+                            router.push({
+                              pathname: "/journal",
+                              params: { episodeId: entry.id },
+                            } as Href)
+                          }
+                        >
+                          <Text>{t("journal.openTimeline")}</Text>
+                        </Button>
                       ) : null}
                     </CardContent>
                   </Card>
