@@ -56,8 +56,22 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
       devices.protocol_version AS protocol_version,
       devices.capabilities_json AS capabilities_json,
       COUNT(device_events.device_event_id) AS event_count,
-      SUM(CASE WHEN memory_candidates.status = 'pending' THEN 1 ELSE 0 END) AS pending_review_count,
-      SUM(CASE WHEN memory_candidates.status IN ('accepted', 'dismissed') THEN 1 ELSE 0 END) AS reviewed_event_count,
+      SUM(
+        CASE
+          WHEN lower(device_events.event_type) IN ('capture', 'button', 'serial')
+            AND (device_events.candidate_id IS NULL OR memory_candidates.status = 'pending')
+          THEN 1
+          ELSE 0
+        END
+      ) AS pending_review_count,
+      SUM(
+        CASE
+          WHEN lower(device_events.event_type) IN ('capture', 'button', 'serial')
+            AND memory_candidates.status IN ('accepted', 'dismissed')
+          THEN 1
+          ELSE 0
+        END
+      ) AS reviewed_event_count,
       MAX(device_events.created_at) AS last_event_at
     FROM devices
     LEFT JOIN device_events ON device_events.device_id = devices.device_id

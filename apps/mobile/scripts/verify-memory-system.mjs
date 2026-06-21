@@ -185,6 +185,8 @@ assertIncludes(inboxScreen, "function SummaryTile", "Memory inbox must expose a 
 assertIncludes(inboxScreen, "pendingDeviceReviews", "Memory inbox pipeline must count unreviewed device captures.");
 assertIncludes(inboxScreen, 'setDeviceEventFilter("promotable")', "Device review summary must jump to promotable device events.");
 assertIncludes(devices, "reviewed_event_count", "Device lists must count reviewed capture events.");
+assertIncludes(devices, "lower(device_events.event_type) IN ('capture', 'button', 'serial')", "Device lists must scope review counts to promotable capture events.");
+assertIncludes(devices, "device_events.candidate_id IS NULL OR memory_candidates.status = 'pending'", "Device lists must count unpromoted captures as pending review work.");
 assertIncludes(inboxScreen, "device.reviewedEventCount", "Device inbox cards must display reviewed capture counts.");
 assertIncludes(settings, "device.reviewedEventCount", "Settings device cards must display reviewed capture counts.");
 assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");
