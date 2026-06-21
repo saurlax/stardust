@@ -294,6 +294,9 @@ assertIncludes(devices, "SET candidate_id = ?", "Device event promotion must lin
 assertIncludes(devices, "return candidateId", "Device event promotion must return the created candidate id.");
 assertIncludes(devices, "memory_candidates.candidate_id = device_events.candidate_id", "Device event review state must use explicit candidate links.");
 assertIncludes(devices, "deviceEventRationale(event)", "Device-promoted memory candidates must explain why they need review.");
+assertIncludes(devices, "deviceEventImportance(event)", "Device-promoted memory candidates must include suggested importance.");
+assertIncludes(devices, "event.metadata?.deviceTimestamp", "Device-promoted rationales must preserve device-time context.");
+assertIncludes(devices, "event.metadata?.source", "Device-promoted rationales must preserve capture-source context.");
 assertIncludes(devices, "promotableDeviceEventTypes", "Device event promotion must filter operational events.");
 assertIncludes(devices, "deviceName: event.deviceName", "Promoted device candidates must retain their device names.");
 assertIncludes(devices, "eventMetadata: event.metadata", "Promoted device candidates must retain original device metadata.");

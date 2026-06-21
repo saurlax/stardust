@@ -13,9 +13,25 @@ const scopedDeviceEventId = (deviceId: string, eventId: string) =>
 const promotableDeviceEventTypes = new Set(["capture", "button", "serial"]);
 const isPromotableDeviceEvent = (eventType: string) =>
   promotableDeviceEventTypes.has(eventType.toLowerCase());
+const deviceEventImportance = (event: DeviceEventRecord) => {
+  switch (event.eventType.toLowerCase()) {
+    case "button":
+      return 4;
+    case "serial":
+      return 3;
+    default:
+      return 3;
+  }
+};
 const deviceEventRationale = (event: DeviceEventRecord) => {
   const deviceName = event.deviceName ?? "a Stardust Sense device";
-  return `${deviceName} captured a ${event.eventType} event that may represent an off-screen memory fragment.`;
+  const captureSource =
+    typeof event.metadata?.source === "string" ? ` via ${event.metadata.source}` : "";
+  const deviceTimestamp =
+    typeof event.metadata?.deviceTimestamp === "string"
+      ? ` at device time ${event.metadata.deviceTimestamp}`
+      : "";
+  return `${deviceName} captured a ${event.eventType} event${captureSource}${deviceTimestamp} that may represent an off-screen memory fragment.`;
 };
 const parseCapabilities = (value: string | null) => {
   if (!value) return undefined;
@@ -280,6 +296,7 @@ export async function promoteDeviceEventToCandidate(
         eventCreatedAt: event.createdAt,
         eventMetadata: event.metadata,
         rationale: deviceEventRationale(event),
+        importance: deviceEventImportance(event),
       }),
       createdAt,
       createdAt,
