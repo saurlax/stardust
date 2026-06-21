@@ -9,6 +9,7 @@ const repoRoot = path.join(mobileRoot, "..", "..");
 const read = (...parts) => fs.readFileSync(path.join(...parts), "utf8");
 const appConfig = read(mobileRoot, "app.json");
 const packageJson = read(mobileRoot, "package.json");
+const readme = read(repoRoot, "README.md");
 const schema = read(mobileRoot, "lib", "db", "schema.ts");
 const candidates = read(mobileRoot, "lib", "db", "repositories", "candidates.ts");
 const devices = read(mobileRoot, "lib", "db", "repositories", "devices.ts");
@@ -89,6 +90,8 @@ for (const ftsTable of ["episodes_fts", "memory_atoms_fts", "reflections_fts"]) 
 for (const column of ["memory_context_json", "request_episode_id", "tool_cards_json"]) {
   assertIncludes(schema, column, `Chat persistence is missing column: ${column}`);
 }
+assertIncludes(readme, "日常小步提交", "README must document fast verification for frequent commits.");
+assertIncludes(readme, "发布前或合并前再跑完整 `pnpm verify`", "README must document when to run full verification.");
 assertIncludes(chatScreen, "createEpisode(db", "Chat input episodes must be persisted before AI candidate creation.");
 assertIncludes(chatScreen, "await saveChatSessionSnapshot(db", "Chat messages must be persisted before AI candidate creation.");
 assertIncludes(chatScreen, 'type PromptSource = "chat" | "share" | "image"', "Chat prompt pipeline must preserve episode source types.");

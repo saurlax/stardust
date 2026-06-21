@@ -209,6 +209,8 @@ pnpm verify:iot          # 验证 XIAO BLE 固件协议，并在 Arduino CLI 可
 pnpm smoke:web           # 导出 Expo Web 静态产物并检查基础 bundle
 ```
 
+日常小步提交时，优先跑 `pnpm verify:memory`、`pnpm verify:iot` 和 `pnpm typecheck`。发布前或合并前再跑完整 `pnpm verify`，它会额外执行 Web smoke export 和 lint。
+
 ### 提交规范
 
 本项目使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范，通过 Husky + commitlint 进行校验。
