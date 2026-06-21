@@ -724,7 +724,7 @@ function DeviceEventCard({
   onError,
 }: {
   event: DeviceEventRecord;
-  onPromoted: () => void;
+  onPromoted: (candidateId: string) => void;
   onOpenReview: () => void;
   onError: (error: unknown) => void;
 }) {
@@ -1286,11 +1286,11 @@ export default function InboxScreen() {
               <DeviceEventCard
                 key={event.id}
                 event={event}
-                onPromoted={() => {
+                onPromoted={(candidateId) => {
                   refresh();
                   setTab("pending");
                   setPendingKindFilter("all");
-                  setTargetCandidateId(`candidate-${event.id}`);
+                  setTargetCandidateId(candidateId);
                 }}
                 onOpenReview={() => {
                   setTab("pending");

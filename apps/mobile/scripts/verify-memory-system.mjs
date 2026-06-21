@@ -268,6 +268,7 @@ assertIncludes(devices, "promoteDeviceEventToCandidate", "Device events must be 
 assertIncludes(devices, "'memory', 'memory'", "Promoted device events must become pending memory candidates.");
 assertIncludes(schema, "candidate_id TEXT", "Device events must retain promoted candidate ids.");
 assertIncludes(devices, "SET candidate_id = ?", "Device event promotion must link back to the candidate.");
+assertIncludes(devices, "return candidateId", "Device event promotion must return the created candidate id.");
 assertIncludes(devices, "memory_candidates.candidate_id = device_events.candidate_id", "Device event review state must use explicit candidate links.");
 assertIncludes(devices, "deviceEventRationale(event)", "Device-promoted memory candidates must explain why they need review.");
 assertIncludes(devices, "promotableDeviceEventTypes", "Device event promotion must filter operational events.");

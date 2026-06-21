@@ -281,4 +281,5 @@ export async function promoteDeviceEventToCandidate(
       event.deviceId,
     );
   });
+  return candidateId;
 }
