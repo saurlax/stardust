@@ -17,6 +17,7 @@ import {
   getEpisodeTitleLabel,
   getKnowledgeTypeLabel,
   getMemoryTypeLabel,
+  getRelationTypeLabel,
 } from "@/lib/memoryLabels";
 import {
   findRelevantKnowledge,
@@ -37,6 +38,7 @@ const sourceFilters = [
   "journal",
   "memory",
   "reflection",
+  "relation",
 ] as const;
 type SourceFilter = (typeof sourceFilters)[number];
 
@@ -49,6 +51,7 @@ const sourceIcons: Record<Exclude<SourceFilter, "all">, keyof typeof Ionicons.gl
   journal: "create-outline",
   memory: "sparkles-outline",
   reflection: "prism-outline",
+  relation: "git-network-outline",
 };
 
 function sourceLabel(source: SourceFilter) {
@@ -59,6 +62,7 @@ function entryTitle(entry: JournalDay["entries"][number]) {
   if (!entry.title) return undefined;
   if (entry.source === "memory") return getMemoryTypeLabel(entry.title);
   if (entry.source === "reflection") return entry.title;
+  if (entry.source === "relation") return getRelationTypeLabel(entry.title);
   return getEpisodeTitleLabel(entry.source, entry.title);
 }
 
@@ -95,6 +99,7 @@ function getEntrySourceDetailLines(entry: JournalDay["entries"][number]) {
   const metadata = entry.metadata;
   const rationale = getStringMetadata(metadata, "rationale");
   const importance = getNumberMetadata(metadata, "importance");
+  const weight = getNumberMetadata(metadata, "weight");
   const sourceKind = getStringMetadata(metadata, "sourceKind");
   if (entry.source === "share" || entry.source === "image") {
     const webUrl = getStringMetadata(metadata, "webUrl");
@@ -144,6 +149,7 @@ function getEntrySourceDetailLines(entry: JournalDay["entries"][number]) {
 
   return [
     importance ? `${t("journal.importance")}: ${importance}` : undefined,
+    weight ? `${t("journal.relationWeight")}: ${weight}` : undefined,
     sourceKind === "iot" ? t("journal.screenOffResult") : undefined,
     rationale ? `${t("journal.rationale")}: ${rationale}` : undefined,
   ].filter((line): line is string => !!line);
@@ -416,6 +422,7 @@ export default function JournalScreen() {
           journal: 0,
           memory: 0,
           reflection: 0,
+          relation: 0,
         },
       );
     },
@@ -670,7 +677,10 @@ export default function JournalScreen() {
                       <EpisodeMediaPreview entry={entry} />
                       <EntrySourceDetails entry={entry} />
                       <Text className="text-sm leading-5">{entry.note}</Text>
-                      {(entry.source === "memory" || entry.source === "reflection") && entry.nodeId ? (
+                      {(entry.source === "memory" ||
+                        entry.source === "reflection" ||
+                        entry.source === "relation") &&
+                      entry.nodeId ? (
                         <Button
                           variant="outline"
                           size="sm"
@@ -684,7 +694,9 @@ export default function JournalScreen() {
                         >
                           <Text>{t("journal.openMemoryGraph")}</Text>
                         </Button>
-                      ) : entry.source !== "memory" && entry.source !== "reflection" ? (
+                      ) : entry.source !== "memory" &&
+                        entry.source !== "reflection" &&
+                        entry.source !== "relation" ? (
                         <Button
                           variant="outline"
                           size="sm"

@@ -1,14 +1,19 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
 import { listEpisodes } from "@/lib/db/repositories/episodes";
-import { listReflections, listStoredMemories } from "@/lib/db/repositories/memoryRecords";
+import {
+  listReflections,
+  listRelations,
+  listStoredMemories,
+} from "@/lib/db/repositories/memoryRecords";
 import type { JournalDay, JournalEntry } from "@/lib/db/types";
 
 export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]> {
-  const [episodes, memories, reflections] = await Promise.all([
+  const [episodes, memories, reflections, relations] = await Promise.all([
     listEpisodes(db),
     listStoredMemories(db),
     listReflections(db),
+    listRelations(db),
   ]);
   const entries: JournalEntry[] = [
     ...episodes.map((episode) => ({
@@ -44,6 +49,21 @@ export async function listJournalDays(db: SQLiteDatabase): Promise<JournalDay[]>
         sourceKind: reflection.sourceKind,
       },
       nodeId: `reflection-${reflection.id}`,
+    })),
+    ...relations.map((relation) => ({
+      id: `timeline-${relation.id}`,
+      timestamp: relation.createdAt,
+      title: relation.type,
+      note: `${relation.sourceEntityName ?? relation.sourceEntityId} -> ${
+        relation.targetEntityName ?? relation.targetEntityId
+      }`,
+      source: "relation" as const,
+      metadata: {
+        rationale: relation.rationale,
+        sourceKind: relation.sourceKind,
+        weight: relation.weight,
+      },
+      nodeId: `relation-${relation.id}`,
     })),
   ].sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
 

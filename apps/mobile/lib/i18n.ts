@@ -410,6 +410,7 @@ const translations = {
       mimeType: "MIME type",
       fileSize: "File size",
       imageDimensions: "Image size",
+      relationWeight: "Relation weight",
       rationale: "Why review",
       journalsTitle: "Journal",
       source: {
@@ -422,6 +423,7 @@ const translations = {
         journal: "Journal",
         memory: "Memory",
         reflection: "Reflection",
+        relation: "Relation",
       },
       edit: "Edit",
       save: "Save",
@@ -844,6 +846,7 @@ const translations = {
       mimeType: "MIME 类型",
       fileSize: "文件大小",
       imageDimensions: "图片尺寸",
+      relationWeight: "关系强度",
       rationale: "建议原因",
       journalsTitle: "日志",
       source: {
@@ -856,6 +859,7 @@ const translations = {
         journal: "日志",
         memory: "记忆",
         reflection: "反思",
+        relation: "关系",
       },
       edit: "编辑",
       save: "保存",
