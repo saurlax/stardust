@@ -980,6 +980,9 @@ export default function InboxScreen() {
   useEffect(() => {
     if (params.tab === "pending" || params.tab === "saved" || params.tab === "reflections" || params.tab === "devices") {
       setTab(params.tab);
+      if (params.tab === "devices") {
+        setDeviceEventFilter("promotable");
+      }
     }
     if (typeof params.candidateId === "string") {
       setTargetCandidateId(params.candidateId);
@@ -987,7 +990,7 @@ export default function InboxScreen() {
     }
     if (typeof params.deviceId === "string") {
       setSelectedDeviceId(params.deviceId);
-      setDeviceEventFilter("all");
+      setDeviceEventFilter("promotable");
     }
   }, [params.candidateId, params.deviceId, params.tab]);
 

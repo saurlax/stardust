@@ -470,6 +470,8 @@ assertIncludes(settings, '"/inbox?tab=devices" as Href', "Settings devices panel
 assertIncludes(settings, "openDeviceInboxForDevice", "Settings device cards must open review filtered to the selected device.");
 assertIncludes(inboxScreen, "params.deviceId", "Device inbox must accept selected device route params.");
 assertIncludes(inboxScreen, "setSelectedDeviceId(params.deviceId)", "Device inbox route params must select devices.");
+assertIncludes(inboxScreen, 'params.tab === "devices"', "Device inbox route params must detect device review routes.");
+assertIncludes(inboxScreen, 'setDeviceEventFilter("promotable")', "Device inbox route params must focus promotable captures.");
 assertIncludes(appConfig, '"react-native-ble-plx"', "Expo config must include the BLE plugin.");
 assertIncludes(appConfig, '"neverForLocation": true', "BLE scan permission should declare neverForLocation.");
 assertIncludes(appConfig, '"modes": ["central"]', "BLE plugin must run in central mode for Stardust Sense.");
