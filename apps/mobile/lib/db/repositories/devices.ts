@@ -11,6 +11,10 @@ const createId = (prefix: string) =>
 const promotableDeviceEventTypes = new Set(["capture", "button", "serial"]);
 const isPromotableDeviceEvent = (eventType: string) =>
   promotableDeviceEventTypes.has(eventType.toLowerCase());
+const deviceEventRationale = (event: DeviceEventRecord) => {
+  const deviceName = event.deviceName ?? "a Stardust Sense device";
+  return `${deviceName} captured a ${event.eventType} event that may represent an off-screen memory fragment.`;
+};
 const parseCapabilities = (value: string | null) => {
   if (!value) return undefined;
   try {
@@ -259,6 +263,7 @@ export async function promoteDeviceEventToCandidate(
         eventType: event.eventType,
         eventCreatedAt: event.createdAt,
         eventMetadata: event.metadata,
+        rationale: deviceEventRationale(event),
       }),
       createdAt,
       createdAt,
