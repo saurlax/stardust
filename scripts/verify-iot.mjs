@@ -8,6 +8,7 @@ const sketchPath = join(root, "iot", "iot.ino");
 const arduinoConfigPath = join(root, "iot", "arduino-cli.yaml");
 const mobileBlePath = join(root, "apps", "mobile", "lib", "devices", "ble.ts");
 const readmePath = join(root, "README.md");
+const agentsPath = join(root, "AGENTS.md");
 const gitmodulesPath = join(root, ".gitmodules");
 const nestedIotGitPath = join(iotDir, ".git");
 
@@ -15,6 +16,7 @@ const sketch = readFileSync(sketchPath, "utf8");
 const arduinoConfig = readFileSync(arduinoConfigPath, "utf8");
 const mobileBle = readFileSync(mobileBlePath, "utf8");
 const readme = readFileSync(readmePath, "utf8");
+const agents = readFileSync(agentsPath, "utf8");
 
 if (existsSync(gitmodulesPath)) {
   throw new Error("IoT firmware must live in the main repository, not in a git submodule.");
@@ -33,6 +35,8 @@ assertIncludes(readme, "iot/iot.ino", "README must document the in-repo IoT firm
 assertIncludes(readme, "├── iot/", "README project tree must show IoT firmware as part of the main repository.");
 assertIncludes(readme, "暂不走 BLE", "README must keep large media transfer out of BLE v1.");
 assertIncludes(readme, "Wi-Fi 局域网传输", "README must describe large media transfer as future Wi-Fi work.");
+assertIncludes(agents, "in-repository `iot` firmware", "AGENTS.md must describe IoT firmware as part of the main repository.");
+assertNotIncludes(agents, "`iot` submodule", "AGENTS.md must not describe IoT firmware as a submodule.");
 
 const expected = {
   STARDUST_DEVICE_NAME: "Stardust Sense",
@@ -54,6 +58,12 @@ const firmwareConstantNames = {
 
 function assertIncludes(source, value, message) {
   if (!source.includes(value)) {
+    throw new Error(message);
+  }
+}
+
+function assertNotIncludes(source, value, message) {
+  if (source.includes(value)) {
     throw new Error(message);
   }
 }
