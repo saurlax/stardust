@@ -307,6 +307,9 @@ function CandidateCard({
         <CardDescription>
           {getCandidateKindLabel(candidate.kind)} · {getMemoryTypeLabel(candidate.type)}
         </CardDescription>
+        <Text className="text-xs leading-4 text-muted-foreground">
+          {t("inbox.suggestedAt")} · {new Date(candidate.createdAt).toLocaleString()}
+        </Text>
         <CardTitle className="text-base leading-5">{getCandidateTitle(candidate)}</CardTitle>
       </CardHeader>
       <CardContent className="gap-3">

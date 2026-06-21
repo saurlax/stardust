@@ -301,6 +301,7 @@ assertIncludes(memoryRecords, "episodes.source AS source_kind", "Stored memories
 assertIncludes(memoryLabels, "getEpisodeTitleLabel", "Episode source titles must use shared user-facing labels.");
 assertIncludes(inboxScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Inbox saved memory sources must use user-facing episode titles.");
 assertIncludes(inboxScreen, "memory.importance", "Inbox saved memories must display importance.");
+assertIncludes(inboxScreen, "candidate.createdAt", "Pending candidate cards must expose candidate timestamps.");
 assertIncludes(inboxScreen, "candidate.sourceCreatedAt", "Pending candidate source blocks must expose source timestamps.");
 assertIncludes(inboxScreen, "getSourcePrefix(reflection.sourceKind, reflection.sourceTitle)", "Inbox reflection sources must use user-facing episode titles.");
 assertIncludes(memoryScreen, "getSourcePrefix(memory.sourceKind, memory.sourceTitle)", "Memory management sources must use user-facing episode titles.");

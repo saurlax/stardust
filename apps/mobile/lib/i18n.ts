@@ -219,6 +219,7 @@ const translations = {
       loadFailed: "Failed to load memory inbox.",
       retry: "Retry",
       source: "Source",
+      suggestedAt: "Suggested",
       importance: "Importance",
       openLoopBadge: "Open loop",
       pendingFilter: {
@@ -607,6 +608,7 @@ const translations = {
       loadFailed: "无法加载记忆收件箱。",
       retry: "重试",
       source: "来源",
+      suggestedAt: "建议时间",
       importance: "重要性",
       openLoopBadge: "未解问题",
       pendingFilter: {
