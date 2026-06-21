@@ -89,6 +89,11 @@ for (const column of ["memory_context_json", "request_episode_id", "tool_cards_j
 }
 assertIncludes(chatScreen, "await createEpisode(db", "Chat input episodes must be persisted before AI candidate creation.");
 assertIncludes(chatScreen, "await saveChatSessionSnapshot(db", "Chat messages must be persisted before AI candidate creation.");
+assertIncludes(chatScreen, 'type PromptSource = "chat" | "share" | "image"', "Chat prompt pipeline must preserve episode source types.");
+assertIncludes(chatScreen, "const episodeSource = sourceOverride ??", "Chat prompt pipeline must allow shared captures to keep their source.");
+assertIncludes(chatScreen, 'sendPrompt(sharedText, undefined, undefined, "share")', "Shared text must enter the AI candidate pipeline.");
+assertIncludes(chatScreen, 'sharedImage.path', "Shared images must enter the AI candidate pipeline with media.");
+assertIncludes(chatScreen, 'shareIntent: sourceOverride !== undefined', "Shared captures must preserve share intent metadata.");
 assertIncludes(chatScreen, "setChatError(getErrorMessage(error))", "Chat persistence failures must be visible.");
 assertIncludes(chatScreen, "void updateCandidateStatus(db, cardId, status, nextContent)", "Chat candidate review must persist before updating local cards.");
 assertIncludes(chatScreen, "savedToolCards = []", "Assistant replies must survive candidate persistence failures without showing unsaved cards.");

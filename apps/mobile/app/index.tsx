@@ -42,6 +42,8 @@ type RequestContext = {
   request: NonNullable<ChatMessage["request"]>;
 };
 
+type PromptSource = "chat" | "share" | "image";
+
 const createGreetingMessage = (): ChatMessage => ({
   id: GREETING_ID,
   role: "assistant",
@@ -369,7 +371,12 @@ export default function Index() {
   );
 
   const sendPrompt = useCallback(
-    (prompt: string, imageUri?: string, imageMimeType?: string) => {
+    (
+      prompt: string,
+      imageUri?: string,
+      imageMimeType?: string,
+      sourceOverride?: PromptSource,
+    ) => {
       const trimmed = prompt.trim();
       const effectivePrompt = trimmed || (imageUri ? DEFAULT_IMAGE_PROMPT : "");
       if (!effectivePrompt || sending || !ready) return;
@@ -383,6 +390,7 @@ export default function Index() {
       const timestamp = Date.now();
       const createdAt = new Date(timestamp).toISOString();
       const episodeId = `episode-user-${timestamp}`;
+      const episodeSource = sourceOverride ?? (imageUri ? "image" : "chat");
 
       const request: NonNullable<ChatMessage["request"]> = {
         prompt: effectivePrompt,
@@ -424,11 +432,18 @@ export default function Index() {
         try {
           await createEpisode(db, {
             id: episodeId,
-            source: imageUri ? "image" : "chat",
-            title: imageUri ? t("chat.imageEpisodeTitle") : t("chat.chatEpisodeTitle"),
+            source: episodeSource,
+            title:
+              episodeSource === "share"
+                ? t("chat.sharedTextEpisodeTitle")
+                : episodeSource === "image" && sourceOverride === "image"
+                  ? t("chat.sharedImageEpisodeTitle")
+                  : imageUri
+                    ? t("chat.imageEpisodeTitle")
+                    : t("chat.chatEpisodeTitle"),
             content: effectivePrompt,
             mediaUri: imageUri,
-            metadata: { sessionId: sessionIdRef.current },
+            metadata: { sessionId: sessionIdRef.current, shareIntent: sourceOverride !== undefined },
             createdAt,
           });
           await saveChatSessionSnapshot(db, {
@@ -584,36 +599,19 @@ export default function Index() {
     handledShareRef.current = signature;
 
     const sharedImage = shareIntent.files?.find((file) => file.mimeType.startsWith("image/"));
+    const sharedText = shareIntent.text || shareIntent.webUrl || "";
     if (sharedImage?.path) {
-      setSelectedImageUri(sharedImage.path);
-      setSelectedImageMimeType(sharedImage.mimeType || "image/jpeg");
-      void createEpisode(db, {
-        source: "image",
-        title: t("chat.sharedImageEpisodeTitle"),
-        content: shareIntent.text || shareIntent.webUrl || t("chat.sharedImageEpisodeTitle"),
-        mediaUri: sharedImage.path,
-        metadata: {
-          sessionId: sessionIdRef.current,
-          shareIntent: true,
-          mimeType: sharedImage.mimeType,
-        },
-      }).catch((error) => setChatError(getErrorMessage(error)));
-    }
-    if (shareIntent.text || shareIntent.webUrl) {
-      const sharedText = shareIntent.text || shareIntent.webUrl || "";
-      setText(sharedText);
-      void createEpisode(db, {
-        source: "share",
-        title: t("chat.sharedTextEpisodeTitle"),
-        content: sharedText,
-        metadata: {
-          sessionId: sessionIdRef.current,
-          shareIntent: true,
-        },
-      }).catch((error) => setChatError(getErrorMessage(error)));
+      sendPrompt(
+        sharedText || t("chat.sharedImageEpisodeTitle"),
+        sharedImage.path,
+        sharedImage.mimeType || "image/jpeg",
+        "image",
+      );
+    } else if (sharedText) {
+      sendPrompt(sharedText, undefined, undefined, "share");
     }
     resetShareIntent();
-  }, [db, hasShareIntent, ready, resetShareIntent, sending, sessionReady, shareIntent]);
+  }, [hasShareIntent, ready, resetShareIntent, sendPrompt, sending, sessionReady, shareIntent]);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
