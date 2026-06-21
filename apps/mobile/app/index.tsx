@@ -9,6 +9,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   useColorScheme,
   View,
 } from "react-native";
@@ -32,6 +33,7 @@ import {
   saveChatSessionSnapshot,
   updateCandidateStatus,
 } from "@/lib/db";
+import type { PersonalSnapshot } from "@/lib/db";
 import { t } from "@/lib/i18n";
 
 const DEFAULT_IMAGE_PROMPT = t("chat.defaultImagePrompt");
@@ -44,6 +46,20 @@ type RequestContext = {
 
 type PromptSource = "chat" | "share" | "image";
 type PromptMetadata = Record<string, unknown>;
+
+const emptySnapshot: PersonalSnapshot = {
+  acceptedMemories: 0,
+  pendingCards: 0,
+  pendingDeviceReviewCount: 0,
+  openLoopCount: 0,
+  journalEntries: 0,
+  episodeCount: 0,
+  screenOffEpisodeCount: 0,
+  reflectionCount: 0,
+  entityCount: 0,
+  relationCount: 0,
+  deviceCount: 0,
+};
 
 const createGreetingMessage = (): ChatMessage => ({
   id: GREETING_ID,
@@ -141,6 +157,7 @@ export default function Index() {
   const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>();
   const [messages, setMessages] = useState<ChatMessage[]>([createGreetingMessage()]);
   const [pendingCandidates, setPendingCandidates] = useState(0);
+  const [snapshot, setSnapshot] = useState<PersonalSnapshot>(emptySnapshot);
   const [sending, setSending] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -244,8 +261,14 @@ export default function Index() {
 
   const refreshPendingCandidates = useCallback(() => {
     void getPersonalSnapshot(db)
-      .then((snapshot) => setPendingCandidates(snapshot.pendingCards))
-      .catch(() => setPendingCandidates(0));
+      .then((nextSnapshot) => {
+        setSnapshot(nextSnapshot);
+        setPendingCandidates(nextSnapshot.pendingCards);
+      })
+      .catch(() => {
+        setSnapshot(emptySnapshot);
+        setPendingCandidates(0);
+      });
   }, [db]);
 
   useFocusEffect(
@@ -721,6 +744,49 @@ export default function Index() {
             </View>
           </View>
         ) : null}
+
+        <View className="mx-4 mt-3 gap-2 rounded-md border border-border bg-card px-3 py-3">
+          <View className="flex-row items-center justify-between gap-3">
+            <Text className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("chat.capturePipeline")}
+            </Text>
+            <Button
+              accessibilityRole="button"
+              accessibilityLabel={t("chat.openMemoryInbox")}
+              variant="ghost"
+              size="sm"
+              onPress={() => router.push("/inbox" as Href)}
+            >
+              <Ionicons name="file-tray-full-outline" size={16} color={iconColor} />
+            </Button>
+          </View>
+          <View className="flex-row gap-2">
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push("/inbox" as Href)}
+              className="min-h-16 flex-1 justify-center rounded-md bg-muted/50 px-3 py-2"
+            >
+              <Text className="text-xl font-semibold">{snapshot.pendingCards}</Text>
+              <Text className="text-xs text-muted-foreground">{t("chat.pendingReview")}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push("/inbox?tab=devices" as Href)}
+              className="min-h-16 flex-1 justify-center rounded-md bg-muted/50 px-3 py-2"
+            >
+              <Text className="text-xl font-semibold">{snapshot.pendingDeviceReviewCount}</Text>
+              <Text className="text-xs text-muted-foreground">{t("chat.deviceReview")}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push("/journal" as Href)}
+              className="min-h-16 flex-1 justify-center rounded-md bg-muted/50 px-3 py-2"
+            >
+              <Text className="text-xl font-semibold">{snapshot.episodeCount}</Text>
+              <Text className="text-xs text-muted-foreground">{t("chat.fragments")}</Text>
+            </Pressable>
+          </View>
+        </View>
 
         <ChatMessages
           messages={messages}

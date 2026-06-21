@@ -112,6 +112,11 @@ assertIncludes(chatScreen, 'memory.source === "memory" && memory.type === "open_
 assertIncludes(chatScreen, 'memory.source === "memory" && memory.type !== "open_loop"', "Chat context saved memories must exclude open loops.");
 assertIncludes(chatScreen, "Relationship graph", "Chat context must include retrieved relationship graph knowledge.");
 assertIncludes(chatScreen, "memory.title", "Chat prompt context must preserve retrieved knowledge titles.");
+assertIncludes(chatScreen, "capturePipeline", "Chat entry must surface the capture pipeline.");
+assertIncludes(chatScreen, "pendingDeviceReviewCount", "Chat entry must surface pending screen-off device review work.");
+assertIncludes(chatScreen, "episodeCount", "Chat entry must surface captured episode totals.");
+assertIncludes(chatScreen, 'router.push("/inbox?tab=devices"', "Chat entry must open device reviews directly.");
+assertIncludes(chatScreen, 'router.push("/journal"', "Chat entry must open the episode timeline directly.");
 assertIncludes(layout, 'drawerLabel: t("navigation.inbox")', "Drawer must expose Memory Inbox as a localized primary entry.");
 assertIncludes(layout, 'drawerIcon: (props) => drawerIconColor(props).inbox', "Drawer must show an icon for the Memory Inbox entry.");
 assertIncludes(layout, 'drawerLabel: t("navigation.memory")', "Drawer must expose the Memory graph as a localized entry.");
