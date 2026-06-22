@@ -26,6 +26,14 @@ export type ChatSessionRow = {
   remote_chat_id: string | null;
 };
 
+export type ChatSessionSummary = {
+  sessionId: string;
+  title: string;
+  preview: string;
+  updatedAt: string;
+  messageCount: number;
+};
+
 export type ChatMessageRow = {
   message_id: string;
   role: ChatMessage["role"];

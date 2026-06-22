@@ -3,7 +3,7 @@ import { router, useFocusEffect, useLocalSearchParams, type Href } from "expo-ro
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, useColorScheme, View } from "react-native";
+import { Pressable, ScrollView, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/button";
@@ -170,39 +170,6 @@ const getDeviceEventContextLines = (event: DeviceEventRecord) => {
   ].filter((line): line is string => !!line);
 };
 
-function TabButton({
-  active,
-  label,
-  icon,
-  onPress,
-}: {
-  active: boolean;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  onPress: () => void;
-}) {
-  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
-  const color = active
-    ? colorScheme === "dark"
-      ? "#0A0A0A"
-      : "#FAFAFA"
-    : colorScheme === "dark"
-      ? "#FAFAFA"
-      : "#0A0A0A";
-
-  return (
-    <Button
-      variant={active ? "default" : "outline"}
-      size="sm"
-      className="flex-1"
-      onPress={onPress}
-    >
-      <Ionicons name={icon} size={14} color={color} />
-      <Text>{label}</Text>
-    </Button>
-  );
-}
-
 function SummaryTile({
   label,
   value,
@@ -224,19 +191,25 @@ function SummaryTile({
     : colorScheme === "dark"
       ? "#FAFAFA"
       : "#0A0A0A";
+  const activeClassName = active ? "border-primary bg-primary" : "border-border bg-card";
+  const activeTextClassName = active ? "text-primary-foreground" : "text-foreground";
 
   return (
-    <Button
-      variant={active ? "default" : "outline"}
-      className="min-h-[74px] flex-1 items-start justify-between rounded-md px-3 py-2"
+    <Pressable
+      accessibilityRole="button"
+      className={`min-w-0 min-h-[74px] flex-1 justify-between rounded-md border px-3 py-2 ${activeClassName}`}
       onPress={onPress}
     >
       <View className="w-full flex-row items-center justify-between gap-2">
-        <Text className="text-xs">{label}</Text>
+        <Text className={`min-w-0 flex-1 text-xs ${activeTextClassName}`}>
+          {label}
+        </Text>
         <Ionicons name={icon} size={15} color={iconColor} />
       </View>
-      <Text className="text-2xl font-semibold leading-7">{value}</Text>
-    </Button>
+      <Text className={`w-full flex-shrink text-2xl font-semibold leading-7 ${activeTextClassName}`}>
+        {value}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -1194,35 +1167,6 @@ export default function InboxScreen() {
               }}
             />
           </View>
-        </View>
-
-        <View className="flex-row flex-wrap gap-2">
-          <TabButton
-            active={tab === "pending"}
-            label={t("inbox.pending")}
-            icon="sparkles-outline"
-            onPress={() => setTab("pending")}
-          />
-          <TabButton
-            active={tab === "saved"}
-            label={t("inbox.saved")}
-            icon="archive-outline"
-            onPress={() => setTab("saved")}
-          />
-        </View>
-        <View className="flex-row flex-wrap gap-2">
-          <TabButton
-            active={tab === "reflections"}
-            label={t("inbox.reflections")}
-            icon="prism-outline"
-            onPress={() => setTab("reflections")}
-          />
-          <TabButton
-            active={tab === "devices"}
-            label={t("inbox.devices")}
-            icon="bluetooth-outline"
-            onPress={() => setTab("devices")}
-          />
         </View>
 
         {errorMessage ? (

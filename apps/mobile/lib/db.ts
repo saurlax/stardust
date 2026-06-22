@@ -5,7 +5,12 @@ import {
   toToolCardsFromCandidates,
   updateCandidateStatus,
 } from "@/lib/db/repositories/candidates";
-import { loadLatestChatSession, saveChatSessionSnapshot } from "@/lib/db/repositories/chatSessions";
+import {
+  listChatSessionSummaries,
+  loadChatSession,
+  loadLatestChatSession,
+  saveChatSessionSnapshot,
+} from "@/lib/db/repositories/chatSessions";
 import {
   createDeviceEvent,
   listDeviceEvents,
@@ -35,6 +40,7 @@ import { getPersonalSnapshot } from "@/lib/db/repositories/snapshot";
 import { listJournalDays } from "@/lib/db/repositories/timeline";
 import { migrateDbIfNeeded } from "@/lib/db/schema";
 import type {
+  ChatSessionSummary,
   DeviceEventRecord,
   DeviceRecord,
   DeviceStatus,
@@ -68,7 +74,7 @@ export {
   updateDeviceStatus,
   upsertDevice,
 };
-export { loadLatestChatSession, saveChatSessionSnapshot };
+export { listChatSessionSummaries, loadChatSession, loadLatestChatSession, saveChatSessionSnapshot };
 export { migrateDbIfNeeded };
 export { findRelevantKnowledge };
 export { getPersonalSnapshot };
@@ -86,6 +92,7 @@ export {
 export type {
   CandidateKind,
   CandidateStatus,
+  ChatSessionSummary,
   DeviceEventRecord,
   DeviceRecord,
   DeviceStatus,

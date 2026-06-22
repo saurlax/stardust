@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
-import { router, useFocusEffect, type Href } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams, type Href } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -9,7 +9,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   useColorScheme,
   View,
 } from "react-native";
@@ -29,11 +28,11 @@ import {
   createSessionId,
   findRelevantKnowledge,
   getPersonalSnapshot,
+  loadChatSession,
   loadLatestChatSession,
   saveChatSessionSnapshot,
   updateCandidateStatus,
 } from "@/lib/db";
-import type { PersonalSnapshot } from "@/lib/db";
 import { t } from "@/lib/i18n";
 
 const DEFAULT_IMAGE_PROMPT = t("chat.defaultImagePrompt");
@@ -46,20 +45,6 @@ type RequestContext = {
 
 type PromptSource = "chat" | "share" | "image";
 type PromptMetadata = Record<string, unknown>;
-
-const emptySnapshot: PersonalSnapshot = {
-  acceptedMemories: 0,
-  pendingCards: 0,
-  pendingDeviceReviewCount: 0,
-  openLoopCount: 0,
-  journalEntries: 0,
-  episodeCount: 0,
-  screenOffEpisodeCount: 0,
-  reflectionCount: 0,
-  entityCount: 0,
-  relationCount: 0,
-  deviceCount: 0,
-};
 
 const createGreetingMessage = (): ChatMessage => ({
   id: GREETING_ID,
@@ -146,6 +131,9 @@ const getErrorMessage = (error: unknown) => {
 
 export default function Index() {
   const db = useSQLiteContext();
+  const params = useLocalSearchParams<{ newSession?: string; sessionId?: string }>();
+  const targetSessionId = typeof params.sessionId === "string" ? params.sessionId : undefined;
+  const targetNewSession = typeof params.newSession === "string" ? params.newSession : undefined;
   const navigation = useNavigation();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
@@ -157,7 +145,6 @@ export default function Index() {
   const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>();
   const [messages, setMessages] = useState<ChatMessage[]>([createGreetingMessage()]);
   const [pendingCandidates, setPendingCandidates] = useState(0);
-  const [snapshot, setSnapshot] = useState<PersonalSnapshot>(emptySnapshot);
   const [sending, setSending] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -180,7 +167,23 @@ export default function Index() {
   useEffect(() => {
     let active = true;
 
-    loadLatestChatSession(db)
+    if (targetNewSession) {
+      sessionIdRef.current = createSessionId();
+      chatIdRef.current = null;
+      setMessages([createGreetingMessage()]);
+      setChatError(null);
+      hydratingRef.current = false;
+      setSessionReady(true);
+      return () => {
+        active = false;
+      };
+    }
+
+    const loader = targetSessionId
+      ? loadChatSession(db, targetSessionId)
+      : loadLatestChatSession(db);
+
+    loader
       .then((session) => {
         if (!active) return;
 
@@ -203,13 +206,13 @@ export default function Index() {
     return () => {
       active = false;
     };
-  }, [db]);
+  }, [db, targetNewSession, targetSessionId]);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
 
-      if (!sessionReady || hydratingRef.current || sending) {
+      if (!sessionReady || hydratingRef.current || sending || targetNewSession) {
         return () => {
           active = false;
         };
@@ -217,7 +220,7 @@ export default function Index() {
 
       loadLatestChatSession(db)
         .then((session) => {
-          if (!active || !session) return;
+          if (!active || !session || targetSessionId) return;
           setChatError(null);
           sessionIdRef.current = session.sessionId;
           chatIdRef.current = session.remoteChatId ?? null;
@@ -230,7 +233,7 @@ export default function Index() {
       return () => {
         active = false;
       };
-    }, [db, sending, sessionReady]),
+    }, [db, sending, sessionReady, targetNewSession, targetSessionId]),
   );
 
   useEffect(() => {
@@ -262,11 +265,9 @@ export default function Index() {
   const refreshPendingCandidates = useCallback(() => {
     void getPersonalSnapshot(db)
       .then((nextSnapshot) => {
-        setSnapshot(nextSnapshot);
         setPendingCandidates(nextSnapshot.pendingCards);
       })
       .catch(() => {
-        setSnapshot(emptySnapshot);
         setPendingCandidates(0);
       });
   }, [db]);
@@ -714,17 +715,6 @@ export default function Index() {
               </View>
             ) : null}
           </Button>
-          <Button
-            accessibilityRole="button"
-            accessibilityLabel={t("chat.openSettings")}
-            hitSlop={10}
-            onPress={() => router.push("/settings")}
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-          >
-            <Ionicons name="settings-outline" size={22} color={iconColor} />
-          </Button>
         </View>
       </View>
 
@@ -744,49 +734,6 @@ export default function Index() {
             </View>
           </View>
         ) : null}
-
-        <View className="mx-4 mt-3 gap-2 rounded-md border border-border bg-card px-3 py-3">
-          <View className="flex-row items-center justify-between gap-3">
-            <Text className="text-xs font-semibold uppercase text-muted-foreground">
-              {t("chat.capturePipeline")}
-            </Text>
-            <Button
-              accessibilityRole="button"
-              accessibilityLabel={t("chat.openMemoryInbox")}
-              variant="ghost"
-              size="sm"
-              onPress={() => router.push("/inbox" as Href)}
-            >
-              <Ionicons name="file-tray-full-outline" size={16} color={iconColor} />
-            </Button>
-          </View>
-          <View className="flex-row gap-2">
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push("/inbox" as Href)}
-              className="min-h-16 flex-1 justify-center rounded-md bg-muted/50 px-3 py-2"
-            >
-              <Text className="text-xl font-semibold">{snapshot.pendingCards}</Text>
-              <Text className="text-xs text-muted-foreground">{t("chat.pendingReview")}</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push("/inbox?tab=devices" as Href)}
-              className="min-h-16 flex-1 justify-center rounded-md bg-muted/50 px-3 py-2"
-            >
-              <Text className="text-xl font-semibold">{snapshot.pendingDeviceReviewCount}</Text>
-              <Text className="text-xs text-muted-foreground">{t("chat.deviceReview")}</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push("/journal" as Href)}
-              className="min-h-16 flex-1 justify-center rounded-md bg-muted/50 px-3 py-2"
-            >
-              <Text className="text-xl font-semibold">{snapshot.episodeCount}</Text>
-              <Text className="text-xs text-muted-foreground">{t("chat.fragments")}</Text>
-            </Pressable>
-          </View>
-        </View>
 
         <ChatMessages
           messages={messages}

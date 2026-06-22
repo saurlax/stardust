@@ -3,85 +3,85 @@ import type { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { router, useFocusEffect, type Href } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, useColorScheme, View } from "react-native";
+import { Pressable, ScrollView, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { NebulaView } from "@/components/NebulaView";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CardDescription } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
-import {
-  buildMemoryTree,
-  getPersonalSnapshot,
-  listEntities,
-  listEpisodes,
-  listReflections,
-  listRelations,
-  listStoredMemories,
-  type Episode,
-  type PersonalSnapshot,
-  type ReflectionRecord,
-  type RelationRecord,
-  type StoredMemory,
-} from "@/lib/db";
+import { listChatSessionSummaries, type ChatSessionSummary } from "@/lib/db";
 import { t } from "@/lib/i18n";
-import { getEpisodeTitleLabel, getMemoryTypeLabel, getRelationTypeLabel } from "@/lib/memoryLabels";
-
-const emptySnapshot: PersonalSnapshot = {
-  acceptedMemories: 0,
-  pendingCards: 0,
-  pendingDeviceReviewCount: 0,
-  openLoopCount: 0,
-  journalEntries: 0,
-  episodeCount: 0,
-  screenOffEpisodeCount: 0,
-  reflectionCount: 0,
-  entityCount: 0,
-  relationCount: 0,
-  deviceCount: 0,
-};
 
 const navigateFromDrawer = (navigation: DrawerContentComponentProps["navigation"], href: Href) => {
   navigation.closeDrawer();
   router.push(href);
 };
 
-const getEpisodeTitle = (episode: Episode) => {
-  return getEpisodeTitleLabel(episode.source, episode.title);
+const compactText = (value: string, fallback: string) => {
+  const trimmed = value.replace(/\s+/g, " ").trim();
+  if (!trimmed) return fallback;
+  return trimmed.length > 56 ? `${trimmed.slice(0, 56)}...` : trimmed;
 };
 
-const getMemorySummaryLabel = (memory: StoredMemory) =>
-  [
-    memory.candidateKind === "open_loop" ? getMemoryTypeLabel("open_loop") : getMemoryTypeLabel(memory.type),
-    `${t("personal.importance")} ${memory.importance}`,
-    memory.sourceKind === "iot" ? t("personal.screenOffEpisodeCount") : undefined,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
-function EpisodeMediaPreview({ episode }: { episode: Episode }) {
-  if (!episode.mediaUri) return null;
+function DrawerAction({
+  icon,
+  label,
+  description,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  description: string;
+  onPress: () => void;
+}) {
+  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
 
   return (
-    <Image
-      source={{ uri: episode.mediaUri }}
-      resizeMode="cover"
-      accessibilityLabel={getEpisodeTitle(episode) ?? t("journal.mediaPreview")}
-      className="mt-1 h-24 w-full rounded-md bg-muted"
-    />
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      className="flex-1 rounded-md border border-border bg-card px-3 py-3"
+    >
+      <View className="mb-2 h-9 w-9 items-center justify-center rounded-full bg-muted">
+        <Ionicons name={icon} size={18} color={iconColor} />
+      </View>
+      <Text className="text-sm font-semibold">{label}</Text>
+      <Text className="mt-1 text-xs leading-4 text-muted-foreground">{description}</Text>
+    </Pressable>
   );
 }
 
-function ScreenOffBadge() {
-  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
-  const iconColor = colorScheme === "dark" ? "#67E8F9" : "#0E7490";
-
+function SessionItem({
+  session,
+  navigation,
+}: {
+  session: ChatSessionSummary;
+  navigation: DrawerContentComponentProps["navigation"];
+}) {
   return (
-    <View className="self-start flex-row items-center gap-1.5 rounded-md border border-cyan-700/30 bg-cyan-700/10 px-2 py-1">
-      <Ionicons name="radio-outline" size={13} color={iconColor} />
-      <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-200">
-        {t("personal.screenOffSource")}
+    <Pressable
+      accessibilityRole="button"
+      onPress={() =>
+        navigateFromDrawer(navigation, {
+          pathname: "/",
+          params: { sessionId: session.sessionId },
+        } as Href)
+      }
+      className="gap-1 rounded-md px-3 py-3 active:bg-muted"
+    >
+      <View className="flex-row items-center justify-between gap-3">
+        <Text className="flex-1 text-sm font-semibold">
+          {compactText(session.title, t("personal.untitledSession"))}
+        </Text>
+        <Text className="text-[11px] text-muted-foreground">
+          {new Date(session.updatedAt).toLocaleDateString()}
+        </Text>
+      </View>
+      <Text className="text-xs leading-4 text-muted-foreground">
+        {compactText(session.preview, t("personal.emptySession"))}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -89,42 +89,19 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
   const db = useSQLiteContext();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const avatarIconColor = colorScheme === "dark" ? "#0A0A0A" : "#FAFAFA";
-  const [snapshot, setSnapshot] = useState<PersonalSnapshot>(emptySnapshot);
-  const [memoryTree, setMemoryTree] = useState(buildMemoryTree([]));
-  const [recentMemories, setRecentMemories] = useState<StoredMemory[]>([]);
-  const [recentReflections, setRecentReflections] = useState<ReflectionRecord[]>([]);
-  const [recentRelations, setRecentRelations] = useState<RelationRecord[]>([]);
-  const [recentEpisodes, setRecentEpisodes] = useState<Episode[]>([]);
+  const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
+  const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
 
-      Promise.all([
-        getPersonalSnapshot(db),
-        listStoredMemories(db),
-        listEpisodes(db, 3),
-        listReflections(db),
-        listEntities(db),
-        listRelations(db),
-      ])
-        .then(([nextSnapshot, memories, episodes, reflections, entities, relations]) => {
-          if (!active) return;
-          setSnapshot(nextSnapshot);
-          setMemoryTree(buildMemoryTree(memories, reflections, entities, relations));
-          setRecentMemories(memories.slice(0, 3));
-          setRecentReflections(reflections.slice(0, 2));
-          setRecentRelations(relations.slice(0, 3));
-          setRecentEpisodes(episodes);
+      listChatSessionSummaries(db)
+        .then((nextSessions) => {
+          if (active) setSessions(nextSessions);
         })
         .catch(() => {
-          if (!active) return;
-          setSnapshot(emptySnapshot);
-          setMemoryTree(buildMemoryTree([]));
-          setRecentMemories([]);
-          setRecentReflections([]);
-          setRecentRelations([]);
-          setRecentEpisodes([]);
+          if (active) setSessions([]);
         });
 
       return () => {
@@ -135,11 +112,8 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="flex-row items-center gap-2.5 px-0.5 py-0.5">
+      <View className="flex-1 px-4 py-3">
+        <View className="flex-row items-center gap-2.5 py-1">
           <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
             <Ionicons name="person" size={20} color={avatarIconColor} />
           </View>
@@ -147,301 +121,68 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
             <Text className="text-base font-semibold">{t("personal.profileName")}</Text>
             <Text className="text-xs text-muted-foreground">{t("personal.profileSubtitle")}</Text>
           </View>
-        </View>
-
-        <View className="flex-row gap-2">
-          <Card className="flex-1 gap-2 px-3 py-3">
-            <CardDescription>{t("personal.acceptedMemories")}</CardDescription>
-            <Text className="text-2xl font-semibold">{snapshot.acceptedMemories}</Text>
-          </Card>
-          <Card className="flex-1 gap-2 px-3 py-3">
-            <CardDescription>{t("personal.pendingCards")}</CardDescription>
-            <Text className="text-2xl font-semibold">{snapshot.pendingCards}</Text>
-          </Card>
-        </View>
-
-        <Card className="gap-2 px-3 py-3">
-          <CardDescription>{t("personal.openLoops")}</CardDescription>
-          <Text className="text-2xl font-semibold">{snapshot.openLoopCount}</Text>
-        </Card>
-
-        <View className="flex-row gap-2">
-          <Card className="flex-1 gap-2 px-3 py-3">
-            <CardDescription>{t("personal.episodeCount")}</CardDescription>
-            <Text className="text-2xl font-semibold">{snapshot.episodeCount}</Text>
-          </Card>
-          <Card className="flex-1 gap-2 px-3 py-3">
-            <CardDescription>{t("personal.screenOffEpisodeCount")}</CardDescription>
-            <Text className="text-2xl font-semibold">{snapshot.screenOffEpisodeCount}</Text>
-          </Card>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => navigateFromDrawer(navigation, "/inbox?tab=devices" as Href)}
-          className="rounded-xl"
-        >
-          <Card className="gap-2 px-3 py-3">
-            <CardDescription>{t("personal.pendingDeviceReviews")}</CardDescription>
-            <Text className="text-2xl font-semibold">{snapshot.pendingDeviceReviewCount}</Text>
-          </Card>
-        </Pressable>
-
-        <View className="flex-row gap-2">
-          <Card className="flex-1 gap-2 px-3 py-3">
-            <CardDescription>{t("personal.reflectionCount")}</CardDescription>
-            <Text className="text-2xl font-semibold">{snapshot.reflectionCount}</Text>
-          </Card>
-          <Card className="flex-1 gap-2 px-3 py-3">
-            <CardDescription>{t("personal.entityCount")}</CardDescription>
-            <Text className="text-2xl font-semibold">{snapshot.entityCount}</Text>
-          </Card>
-        </View>
-
-        <View className="flex-row gap-2">
-          <Card className="flex-1 gap-2 px-3 py-3">
-            <CardDescription>{t("personal.relationCount")}</CardDescription>
-            <Text className="text-2xl font-semibold">{snapshot.relationCount}</Text>
-          </Card>
-          <Card className="flex-1 gap-2 px-3 py-3">
-            <CardDescription>{t("personal.journalCount")}</CardDescription>
-            <Text className="text-2xl font-semibold">{snapshot.journalEntries}</Text>
-          </Card>
-        </View>
-
-        <Card className="gap-2 px-3 py-3">
-          <CardDescription>{t("personal.deviceCount")}</CardDescription>
-          <Text className="text-2xl font-semibold">{snapshot.deviceCount}</Text>
-        </Card>
-
-        <Card className="gap-2 px-4 py-4">
-          <CardDescription>{t("personal.latestMemory")}</CardDescription>
-          <Text className="text-sm leading-5">
-            {snapshot.recentMemory?.content ?? t("personal.noLatestMemory")}
-          </Text>
-        </Card>
-
-        <Card className="gap-3 px-4 py-4">
-          <View className="gap-1">
-            <Text className="text-base font-semibold">{t("personal.recentMemoriesTitle")}</Text>
-            <Text className="text-xs text-muted-foreground">
-              {t("personal.recentMemoriesDescription")}
-            </Text>
-          </View>
-          {recentMemories.length ? (
-            recentMemories.map((memory) => (
-              <Pressable
-                key={memory.id}
-                accessibilityRole="button"
-                className="gap-1 rounded-lg bg-muted/50 px-3 py-3"
-                onPress={() =>
-                  navigateFromDrawer(navigation, {
-                    pathname: "/memory",
-                    params: { nodeId: `memory-${memory.id}` },
-                  } as Href)
-                }
-              >
-                <Text className="text-xs uppercase text-muted-foreground">
-                  {getMemorySummaryLabel(memory)}
-                </Text>
-                {memory.sourceKind === "iot" ? <ScreenOffBadge /> : null}
-                <Text className="text-sm leading-5">{memory.content}</Text>
-                {memory.rationale ? (
-                  <Text className="text-xs leading-4 text-muted-foreground">{memory.rationale}</Text>
-                ) : null}
-              </Pressable>
-            ))
-          ) : (
-            <Text className="text-sm text-muted-foreground">{t("personal.noRecentMemories")}</Text>
-          )}
-        </Card>
-
-        <Card className="gap-3 px-4 py-4">
-          <View className="gap-1">
-            <Text className="text-base font-semibold">{t("personal.recentRelationsTitle")}</Text>
-            <Text className="text-xs text-muted-foreground">
-              {t("personal.recentRelationsDescription")}
-            </Text>
-          </View>
-          {recentRelations.length ? (
-            recentRelations.map((relation) => (
-              <Pressable
-                key={relation.id}
-                accessibilityRole="button"
-                className="gap-1 rounded-lg bg-muted/50 px-3 py-3"
-                onPress={() =>
-                  navigateFromDrawer(navigation, {
-                    pathname: "/memory",
-                    params: { nodeId: `relation-${relation.id}` },
-                  } as Href)
-                }
-              >
-                <Text className="text-xs uppercase text-muted-foreground">
-                  {getRelationTypeLabel(relation.type)} · {t("memory.relationWeight")} {relation.weight}
-                </Text>
-                {relation.sourceKind === "iot" ? <ScreenOffBadge /> : null}
-                <Text className="text-sm leading-5">
-                  {relation.sourceEntityName ?? relation.sourceEntityId} ·{" "}
-                  {getRelationTypeLabel(relation.type)} ·{" "}
-                  {relation.targetEntityName ?? relation.targetEntityId}
-                </Text>
-                {relation.rationale ? (
-                  <Text className="text-xs leading-4 text-muted-foreground">{relation.rationale}</Text>
-                ) : null}
-              </Pressable>
-            ))
-          ) : (
-            <Text className="text-sm text-muted-foreground">{t("personal.noRecentRelations")}</Text>
-          )}
-        </Card>
-
-        <Card className="gap-3 px-4 py-4">
-          <View className="gap-1">
-            <Text className="text-base font-semibold">{t("personal.recentReflectionsTitle")}</Text>
-            <Text className="text-xs text-muted-foreground">
-              {t("personal.recentReflectionsDescription")}
-            </Text>
-          </View>
-          {recentReflections.length ? (
-            recentReflections.map((reflection) => (
-              <Pressable
-                key={reflection.id}
-                accessibilityRole="button"
-                className="gap-1 rounded-lg bg-muted/50 px-3 py-3"
-                onPress={() =>
-                  navigateFromDrawer(navigation, {
-                    pathname: "/memory",
-                    params: { nodeId: `reflection-${reflection.id}` },
-                  } as Href)
-                }
-              >
-                <Text className="text-xs uppercase text-muted-foreground">
-                  {new Date(reflection.createdAt).toLocaleDateString()}
-                </Text>
-                <Text className="text-sm font-semibold leading-5">{reflection.title}</Text>
-                <Text className="text-sm leading-5">{reflection.content}</Text>
-                {reflection.rationale ? (
-                  <Text className="text-xs leading-4 text-muted-foreground">{reflection.rationale}</Text>
-                ) : null}
-              </Pressable>
-            ))
-          ) : (
-            <Text className="text-sm text-muted-foreground">{t("personal.noRecentReflections")}</Text>
-          )}
-        </Card>
-
-        <Card className="gap-3 px-4 py-4">
-          <View className="gap-1">
-            <Text className="text-base font-semibold">{t("personal.recentCapturesTitle")}</Text>
-            <Text className="text-xs text-muted-foreground">
-              {t("personal.recentCapturesDescription")}
-            </Text>
-          </View>
-          {recentEpisodes.length ? (
-            recentEpisodes.map((episode) => (
-              <Pressable
-                key={episode.id}
-                accessibilityRole="button"
-                className="gap-1 rounded-lg bg-muted/50 px-3 py-3"
-                onPress={() =>
-                  navigateFromDrawer(navigation, {
-                    pathname: "/journal",
-                    params: { episodeId: episode.id },
-                  } as Href)
-                }
-              >
-                <Text className="text-xs uppercase text-muted-foreground">
-                  {t(`journal.source.${episode.source}`)}
-                </Text>
-                {getEpisodeTitle(episode) ? (
-                  <Text className="text-sm font-semibold leading-5">
-                    {getEpisodeTitle(episode)}
-                  </Text>
-                ) : null}
-                <EpisodeMediaPreview episode={episode} />
-                <Text className="text-sm leading-5">{episode.content}</Text>
-              </Pressable>
-            ))
-          ) : (
-            <Text className="text-sm text-muted-foreground">{t("personal.noRecentCaptures")}</Text>
-          )}
-        </Card>
-
-        <View className="gap-3">
-          <Pressable
+          <Button
             accessibilityRole="button"
-            onPress={() => navigateFromDrawer(navigation, "/inbox" as Href)}
-            className="rounded-xl"
+            accessibilityLabel={t("chat.openSettings")}
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            onPress={() => navigateFromDrawer(navigation, "/settings")}
           >
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("personal.inboxTitle")}</CardTitle>
-                <CardDescription>{t("personal.inboxDescription")}</CardDescription>
-              </CardHeader>
-            </Card>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
+            <Ionicons name="settings-outline" size={21} color={iconColor} />
+          </Button>
+        </View>
+
+        <View className="mt-5 flex-row gap-2">
+          <DrawerAction
+            icon="hardware-chip-outline"
+            label={t("personal.devicesTitle")}
+            description={t("personal.devicesDescription")}
             onPress={() => navigateFromDrawer(navigation, "/inbox?tab=devices" as Href)}
-            className="rounded-xl"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("personal.deviceInboxTitle")}</CardTitle>
-                <CardDescription>{t("personal.deviceInboxDescription")}</CardDescription>
-              </CardHeader>
-            </Card>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
+          />
+          <DrawerAction
+            icon="git-network-outline"
+            label={t("personal.memoryTitle")}
+            description={t("personal.memoryDescription")}
             onPress={() => navigateFromDrawer(navigation, "/memory")}
-            className="rounded-xl"
-          >
-            <Card className="h-48 overflow-hidden p-0">
-              <NebulaView style={StyleSheet.absoluteFillObject} tree={memoryTree} showLabels={false} />
-              <CardHeader className="absolute left-0 top-0 p-4">
-                <CardTitle>{t("personal.memoryTitle")}</CardTitle>
-                <CardDescription>{t("personal.memoryDescription")}</CardDescription>
-              </CardHeader>
-            </Card>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => navigateFromDrawer(navigation, "/journal")}
-            className="rounded-xl"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("personal.journalTitle")}</CardTitle>
-                <CardDescription>{t("personal.journalDescription")}</CardDescription>
-              </CardHeader>
-            </Card>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => navigateFromDrawer(navigation, "/calendar")}
-            className="rounded-xl"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("personal.calendarTitle")}</CardTitle>
-                <CardDescription>{t("personal.calendarDescription")}</CardDescription>
-              </CardHeader>
-            </Card>
-          </Pressable>
+          />
         </View>
-      </ScrollView>
+
+        <View className="mt-6 flex-row items-center justify-between px-0.5">
+          <CardDescription>{t("personal.historyTitle")}</CardDescription>
+          <Button
+            accessibilityRole="button"
+            accessibilityLabel={t("personal.newSession")}
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full"
+            onPress={() =>
+              navigateFromDrawer(navigation, {
+                pathname: "/",
+                params: { newSession: String(Date.now()) },
+              } as Href)
+            }
+          >
+            <Ionicons name="add-outline" size={19} color={iconColor} />
+          </Button>
+        </View>
+
+        <ScrollView className="mt-2 flex-1" showsVerticalScrollIndicator={false}>
+          {sessions.length ? (
+            <View className="gap-1 pb-4">
+              {sessions.map((session) => (
+                <SessionItem key={session.sessionId} session={session} navigation={navigation} />
+              ))}
+            </View>
+          ) : (
+            <View className="min-h-28 items-center justify-center rounded-md border border-dashed border-border px-4">
+              <Text className="text-center text-sm text-muted-foreground">
+                {t("personal.noHistory")}
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    gap: 14,
-    padding: 16,
-    paddingBottom: 24,
-  },
-});

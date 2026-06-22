@@ -79,7 +79,8 @@ const translations = {
       saveSettings: "Save settings",
       saving: "Saving",
       save: "Save",
-      description: "Stardust is local-first. The app connects directly to an OpenAI-compatible endpoint and keeps memory on this device.",
+      description:
+        "Stardust is local-first. The app connects directly to an OpenAI-compatible endpoint and keeps memory on this device.",
       localTitle: "Local AI",
       localDescription:
         "Connect directly to an OpenAI-compatible model endpoint from this device.",
@@ -172,7 +173,8 @@ const translations = {
     inbox: {
       title: "Memory Inbox",
       headerTitle: "Memory Inbox",
-      subtitle: "Review what Stardust noticed before it becomes long-term memory.",
+      subtitle:
+        "Review what Stardust noticed before it becomes long-term memory.",
       pending: "Pending",
       saved: "Saved",
       reflections: "Reflections",
@@ -270,10 +272,18 @@ const translations = {
       profileSubtitle: "Your personal space and story",
       memoryTitle: "Memory",
       memoryDescription: "Meet your digital twin in fragments",
+      devicesTitle: "Devices",
+      devicesDescription: "Review screen-off captures",
+      historyTitle: "History",
+      newSession: "New chat",
+      untitledSession: "Untitled chat",
+      emptySession: "No messages yet",
+      noHistory: "No chat history yet.",
       inboxTitle: "Memory Inbox",
       inboxDescription: "Confirm, edit, or dismiss what Stardust noticed",
       deviceInboxTitle: "Device review",
-      deviceInboxDescription: "Turn screen-off captures into confirmed memories",
+      deviceInboxDescription:
+        "Turn screen-off captures into confirmed memories",
       journalTitle: "Journal",
       journalDescription: "Review and manage daily summaries",
       calendarTitle: "Calendar",
@@ -297,13 +307,16 @@ const translations = {
       importance: "Importance",
       noRecentMemories: "No accepted memories yet.",
       recentReflectionsTitle: "Recent reflections",
-      recentReflectionsDescription: "Higher-level self-understanding you confirmed",
+      recentReflectionsDescription:
+        "Higher-level self-understanding you confirmed",
       noRecentReflections: "No confirmed reflections yet.",
       recentRelationsTitle: "Recent relations",
-      recentRelationsDescription: "Strong entity links emerging from confirmed memory",
+      recentRelationsDescription:
+        "Strong entity links emerging from confirmed memory",
       noRecentRelations: "No confirmed relations yet.",
       recentCapturesTitle: "Recent fragments",
-      recentCapturesDescription: "Recent chat, share, image, calendar, device, and journal episodes",
+      recentCapturesDescription:
+        "Recent chat, share, image, calendar, device, and journal episodes",
       noRecentCaptures: "No fragments captured yet.",
     },
     memory: {
@@ -311,7 +324,28 @@ const translations = {
       empty: "No accepted memories yet.",
       manageTitle: "Saved memories",
       graphTitle: "Memory graph",
-      graphSubtitle: "Confirmed memories and reflections arranged as a living local graph.",
+      graphSubtitle:
+        "Confirmed memories and reflections arranged as a living local graph.",
+      flowTitle: "How memory grows",
+      flowSubtitle:
+        "A memory starts as a fragment, waits for your review, then becomes usable context.",
+      flow: {
+        captureTitle: "Capture",
+        captureDescription:
+          "Chats, images, shares, calendar moments, and devices become raw fragments.",
+        reviewTitle: "Review",
+        reviewDescription:
+          "Stardust asks before uncertain or open-loop items become durable memory.",
+        saveTitle: "Save",
+        saveDescription:
+          "Confirmed items become long-term memories you can edit or archive.",
+        understandTitle: "Connect",
+        understandDescription:
+          "Reflections, entities, and relations explain why memories belong together.",
+        graphTitle: "Use",
+        graphDescription:
+          "The graph shows what can be brought back as local context in future chats.",
+      },
       savedCount: "Saved",
       reflectionCount: "Reflections",
       entityCount: "Entities",
@@ -324,7 +358,8 @@ const translations = {
       importance: "Importance",
       rootNodeTitle: "You",
       rootNodeDescription: "Graph center",
-      rootNodeContent: "Confirmed memories, reflections, and entities orbit around your local profile.",
+      rootNodeContent:
+        "Confirmed memories, reflections, and entities orbit around your local profile.",
       typeNodeDescription: "Memory type",
       memoryNodeDescription: "Saved memory",
       reflectionNodeDescription: "Confirmed reflection",
@@ -335,7 +370,8 @@ const translations = {
       relationWeight: "weight",
       nodeEmpty: "No details yet.",
       nodeNotFoundTitle: "Memory node not found",
-      nodeNotFoundDescription: "The selected item may have been archived or is no longer in the graph.",
+      nodeNotFoundDescription:
+        "The selected item may have been archived or is no longer in the graph.",
       openSource: "Open source",
       errorTitle: "Memory graph needs attention",
       actionFailed: "Memory action failed.",
@@ -389,7 +425,8 @@ const translations = {
       searchEmpty: "No matching memories or journals yet.",
       capturesTitle: "Journal entries",
       timelineTitle: "Episode timeline",
-      timelineSubtitle: "Browse every chat, share, image, calendar, device, and journal fragment.",
+      timelineSubtitle:
+        "Browse every chat, share, image, calendar, device, and journal fragment.",
       selectedSource: "Selected source",
       errorTitle: "Timeline needs attention",
       actionFailed: "Timeline action failed.",
@@ -516,7 +553,8 @@ const translations = {
       saveSettings: "保存设置",
       saving: "保存中",
       save: "保存",
-      description: "Stardust 以本地优先为主。应用会直接连接 OpenAI 兼容接口，并把记忆保存在设备本地。",
+      description:
+        "Stardust 以本地优先为主。应用会直接连接 OpenAI 兼容接口，并把记忆保存在设备本地。",
       localTitle: "本地 AI",
       localDescription: "由设备直接连接 OpenAI 兼容模型接口。",
       localBaseURL: "OpenAI 兼容 Base URL",
@@ -614,7 +652,7 @@ const translations = {
       reflections: "反思",
       devices: "设备",
       pipelineTitle: "捕获流水线",
-      pipelinePending: "待审核",
+      pipelinePending: "待确认",
       pipelineSaved: "已保存",
       pipelineReflections: "反思",
       pipelineDeviceReviews: "设备待审",
@@ -706,6 +744,13 @@ const translations = {
       profileSubtitle: "你的个人空间与故事",
       memoryTitle: "记忆",
       memoryDescription: "通过片段认识你的数字分身",
+      devicesTitle: "设备",
+      devicesDescription: "查看屏幕外捕获",
+      historyTitle: "历史会话",
+      newSession: "新会话",
+      untitledSession: "未命名会话",
+      emptySession: "暂无消息",
+      noHistory: "还没有历史会话。",
       inboxTitle: "记忆收件箱",
       inboxDescription: "确认、编辑或忽略 Stardust 看见的线索",
       deviceInboxTitle: "设备审核",
@@ -748,6 +793,22 @@ const translations = {
       manageTitle: "已保存记忆",
       graphTitle: "记忆星图",
       graphSubtitle: "已确认记忆与反思会在这里形成一张本地图谱。",
+      flowTitle: "记忆如何生长",
+      flowSubtitle:
+        "一条记忆会先成为碎片，经过你确认，再变成之后聊天可调用的上下文。",
+      flow: {
+        captureTitle: "捕获",
+        captureDescription: "聊天、图片、分享、日历和设备都会先变成原始碎片。",
+        reviewTitle: "审核",
+        reviewDescription: "不确定或未解的问题会先等你确认，再进入长期记忆。",
+        saveTitle: "保存",
+        saveDescription: "确认后的内容会成为可编辑、可归档的长期记忆。",
+        understandTitle: "连接",
+        understandDescription:
+          "反思、实体和关系会说明这些记忆为什么属于同一张图。",
+        graphTitle: "使用",
+        graphDescription: "星图展示之后聊天可以召回的本地上下文。",
+      },
       savedCount: "已保存",
       reflectionCount: "反思",
       entityCount: "实体",
