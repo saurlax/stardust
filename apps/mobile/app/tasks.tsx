@@ -19,6 +19,7 @@ import {
 } from "@/lib/db";
 import { t } from "@/lib/i18n";
 import { getMemoryTypeLabel } from "@/lib/memoryLabels";
+import { parseTaskDueAt } from "@/lib/taskCalendar";
 
 const isTaskMemory = (memory: StoredMemory) =>
   memory.candidateKind === "open_loop" || memory.type === "task" || memory.type === "goal";
@@ -30,6 +31,40 @@ const getErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message) return error.message;
   return t("tasks.actionFailed");
 };
+
+const getStringMetadata = (metadata: Record<string, unknown> | undefined, key: string) => {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+};
+
+function TaskScheduleStatus({ metadata, pending }: { metadata?: Record<string, unknown>; pending?: boolean }) {
+  const taskDue = parseTaskDueAt(metadata);
+  const calendarEventId = getStringMetadata(metadata, "calendarEventId");
+  const calendarSyncError = getStringMetadata(metadata, "calendarSyncError");
+
+  if (!taskDue) {
+    return <Text className="text-xs text-muted-foreground">{t("tasks.noDueDate")}</Text>;
+  }
+
+  const timeLabel = `${taskDue.dueAt.toLocaleDateString()} ${taskDue.dueAt.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+
+  if (calendarEventId) {
+    return <Text className="text-xs text-muted-foreground">{`${t("tasks.calendarSynced")} · ${timeLabel}`}</Text>;
+  }
+
+  if (calendarSyncError) {
+    return <Text className="text-xs text-destructive">{`${t("tasks.calendarFailed")} · ${timeLabel}`}</Text>;
+  }
+
+  return (
+    <Text className="text-xs text-muted-foreground">
+      {`${pending ? t("tasks.calendarAfterSave") : t("tasks.calendarNotSynced")} · ${timeLabel}`}
+    </Text>
+  );
+}
 
 function SavedTaskCard({
   memory,
@@ -50,6 +85,7 @@ function SavedTaskCard({
           {label} · {new Date(memory.createdAt).toLocaleDateString()}
         </CardDescription>
         <CardTitle className="text-sm leading-5">{memory.content}</CardTitle>
+        <TaskScheduleStatus metadata={memory.metadata} />
       </CardHeader>
       <CardContent className="flex-row flex-wrap gap-2">
         <Button
@@ -92,6 +128,7 @@ function PendingTaskCard({
           {t("tasks.needsReview")} · {label} · {new Date(candidate.createdAt).toLocaleDateString()}
         </CardDescription>
         <CardTitle className="text-sm leading-5">{candidate.content}</CardTitle>
+        <TaskScheduleStatus metadata={candidate.metadata} pending />
       </CardHeader>
       <CardContent className="flex-row flex-wrap gap-2">
         <Button

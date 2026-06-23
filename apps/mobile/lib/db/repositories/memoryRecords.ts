@@ -55,7 +55,9 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
     ORDER BY memory_atoms.created_at DESC
   `);
 
-  return rows.map((row) => ({
+  return rows.map((row) => {
+    const metadata = parseJson(row.candidate_metadata_json);
+    return {
     id: row.memory_id,
     candidateId: row.candidate_id ?? undefined,
     episodeId: row.episode_id ?? undefined,
@@ -69,10 +71,12 @@ export async function listStoredMemories(db: SQLiteDatabase): Promise<StoredMemo
     sourceContent: row.source_content ?? undefined,
     sourceCreatedAt: row.source_created_at ?? undefined,
     sourceKind: row.source_kind ?? undefined,
-    rationale: readRationale(row.candidate_metadata_json),
+    rationale: typeof metadata?.rationale === "string" ? metadata.rationale : undefined,
+    metadata,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  }));
+    };
+  });
 }
 
 export async function listReflections(db: SQLiteDatabase): Promise<ReflectionRecord[]> {

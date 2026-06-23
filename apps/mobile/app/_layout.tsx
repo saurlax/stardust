@@ -52,7 +52,6 @@ export default function RootLayout() {
     memory: <Ionicons name="git-network-outline" size={size} color={color} />,
     tasks: <Ionicons name="checkbox-outline" size={size} color={color} />,
     journal: <Ionicons name="journal-outline" size={size} color={color} />,
-    calendar: <Ionicons name="calendar-outline" size={size} color={color} />,
   });
 
   return (
@@ -123,23 +122,7 @@ export default function RootLayout() {
                     }}
                   />
                   <Drawer.Screen
-                    name="calendar"
-                    options={{
-                      ...detailScreenOptions,
-                      drawerLabel: t("navigation.calendar"),
-                      drawerIcon: (props) => drawerIconColor(props).calendar,
-                    }}
-                  />
-                  <Drawer.Screen
                     name="settings"
-                    options={{
-                      ...detailScreenOptions,
-                      drawerItemStyle: { display: "none" },
-                      swipeEnabled: false,
-                    }}
-                  />
-                  <Drawer.Screen
-                    name="personal"
                     options={{
                       ...detailScreenOptions,
                       drawerItemStyle: { display: "none" },

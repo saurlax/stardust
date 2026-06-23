@@ -185,22 +185,38 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
           </Button>
         </View>
 
-        <View className="mt-5 flex-row gap-2">
-          <DrawerAction
-            icon="today-outline"
-            label={t("personal.todayTitle")}
-            description={t("personal.todayDescription")}
-            onPress={() => navigateFromDrawer(navigation, "/journal")}
-          />
-          <DrawerAction
-            icon="checkbox-outline"
-            label={t("personal.tasksTitle")}
-            description={t("personal.tasksDescription")}
-            onPress={() => navigateFromDrawer(navigation, "/tasks")}
-          />
+        <View className="mt-5 gap-2">
+          <View className="flex-row gap-2">
+            <DrawerAction
+              icon="today-outline"
+              label={t("personal.todayTitle")}
+              description={t("personal.todayDescription")}
+              onPress={() => navigateFromDrawer(navigation, "/journal")}
+            />
+            <DrawerAction
+              icon="checkbox-outline"
+              label={t("personal.tasksTitle")}
+              description={t("personal.tasksDescription")}
+              onPress={() => navigateFromDrawer(navigation, "/tasks")}
+            />
+          </View>
+          <View className="flex-row gap-2">
+            <DrawerAction
+              icon="git-network-outline"
+              label={t("personal.memoryTitle")}
+              description={t("personal.memoryDescription")}
+              onPress={() => navigateFromDrawer(navigation, "/memory")}
+            />
+            <DrawerAction
+              icon="hardware-chip-outline"
+              label={t("personal.devicesTitle")}
+              description={t("personal.devicesDescription")}
+              onPress={() => navigateFromDrawer(navigation, "/settings")}
+            />
+          </View>
         </View>
 
-        <View className="mt-6 flex-row items-center justify-between px-0.5">
+        <View className="mt-5 flex-row items-center justify-between px-0.5">
           <CardDescription>{t("personal.historyTitle")}</CardDescription>
           <Button
             accessibilityRole="button"

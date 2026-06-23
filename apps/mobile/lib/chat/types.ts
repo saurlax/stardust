@@ -23,6 +23,8 @@ export type ToolCardPayload = {
   relationType?: string;
   rationale?: string;
   importance?: number;
+  dueAt?: string;
+  dueEndAt?: string;
 };
 
 export type MessageToolCard = {

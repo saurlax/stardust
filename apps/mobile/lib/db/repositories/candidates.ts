@@ -6,6 +6,7 @@ import { createEpisodeInCurrentTransaction } from "@/lib/db/repositories/episode
 import { parseJson, parseToolCards, safeJson, serializeToolCards } from "@/lib/db/serialization";
 import { runInTransaction } from "@/lib/db/transactions";
 import type { CandidateKind, CandidateStatus, MemoryCandidate } from "@/lib/db/types";
+import { createTaskCalendarEvent, parseTaskDueAt } from "@/lib/taskCalendar";
 
 const SELF_ENTITY_ID = "entity-self";
 const nowIso = () => new Date().toISOString();
@@ -15,6 +16,8 @@ const normalizeImportance = (value: unknown, fallback: number) =>
     : fallback;
 const createEntityId = (type: string, name: string, fallbackId: string) =>
   `entity-${type}-${name.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-").replace(/^-+|-+$/g, "") || fallbackId}`;
+const isTaskCandidate = (candidate: MemoryCandidate) =>
+  candidate.kind === "open_loop" || candidate.type === "task" || candidate.type === "goal";
 
 async function upsertEntity(
   db: SQLiteDatabase,
@@ -144,6 +147,8 @@ const candidateToToolCard = (candidate: MemoryCandidate): MessageToolCard => ({
       typeof candidate.metadata?.importance === "number"
         ? normalizeImportance(candidate.metadata.importance, 3)
         : undefined,
+    dueAt: typeof candidate.metadata?.dueAt === "string" ? candidate.metadata.dueAt : undefined,
+    dueEndAt: typeof candidate.metadata?.dueEndAt === "string" ? candidate.metadata.dueEndAt : undefined,
   },
 });
 
@@ -203,16 +208,35 @@ export async function updateCandidateStatus(
   if (!candidate) return;
   const content = nextContent?.trim() || candidate.content;
   const updatedAt = nowIso();
+  const nextMetadata = { ...(candidate.metadata ?? {}) };
+
+  if (status === "accepted" && candidate.status !== "accepted" && isTaskCandidate(candidate)) {
+    const taskDue = parseTaskDueAt(nextMetadata);
+    if (taskDue && typeof nextMetadata.calendarEventId !== "string") {
+      try {
+        nextMetadata.calendarEventId = await createTaskCalendarEvent({
+          title: candidate.title || content,
+          content,
+          dueAt: taskDue.dueAt,
+          dueEndAt: taskDue.dueEndAt,
+        });
+        delete nextMetadata.calendarSyncError;
+      } catch (error) {
+        nextMetadata.calendarSyncError = error instanceof Error ? error.message : "Calendar sync failed.";
+      }
+    }
+  }
 
   await runInTransaction(db, async () => {
     await db.runAsync(
       `
         UPDATE memory_candidates
-        SET status = ?, content = ?, updated_at = ?
+        SET status = ?, content = ?, metadata_json = ?, updated_at = ?
         WHERE candidate_id = ?
       `,
       status,
       content,
+      safeJson(nextMetadata),
       updatedAt,
       candidateId,
     );
@@ -224,7 +248,7 @@ export async function updateCandidateStatus(
     if (candidate.kind === "memory" || candidate.kind === "open_loop") {
       const type = candidate.kind === "open_loop" ? "concern" : candidate.type || "memory";
       const importance = normalizeImportance(
-        candidate.metadata?.importance,
+        nextMetadata.importance,
         candidate.kind === "open_loop" ? 4 : 3,
       );
       await db.runAsync(

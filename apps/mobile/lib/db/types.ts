@@ -93,6 +93,7 @@ export type StoredMemory = {
   sourceCreatedAt?: string;
   sourceKind?: EpisodeSource;
   rationale?: string;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt?: string;
   candidateId?: string;

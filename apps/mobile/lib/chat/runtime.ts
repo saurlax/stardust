@@ -46,6 +46,8 @@ type ToolCardDefinition = {
     relationType?: string;
     rationale?: string;
     importance?: number;
+    dueAt?: string;
+    dueEndAt?: string;
   };
 };
 
@@ -70,6 +72,7 @@ Rules:
 - If something should be saved or reviewed, emit the appropriate tool call.
 - Tool payload content must be short, specific, and user-facing.
 - Include a short rationale explaining why the item deserves review.
+- For tasks, goals, and open loops with a clear date/time, include dueAt as an ISO 8601 timestamp. Include dueEndAt only if an end time is clear.
 - Do not state a reflection as fact; phrase it as something to review.
 - Do not ask the user to repeat the same information just to save it.`;
 
@@ -106,6 +109,8 @@ const toolDefinitions = [
           },
           rationale: { type: "string" },
           importance: { type: "number", minimum: 1, maximum: 5 },
+          dueAt: { type: "string", description: "ISO 8601 timestamp when this task is due, if clear." },
+          dueEndAt: { type: "string", description: "ISO 8601 end timestamp, only if clear." },
         },
         required: ["title", "content", "memoryType", "rationale"],
       },
@@ -189,6 +194,8 @@ const toolDefinitions = [
           },
           rationale: { type: "string" },
           importance: { type: "number", minimum: 1, maximum: 5 },
+          dueAt: { type: "string", description: "ISO 8601 timestamp when follow-up is needed, if clear." },
+          dueEndAt: { type: "string", description: "ISO 8601 end timestamp, only if clear." },
         },
         required: ["title", "content", "memoryType", "rationale"],
       },
@@ -278,6 +285,8 @@ const normalizeToolCards = (cards: ToolCardDefinition[]): MessageToolCard[] =>
       relationType: card.payload.relationType,
       rationale: card.payload.rationale,
       importance: card.payload.importance,
+      dueAt: card.payload.dueAt,
+      dueEndAt: card.payload.dueEndAt,
     },
     status: "pending",
   }));
@@ -458,6 +467,8 @@ const sendLocalChatRequest = async ({
           relationType?: string;
           rationale?: string;
           importance?: number;
+          dueAt?: string;
+          dueEndAt?: string;
         };
 
         const cardContent = args.content?.trim();
@@ -476,6 +487,8 @@ const sendLocalChatRequest = async ({
               relationType: args.relationType?.trim(),
               rationale: args.rationale?.trim(),
               importance: args.importance,
+              dueAt: args.dueAt?.trim(),
+              dueEndAt: args.dueEndAt?.trim(),
             },
           },
         ];
