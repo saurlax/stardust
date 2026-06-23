@@ -6,6 +6,7 @@ import {
   updateCandidateStatus,
 } from "@/lib/db/repositories/candidates";
 import {
+  createChatSession,
   listChatSessionSummaries,
   loadChatSession,
   loadLatestChatSession,
@@ -74,7 +75,13 @@ export {
   updateDeviceStatus,
   upsertDevice,
 };
-export { listChatSessionSummaries, loadChatSession, loadLatestChatSession, saveChatSessionSnapshot };
+export {
+  createChatSession,
+  listChatSessionSummaries,
+  loadChatSession,
+  loadLatestChatSession,
+  saveChatSessionSnapshot,
+};
 export { migrateDbIfNeeded };
 export { findRelevantKnowledge };
 export { getPersonalSnapshot };

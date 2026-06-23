@@ -24,6 +24,7 @@ import { sendChatRequest } from "@/lib/chat/runtime";
 import { getConfigValidationError } from "@/lib/config";
 import {
   createCandidatesFromToolCards,
+  createChatSession,
   createEpisode,
   createSessionId,
   findRelevantKnowledge,
@@ -155,6 +156,7 @@ export default function Index() {
   const activeRequestRef = useRef<RequestContext | null>(null);
   const configRef = useRef(config);
   const hydratingRef = useRef(true);
+  const skipNextPersistRef = useRef(false);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -168,12 +170,16 @@ export default function Index() {
     let active = true;
 
     if (targetNewSession) {
-      sessionIdRef.current = createSessionId();
+      sessionIdRef.current = targetNewSession;
       chatIdRef.current = null;
+      skipNextPersistRef.current = true;
       setMessages([createGreetingMessage()]);
       setChatError(null);
       hydratingRef.current = false;
       setSessionReady(true);
+      void createChatSession(db, targetNewSession).catch((error) => {
+        if (active) setChatError(getErrorMessage(error));
+      });
       return () => {
         active = false;
       };
@@ -191,6 +197,7 @@ export default function Index() {
           setChatError(null);
           sessionIdRef.current = session.sessionId;
           chatIdRef.current = session.remoteChatId ?? null;
+          skipNextPersistRef.current = true;
           setMessages(session.messages.length ? session.messages : [createGreetingMessage()]);
         }
       })
@@ -224,6 +231,7 @@ export default function Index() {
           setChatError(null);
           sessionIdRef.current = session.sessionId;
           chatIdRef.current = session.remoteChatId ?? null;
+          skipNextPersistRef.current = true;
           setMessages(session.messages.length ? session.messages : [createGreetingMessage()]);
         })
         .catch((error) => {
@@ -238,6 +246,10 @@ export default function Index() {
 
   useEffect(() => {
     if (!sessionReady || hydratingRef.current) return;
+    if (skipNextPersistRef.current) {
+      skipNextPersistRef.current = false;
+      return;
+    }
 
     const persist = async () => {
       await saveChatSessionSnapshot(db, {

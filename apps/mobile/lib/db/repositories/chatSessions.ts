@@ -11,6 +11,7 @@ import type { ChatMessageRow, ChatSessionRow, ChatSessionSummary } from "@/lib/d
 import { runInTransaction } from "@/lib/db/transactions";
 
 const nowIso = () => new Date().toISOString();
+const GREETING_MESSAGE_ID = "m1";
 
 const rowToMessage = (row: ChatMessageRow): ChatMessage => {
   const memoryContext = parseMemoryContext(row.memory_context_json);
@@ -45,21 +46,32 @@ async function loadChatSessionMessages(db: SQLiteDatabase, sessionId: string) {
         memory_context_json, tool_cards_json, created_at
       FROM chat_messages
       WHERE session_id = ?
+        AND message_id <> ?
       ORDER BY sequence_index ASC
     `,
     sessionId,
+    GREETING_MESSAGE_ID,
   );
 
   return rows.map(rowToMessage);
 }
 
 export async function loadLatestChatSession(db: SQLiteDatabase) {
-  const session = await db.getFirstAsync<ChatSessionRow>(`
-    SELECT session_id, remote_chat_id
-    FROM chat_sessions
-    ORDER BY updated_at DESC
-    LIMIT 1
-  `);
+  const session = await db.getFirstAsync<ChatSessionRow>(
+    `
+      SELECT session_id, remote_chat_id
+      FROM chat_sessions
+      WHERE EXISTS (
+        SELECT 1
+        FROM chat_messages
+        WHERE chat_messages.session_id = chat_sessions.session_id
+          AND chat_messages.message_id <> ?
+      )
+      ORDER BY updated_at DESC
+      LIMIT 1
+    `,
+    GREETING_MESSAGE_ID,
+  );
   if (!session) return null;
 
   const messages = await loadChatSessionMessages(db, session.session_id);
@@ -98,11 +110,12 @@ export async function listChatSessionSummaries(
       SELECT
         chat_sessions.session_id AS session_id,
         chat_sessions.updated_at AS updated_at,
-        COUNT(chat_messages.message_id) AS message_count,
+        COUNT(CASE WHEN chat_messages.message_id <> ? THEN 1 END) AS message_count,
         (
           SELECT first_user.content
           FROM chat_messages AS first_user
           WHERE first_user.session_id = chat_sessions.session_id
+            AND first_user.message_id <> ?
             AND first_user.role = 'user'
           ORDER BY first_user.sequence_index ASC
           LIMIT 1
@@ -111,6 +124,7 @@ export async function listChatSessionSummaries(
           SELECT latest.content
           FROM chat_messages AS latest
           WHERE latest.session_id = chat_sessions.session_id
+            AND latest.message_id <> ?
           ORDER BY latest.sequence_index DESC
           LIMIT 1
         ) AS latest_content
@@ -120,6 +134,9 @@ export async function listChatSessionSummaries(
       ORDER BY chat_sessions.updated_at DESC
       LIMIT ?
     `,
+    GREETING_MESSAGE_ID,
+    GREETING_MESSAGE_ID,
+    GREETING_MESSAGE_ID,
     limit,
   );
 
@@ -136,6 +153,21 @@ export async function listChatSessionSummaries(
   });
 }
 
+export async function createChatSession(db: SQLiteDatabase, sessionId: string) {
+  const createdAt = nowIso();
+  await db.runAsync(
+    `
+      INSERT INTO chat_sessions (session_id, remote_chat_id, created_at, updated_at)
+      VALUES (?, NULL, ?, ?)
+      ON CONFLICT(session_id) DO UPDATE SET
+        updated_at = excluded.updated_at
+    `,
+    sessionId,
+    createdAt,
+    createdAt,
+  );
+}
+
 export async function saveChatSessionSnapshot(
   db: SQLiteDatabase,
   {
@@ -148,22 +180,26 @@ export async function saveChatSessionSnapshot(
     messages: ChatMessage[];
   },
 ) {
+  const persistedMessages = messages.filter((message) => message.id !== GREETING_MESSAGE_ID);
+  if (!persistedMessages.length) return;
+
   await runInTransaction(db, async () => {
+    const updatedAt = nowIso();
     await db.runAsync(
       `
         INSERT INTO chat_sessions (session_id, remote_chat_id, created_at, updated_at)
-        VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT(session_id) DO UPDATE SET
           remote_chat_id = excluded.remote_chat_id,
-          updated_at = CURRENT_TIMESTAMP
+          updated_at = excluded.updated_at
       `,
       sessionId,
       remoteChatId ?? null,
+      updatedAt,
+      updatedAt,
     );
 
-    await db.runAsync("DELETE FROM chat_messages WHERE session_id = ?", sessionId);
-
-    for (const [index, message] of messages.entries()) {
+    for (const [index, message] of persistedMessages.entries()) {
       await db.runAsync(
         `
           INSERT INTO chat_messages (
@@ -173,6 +209,21 @@ export async function saveChatSessionSnapshot(
             memory_context_json, tool_cards_json, sequence_index, created_at, updated_at
           )
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(message_id) DO UPDATE SET
+            role = excluded.role,
+            content = excluded.content,
+            status = excluded.status,
+            image_uri = excluded.image_uri,
+            image_mime_type = excluded.image_mime_type,
+            error_text = excluded.error_text,
+            request_prompt = excluded.request_prompt,
+            request_image_uri = excluded.request_image_uri,
+            request_image_mime_type = excluded.request_image_mime_type,
+            request_episode_id = excluded.request_episode_id,
+            memory_context_json = excluded.memory_context_json,
+            tool_cards_json = excluded.tool_cards_json,
+            sequence_index = excluded.sequence_index,
+            updated_at = excluded.updated_at
         `,
         sessionId,
         message.id,
@@ -192,6 +243,21 @@ export async function saveChatSessionSnapshot(
         message.createdAt ?? nowIso(),
         nowIso(),
       );
+    }
+
+    const messageIds = persistedMessages.map((message) => message.id);
+    if (messageIds.length) {
+      await db.runAsync(
+        `
+          DELETE FROM chat_messages
+          WHERE session_id = ?
+            AND message_id NOT IN (${messageIds.map(() => "?").join(", ")})
+        `,
+        sessionId,
+        ...messageIds,
+      );
+    } else {
+      await db.runAsync("DELETE FROM chat_messages WHERE session_id = ?", sessionId);
     }
   });
 }

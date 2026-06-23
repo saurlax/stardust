@@ -18,7 +18,6 @@ import { t } from "@/lib/i18n";
 import { NAV_THEME } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import "../global.css";
-import "@/lib/i18n";
 
 function HeaderBackButton({ color }: { color: string }) {
   return (

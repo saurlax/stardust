@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { router, type Href } from "expo-router";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -289,16 +289,40 @@ export function ChatMessages({
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const mutedColor = colorScheme === "dark" ? "#A3A3A3" : "#737373";
+  const listRef = useRef<FlatList<ChatMessage>>(null);
+  const latestMessage = messages.at(-1);
+  const scrollToken = useMemo(
+    () =>
+      [
+        messages.length,
+        latestMessage?.id,
+        latestMessage?.content,
+        latestMessage?.status,
+        latestMessage?.toolCards?.length,
+      ].join(":"),
+    [latestMessage, messages.length],
+  );
 
   const copyMessage = async (content: string) => {
     await Clipboard.setStringAsync(content);
   };
 
+  const scrollToLatest = () => {
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToEnd({ animated: true });
+    });
+  };
+
+  useEffect(scrollToLatest, [scrollToken]);
+
   return (
     <FlatList
+      ref={listRef}
       data={messages}
       keyExtractor={(item) => item.id}
       contentContainerStyle={{ paddingHorizontal: 14, paddingVertical: 10 }}
+      onContentSizeChange={scrollToLatest}
+      onLayout={scrollToLatest}
       renderItem={({ item }) => {
         const isUser = item.role === "user";
         const isError = item.status === "error";

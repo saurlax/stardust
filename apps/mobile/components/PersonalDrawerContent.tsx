@@ -1,15 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
-import type { DrawerContentComponentProps } from "@react-navigation/drawer";
+import { useDrawerStatus, type DrawerContentComponentProps } from "@react-navigation/drawer";
 import { router, useFocusEffect, type Href } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { useCallback, useState } from "react";
-import { Pressable, ScrollView, useColorScheme, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Pressable, RefreshControl, ScrollView, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/button";
 import { CardDescription } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
-import { listChatSessionSummaries, type ChatSessionSummary } from "@/lib/db";
+import {
+  createChatSession,
+  createSessionId,
+  listChatSessionSummaries,
+  type ChatSessionSummary,
+} from "@/lib/db";
 import { t } from "@/lib/i18n";
 
 const navigateFromDrawer = (navigation: DrawerContentComponentProps["navigation"], href: Href) => {
@@ -87,14 +92,19 @@ function SessionItem({
 
 export function PersonalDrawerContent({ navigation }: DrawerContentComponentProps) {
   const db = useSQLiteContext();
+  const drawerStatus = useDrawerStatus();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const avatarIconColor = colorScheme === "dark" ? "#0A0A0A" : "#FAFAFA";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
+  const refreshColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
+  const refreshSessions = useCallback(
+    (showIndicator = false) => {
       let active = true;
+
+      if (showIndicator) setRefreshing(true);
 
       listChatSessionSummaries(db)
         .then((nextSessions) => {
@@ -102,13 +112,55 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
         })
         .catch(() => {
           if (active) setSessions([]);
+        })
+        .finally(() => {
+          if (active && showIndicator) setRefreshing(false);
         });
 
       return () => {
         active = false;
+        if (showIndicator) setRefreshing(false);
       };
-    }, [db]),
+    },
+    [db],
   );
+
+  useFocusEffect(refreshSessions);
+
+  useEffect(() => {
+    if (drawerStatus !== "open") return undefined;
+    return refreshSessions();
+  }, [drawerStatus, refreshSessions]);
+
+  const pullToRefreshSessions = useCallback(() => {
+    refreshSessions(true);
+  }, [refreshSessions]);
+
+  const startNewSession = () => {
+    const sessionId = createSessionId();
+    const createdAt = new Date().toISOString();
+    const nextSession: ChatSessionSummary = {
+      sessionId,
+      title: "",
+      preview: "",
+      updatedAt: createdAt,
+      messageCount: 0,
+    };
+
+    setSessions((current) => [
+      nextSession,
+      ...current.filter((session) => session.sessionId !== sessionId),
+    ]);
+
+    void createChatSession(db, sessionId).catch(() => {
+      setSessions((current) => current.filter((session) => session.sessionId !== sessionId));
+    });
+
+    navigateFromDrawer(navigation, {
+      pathname: "/",
+      params: { newSession: sessionId },
+    } as Href);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
@@ -156,18 +208,24 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
             variant="ghost"
             size="icon"
             className="h-8 w-8 rounded-full"
-            onPress={() =>
-              navigateFromDrawer(navigation, {
-                pathname: "/",
-                params: { newSession: String(Date.now()) },
-              } as Href)
-            }
+            onPress={startNewSession}
           >
             <Ionicons name="add-outline" size={19} color={iconColor} />
           </Button>
         </View>
 
-        <ScrollView className="mt-2 flex-1" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="mt-2 flex-1"
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={pullToRefreshSessions}
+              tintColor={refreshColor}
+              colors={[refreshColor]}
+            />
+          }
+        >
           {sessions.length ? (
             <View className="gap-1 pb-4">
               {sessions.map((session) => (
