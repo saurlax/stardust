@@ -187,16 +187,16 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
 
         <View className="mt-5 flex-row gap-2">
           <DrawerAction
-            icon="hardware-chip-outline"
-            label={t("personal.devicesTitle")}
-            description={t("personal.devicesDescription")}
-            onPress={() => navigateFromDrawer(navigation, "/inbox?tab=devices" as Href)}
+            icon="today-outline"
+            label={t("personal.todayTitle")}
+            description={t("personal.todayDescription")}
+            onPress={() => navigateFromDrawer(navigation, "/journal")}
           />
           <DrawerAction
-            icon="git-network-outline"
-            label={t("personal.memoryTitle")}
-            description={t("personal.memoryDescription")}
-            onPress={() => navigateFromDrawer(navigation, "/memory")}
+            icon="checkbox-outline"
+            label={t("personal.tasksTitle")}
+            description={t("personal.tasksDescription")}
+            onPress={() => navigateFromDrawer(navigation, "/tasks")}
           />
         </View>
 

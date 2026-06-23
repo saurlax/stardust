@@ -50,6 +50,7 @@ export default function RootLayout() {
     index: <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />,
     inbox: <Ionicons name="file-tray-full-outline" size={size} color={color} />,
     memory: <Ionicons name="git-network-outline" size={size} color={color} />,
+    tasks: <Ionicons name="checkbox-outline" size={size} color={color} />,
     journal: <Ionicons name="journal-outline" size={size} color={color} />,
     calendar: <Ionicons name="calendar-outline" size={size} color={color} />,
   });
@@ -90,19 +91,19 @@ export default function RootLayout() {
                     }}
                   />
                   <Drawer.Screen
-                    name="inbox"
+                    name="journal"
                     options={{
                       ...detailScreenOptions,
-                      drawerLabel: t("navigation.inbox"),
-                      drawerIcon: (props) => drawerIconColor(props).inbox,
+                      drawerLabel: t("navigation.journal"),
+                      drawerIcon: (props) => drawerIconColor(props).journal,
                     }}
                   />
                   <Drawer.Screen
-                    name="settings"
+                    name="tasks"
                     options={{
                       ...detailScreenOptions,
-                      drawerItemStyle: { display: "none" },
-                      swipeEnabled: false,
+                      drawerLabel: t("navigation.tasks"),
+                      drawerIcon: (props) => drawerIconColor(props).tasks,
                     }}
                   />
                   <Drawer.Screen
@@ -114,11 +115,11 @@ export default function RootLayout() {
                     }}
                   />
                   <Drawer.Screen
-                    name="journal"
+                    name="inbox"
                     options={{
                       ...detailScreenOptions,
-                      drawerLabel: t("navigation.journal"),
-                      drawerIcon: (props) => drawerIconColor(props).journal,
+                      drawerLabel: t("navigation.inbox"),
+                      drawerIcon: (props) => drawerIconColor(props).inbox,
                     }}
                   />
                   <Drawer.Screen
@@ -127,6 +128,14 @@ export default function RootLayout() {
                       ...detailScreenOptions,
                       drawerLabel: t("navigation.calendar"),
                       drawerIcon: (props) => drawerIconColor(props).calendar,
+                    }}
+                  />
+                  <Drawer.Screen
+                    name="settings"
+                    options={{
+                      ...detailScreenOptions,
+                      drawerItemStyle: { display: "none" },
+                      swipeEnabled: false,
                     }}
                   />
                   <Drawer.Screen

@@ -80,14 +80,6 @@ const graphLegendItems = [
 ] as const;
 type GraphLegendKey = (typeof graphLegendItems)[number]["key"];
 
-type MemoryFlowItem = {
-  key: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  description: string;
-  count: number;
-};
-
 function FilterButton({
   active,
   label,
@@ -101,42 +93,6 @@ function FilterButton({
     <Button variant={active ? "default" : "outline"} size="sm" onPress={onPress}>
       <Text>{label}</Text>
     </Button>
-  );
-}
-
-function MemoryFlowOverview({ items }: { items: MemoryFlowItem[] }) {
-  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
-  const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
-
-  return (
-    <View className="gap-3 rounded-md border border-border bg-card px-4 py-4">
-      <View className="gap-1">
-        <Text className="text-base font-semibold">{t("memory.flowTitle")}</Text>
-        <Text className="text-xs leading-4 text-muted-foreground">{t("memory.flowSubtitle")}</Text>
-      </View>
-
-      <View className="gap-0.5">
-        {items.map((item, index) => (
-          <View key={item.key} className="flex-row gap-3">
-            <View className="items-center">
-              <View className="h-8 w-8 items-center justify-center rounded-full bg-muted">
-                <Ionicons name={item.icon} size={16} color={iconColor} />
-              </View>
-              {index < items.length - 1 ? <View className="h-8 w-px bg-border" /> : null}
-            </View>
-            <View className="flex-1 pb-3">
-              <View className="flex-row items-center justify-between gap-3">
-                <Text className="flex-1 text-sm font-semibold">{item.title}</Text>
-                <Text className="text-xs font-semibold text-muted-foreground">{item.count}</Text>
-              </View>
-              <Text className="mt-0.5 text-xs leading-4 text-muted-foreground">
-                {item.description}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    </View>
   );
 }
 
@@ -407,46 +363,6 @@ export default function MemoryScreen() {
       }),
     [entities, reflections, relations, visibleMemories],
   );
-  const flowItems = useMemo<MemoryFlowItem[]>(
-    () => [
-      {
-        key: "capture",
-        icon: "sparkles-outline",
-        title: t("memory.flow.captureTitle"),
-        description: t("memory.flow.captureDescription"),
-        count: memories.length + reflections.length + relations.length,
-      },
-      {
-        key: "review",
-        icon: "file-tray-full-outline",
-        title: t("memory.flow.reviewTitle"),
-        description: t("memory.flow.reviewDescription"),
-        count: openLoopCount,
-      },
-      {
-        key: "save",
-        icon: "albums-outline",
-        title: t("memory.flow.saveTitle"),
-        description: t("memory.flow.saveDescription"),
-        count: memories.length,
-      },
-      {
-        key: "understand",
-        icon: "git-branch-outline",
-        title: t("memory.flow.understandTitle"),
-        description: t("memory.flow.understandDescription"),
-        count: reflections.length + entities.length + relations.length,
-      },
-      {
-        key: "graph",
-        icon: "git-network-outline",
-        title: t("memory.flow.graphTitle"),
-        description: t("memory.flow.graphDescription"),
-        count: visibleMemories.length,
-      },
-    ],
-    [entities.length, memories.length, openLoopCount, reflections.length, relations.length, visibleMemories.length],
-  );
   const selectedNode = useMemo(() => {
     if (!selectedNodeId || selectedNodeId === "root") {
       return {
@@ -579,7 +495,52 @@ export default function MemoryScreen() {
             <Text className="text-xl font-semibold">{t("memory.graphTitle")}</Text>
             <Text className="text-sm text-muted-foreground">{t("memory.graphSubtitle")}</Text>
           </View>
-          <MemoryFlowOverview items={flowItems} />
+
+          <View className="flex-row gap-2">
+            <Card className="flex-1 px-3 py-3">
+              <CardDescription>{t("memory.savedCount")}</CardDescription>
+              <Text className="text-2xl font-semibold">{memories.length}</Text>
+            </Card>
+            <Card className="flex-1 px-3 py-3">
+              <CardDescription>{t("memory.reflectionCount")}</CardDescription>
+              <Text className="text-2xl font-semibold">{reflections.length}</Text>
+            </Card>
+            <Card className="flex-1 px-3 py-3">
+              <CardDescription>{t("memory.entityCount")}</CardDescription>
+              <Text className="text-2xl font-semibold">{entities.length}</Text>
+            </Card>
+          </View>
+
+          <View className="flex-row gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onPress={() => router.push("/inbox" as Href)}
+            >
+              <Ionicons name="file-tray-full-outline" size={14} color={iconColor} />
+              <Text>{t("memory.openInbox")}</Text>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onPress={() => router.push("/tasks" as Href)}
+            >
+              <Ionicons name="checkbox-outline" size={14} color={iconColor} />
+              <Text>{t("memory.openTasks")}</Text>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onPress={() => router.push("/journal" as Href)}
+            >
+              <Ionicons name="today-outline" size={14} color={iconColor} />
+              <Text>{t("memory.openToday")}</Text>
+            </Button>
+          </View>
+
           <View className="flex-row flex-wrap gap-2">
             {graphLegendItems.map((item) => (
               <View
@@ -643,32 +604,6 @@ export default function MemoryScreen() {
             <Ionicons name="refresh-outline" size={14} color={iconColor} />
             <Text>{t("memory.resetView")}</Text>
           </Button>
-
-          <View className="flex-row gap-2">
-            <Card className="flex-1 px-3 py-3">
-              <CardDescription>{t("memory.savedCount")}</CardDescription>
-              <Text className="text-2xl font-semibold">{memories.length}</Text>
-            </Card>
-            <Card className="flex-1 px-3 py-3">
-              <CardDescription>{t("memory.reflectionCount")}</CardDescription>
-              <Text className="text-2xl font-semibold">{reflections.length}</Text>
-            </Card>
-            <Card className="flex-1 px-3 py-3">
-              <CardDescription>{t("memory.entityCount")}</CardDescription>
-              <Text className="text-2xl font-semibold">{entities.length}</Text>
-            </Card>
-          </View>
-
-          <View className="flex-row gap-2">
-            <Card className="flex-1 px-3 py-3">
-              <CardDescription>{t("memory.openLoopCount")}</CardDescription>
-              <Text className="text-2xl font-semibold">{openLoopCount}</Text>
-            </Card>
-            <Card className="flex-1 px-3 py-3">
-              <CardDescription>{t("memory.relationCount")}</CardDescription>
-              <Text className="text-2xl font-semibold">{relations.length}</Text>
-            </Card>
-          </View>
 
           {selectedNode ? (
             <Card className="gap-3 py-4">
