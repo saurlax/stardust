@@ -1,7 +1,13 @@
 import { PermissionsAndroid, Platform } from "react-native";
 import type { SQLiteDatabase } from "expo-sqlite";
 
-import { createDeviceEvent, listDevices, updateDeviceStatus, upsertDevice } from "@/lib/db";
+import {
+  createDeviceEvent,
+  createDevicePhotoEvent,
+  listDevices,
+  updateDeviceStatus,
+  upsertDevice,
+} from "@/lib/db";
 
 const STARDUST_DEVICE_NAME = "Stardust Sense";
 const SERVICE_UUID = "7b3f4a10-9d62-4a7d-a0d9-2ffb9239c4d1";
@@ -9,6 +15,7 @@ const STATUS_CHARACTERISTIC_UUID = "7b3f4a11-9d62-4a7d-a0d9-2ffb9239c4d1";
 const EVENT_CHARACTERISTIC_UUID = "7b3f4a12-9d62-4a7d-a0d9-2ffb9239c4d1";
 const COMMAND_CHARACTERISTIC_UUID = "7b3f4a13-9d62-4a7d-a0d9-2ffb9239c4d1";
 const MANIFEST_CHARACTERISTIC_UUID = "7b3f4a14-9d62-4a7d-a0d9-2ffb9239c4d1";
+const PHOTO_CHARACTERISTIC_UUID = "7b3f4a15-9d62-4a7d-a0d9-2ffb9239c4d1";
 
 type BlePlxModule = typeof import("react-native-ble-plx");
 type BleManagerInstance = InstanceType<BlePlxModule["BleManager"]>;
@@ -27,6 +34,21 @@ let manager: BleManagerInstance | null = null;
 const connectedDevices = new Map<string, DeviceInstance>();
 const disconnectSubscriptions = new Map<string, Subscription>();
 const eventSubscriptions = new Map<string, Subscription>();
+const photoSubscriptions = new Map<string, Subscription>();
+
+type PhotoTransfer = {
+  photoId: string;
+  mimeType: string;
+  expectedBytes: number;
+  expectedChunks: number;
+  width?: number;
+  height?: number;
+  chunks: string[];
+  receivedBytes: number;
+  receivedChunks: number;
+};
+
+const activePhotoTransfers = new Map<string, PhotoTransfer>();
 
 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -134,6 +156,15 @@ const decodeBase64 = (value: string) => {
     }
   }
   return utf8Decode(bytes);
+};
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const base64ByteLength = (value: string) => {
+  const clean = value.replace(/\s/g, "");
+  if (!clean) return 0;
+  const padding = clean.endsWith("==") ? 2 : clean.endsWith("=") ? 1 : 0;
+  return Math.floor((clean.length * 3) / 4) - padding;
 };
 
 const ensureBlePermissions = async () => {
@@ -260,6 +291,21 @@ const readDeviceKind = (value: Record<string, unknown>) =>
   typeof value.deviceKind === "string" && value.deviceKind.trim()
     ? value.deviceKind.trim()
     : undefined;
+const readNetworkCaptureUrl = (value: Record<string, unknown>) => {
+  const directMedia = value.media;
+  if (directMedia && typeof directMedia === "object" && !Array.isArray(directMedia)) {
+    const captureUrl = (directMedia as Record<string, unknown>).captureUrl;
+    if (typeof captureUrl === "string" && captureUrl.trim()) return captureUrl.trim();
+  }
+
+  const network = value.network;
+  if (network && typeof network === "object" && !Array.isArray(network)) {
+    const captureUrl = (network as Record<string, unknown>).captureUrl;
+    if (typeof captureUrl === "string" && captureUrl.trim()) return captureUrl.trim();
+  }
+
+  return undefined;
+};
 const commandCapabilities: Record<StardustDeviceCommand, string> = {
   capture: "command-capture",
   sync: "command-sync",
@@ -329,6 +375,154 @@ const createEventStreamDeviceEvent = (
     createdAt: normalizeEventTimestamp(event.ts),
   });
 };
+const updateNetworkFromEvent = async (
+  db: SQLiteDatabase,
+  deviceId: string,
+  event: { type?: string; metadata?: Record<string, unknown> },
+) => {
+  if (event.type !== "wifi") return;
+  const captureUrl =
+    typeof event.metadata?.captureUrl === "string" && event.metadata.captureUrl.trim()
+      ? event.metadata.captureUrl.trim()
+      : undefined;
+  if (!captureUrl) return;
+  const device = (await listDevices(db)).find((item) => item.id === deviceId);
+  await upsertDevice(db, {
+    id: deviceId,
+    name: device?.name ?? STARDUST_DEVICE_NAME,
+    kind: device?.kind,
+    status: "connected",
+    networkCaptureUrl: captureUrl,
+  });
+};
+const readEventStreamPayload = (encodedValue: string) =>
+  JSON.parse(decodeBase64(encodedValue)) as {
+    id?: string;
+    type?: string;
+    content?: string;
+    ts?: string;
+    metadata?: Record<string, unknown>;
+  };
+const readPhotoTransfer = (
+  metadata?: Record<string, unknown>,
+): Omit<PhotoTransfer, "chunks" | "receivedBytes" | "receivedChunks"> | undefined => {
+  const compactPhoto = metadata?.p;
+  if (compactPhoto && typeof compactPhoto === "object" && !Array.isArray(compactPhoto)) {
+    const value = compactPhoto as Record<string, unknown>;
+    if (
+      typeof value.id === "string" &&
+      value.id.trim() &&
+      typeof value.n === "number" &&
+      Number.isFinite(value.n) &&
+      typeof value.c === "number" &&
+      Number.isFinite(value.c)
+    ) {
+      return {
+        photoId: value.id,
+        mimeType: "image/jpeg",
+        expectedBytes: value.n,
+        expectedChunks: value.c,
+        width: typeof value.w === "number" && Number.isFinite(value.w) ? value.w : undefined,
+        height: typeof value.h === "number" && Number.isFinite(value.h) ? value.h : undefined,
+      };
+    }
+  }
+
+  const photo = metadata?.photo;
+  if (!photo || typeof photo !== "object" || Array.isArray(photo)) return undefined;
+  const value = photo as Record<string, unknown>;
+  if (value.transfer !== "ble") return undefined;
+  if (typeof value.id !== "string" || !value.id.trim()) return undefined;
+  if (typeof value.byteLength !== "number" || !Number.isFinite(value.byteLength)) return undefined;
+  if (typeof value.chunkCount !== "number" || !Number.isFinite(value.chunkCount)) return undefined;
+
+  return {
+    photoId: value.id,
+    mimeType: typeof value.mimeType === "string" ? value.mimeType : "image/jpeg",
+    expectedBytes: value.byteLength,
+    expectedChunks: value.chunkCount,
+    width: typeof value.width === "number" && Number.isFinite(value.width) ? value.width : undefined,
+    height: typeof value.height === "number" && Number.isFinite(value.height) ? value.height : undefined,
+  };
+};
+
+const startPhotoTransferFromEvent = (deviceId: string, encodedValue: string) => {
+  const event = JSON.parse(decodeBase64(encodedValue)) as {
+    metadata?: Record<string, unknown>;
+  };
+  const transfer = readPhotoTransfer(event.metadata);
+  if (!transfer) return;
+  activePhotoTransfers.set(deviceId, {
+    ...transfer,
+    chunks: [],
+    receivedBytes: 0,
+    receivedChunks: 0,
+  });
+};
+
+const createCompletedPhotoEvent = async (
+  db: SQLiteDatabase,
+  deviceId: string,
+  transfer: PhotoTransfer,
+) => {
+  const mediaUri = `data:${transfer.mimeType};base64,${transfer.chunks.join("")}`;
+  await createDevicePhotoEvent(db, {
+    id: `${transfer.photoId}-image`,
+    deviceId,
+    content: "Photo captured by Stardust Sense",
+    mediaUri,
+    metadata: {
+      source: "ble-photo",
+      photoId: transfer.photoId,
+      mimeType: transfer.mimeType,
+      byteLength: transfer.receivedBytes,
+      expectedBytes: transfer.expectedBytes,
+      chunkCount: transfer.receivedChunks,
+      expectedChunks: transfer.expectedChunks,
+      width: transfer.width,
+      height: transfer.height,
+    },
+  });
+};
+
+const appendPhotoChunk = async (
+  db: SQLiteDatabase,
+  deviceId: string,
+  encodedChunk: string,
+) => {
+  const transfer = activePhotoTransfers.get(deviceId);
+  if (!transfer) return;
+
+  transfer.chunks.push(encodedChunk);
+  transfer.receivedChunks += 1;
+  transfer.receivedBytes += base64ByteLength(encodedChunk);
+
+  if (
+    transfer.receivedChunks >= transfer.expectedChunks ||
+    transfer.receivedBytes >= transfer.expectedBytes
+  ) {
+    activePhotoTransfers.delete(deviceId);
+    await createCompletedPhotoEvent(db, deviceId, transfer);
+  }
+};
+const handleEventStreamValue = async (
+  db: SQLiteDatabase,
+  deviceId: string,
+  encodedValue: string,
+) => {
+  const event = readEventStreamPayload(encodedValue);
+  if (event.type === "photo-chunk") {
+    const chunkPhotoId = typeof event.metadata?.p === "string" ? event.metadata.p : undefined;
+    const transfer = activePhotoTransfers.get(deviceId);
+    if (!event.content || !transfer || (chunkPhotoId && chunkPhotoId !== transfer.photoId)) return;
+    await appendPhotoChunk(db, deviceId, event.content);
+    return;
+  }
+
+  startPhotoTransferFromEvent(deviceId, encodedValue);
+  await updateNetworkFromEvent(db, deviceId, event);
+  await createEventStreamDeviceEvent(db, deviceId, encodedValue);
+};
 const ensureDeviceCommandCapability = async (
   db: SQLiteDatabase,
   deviceId: string,
@@ -386,12 +580,18 @@ const activateStardustDevice = async (
     connectedDevices.delete(readyDevice.id);
     eventSubscriptions.get(readyDevice.id)?.remove();
     eventSubscriptions.delete(readyDevice.id);
+    photoSubscriptions.get(readyDevice.id)?.remove();
+    photoSubscriptions.delete(readyDevice.id);
+    activePhotoTransfers.delete(readyDevice.id);
     disconnectSubscriptions.get(readyDevice.id)?.remove();
     disconnectSubscriptions.delete(readyDevice.id);
     void updateDeviceStatus(db, readyDevice.id, "disconnected");
     void createConnectionAuditEvent(db, readyDevice.id, "disconnected");
   }));
   connectedDevices.set(readyDevice.id, readyDevice);
+  if (Platform.OS === "android" && "requestMTU" in readyDevice) {
+    await readyDevice.requestMTU(247).catch(() => undefined);
+  }
   await upsertDevice(db, {
     id: readyDevice.id,
     name: readyDevice.name ?? STARDUST_DEVICE_NAME,
@@ -419,6 +619,7 @@ const activateStardustDevice = async (
         batteryLevel: parsed.battery,
         firmwareVersion: parsed.firmware,
         protocolVersion: parsed.protocolVersion,
+        networkCaptureUrl: readNetworkCaptureUrl(parsed),
         capabilities: readCapabilities(parsed),
       });
     } catch {
@@ -439,6 +640,7 @@ const activateStardustDevice = async (
         status: "connected",
         protocolVersion:
           typeof parsed.protocolVersion === "string" ? parsed.protocolVersion : undefined,
+        networkCaptureUrl: readNetworkCaptureUrl(parsed),
         capabilities: readCapabilities(parsed),
       });
       await createDeviceEvent(db, {
@@ -458,7 +660,7 @@ const activateStardustDevice = async (
     .catch(() => null);
   if (currentEvent?.value) {
     try {
-      await createEventStreamDeviceEvent(db, readyDevice.id, currentEvent.value);
+      await handleEventStreamValue(db, readyDevice.id, currentEvent.value);
     } catch {
       // Ignore malformed current event payloads.
     }
@@ -473,10 +675,22 @@ const activateStardustDevice = async (
       (error, characteristic) => {
         if (error || !characteristic?.value) return;
         try {
-          void createEventStreamDeviceEvent(db, readyDevice.id, characteristic.value);
+          void handleEventStreamValue(db, readyDevice.id, characteristic.value);
         } catch {
           // Ignore malformed event payloads.
         }
+      },
+    ),
+  );
+  photoSubscriptions.get(readyDevice.id)?.remove();
+  photoSubscriptions.set(
+    readyDevice.id,
+    readyDevice.monitorCharacteristicForService(
+      SERVICE_UUID,
+      PHOTO_CHARACTERISTIC_UUID,
+      (error, characteristic) => {
+        if (error || !characteristic?.value) return;
+        void appendPhotoChunk(db, readyDevice.id, characteristic.value).catch(() => undefined);
       },
     ),
   );
@@ -525,6 +739,7 @@ export const sendStardustDeviceCommand = async (
     const device = connectedDevices.get(deviceId) ?? (await ble.connectToDevice(deviceId, { timeout: 10000 }));
     const readyDevice = await device.discoverAllServicesAndCharacteristics();
     await activateStardustDevice(db, ble, readyDevice, { syncAfterActivate: false });
+    await wait(350);
     await ensureDeviceCommandCapability(db, deviceId, command);
     await readyDevice.writeCharacteristicWithResponseForService(
       SERVICE_UUID,
@@ -538,6 +753,29 @@ export const sendStardustDeviceCommand = async (
   }
 };
 
+export const sendStardustDeviceWifiConfig = async (
+  db: SQLiteDatabase,
+  deviceId: string,
+  input: { ssid: string; password: string },
+) => {
+  const ble = await getBleManager();
+  const device = connectedDevices.get(deviceId) ?? (await ble.connectToDevice(deviceId, { timeout: 10000 }));
+  const readyDevice = await device.discoverAllServicesAndCharacteristics();
+  await activateStardustDevice(db, ble, readyDevice, { syncAfterActivate: false });
+  await wait(350);
+  await readyDevice.writeCharacteristicWithResponseForService(
+    SERVICE_UUID,
+    COMMAND_CHARACTERISTIC_UUID,
+    encodeBase64(JSON.stringify({ type: "wifi", ssid: input.ssid, password: input.password })),
+  );
+  await createDeviceEvent(db, {
+    deviceId,
+    eventType: "command",
+    content: "Stardust Sense Wi-Fi configuration sent",
+    metadata: { command: "wifi", status: "sent", source: "mobile_ble" },
+  });
+};
+
 export const disconnectStardustDevice = async (db: SQLiteDatabase, deviceId: string) => {
   const ble = await getBleManager();
   await ble.cancelDeviceConnection(deviceId).catch(async () => {
@@ -545,6 +783,9 @@ export const disconnectStardustDevice = async (db: SQLiteDatabase, deviceId: str
   });
   eventSubscriptions.get(deviceId)?.remove();
   eventSubscriptions.delete(deviceId);
+  photoSubscriptions.get(deviceId)?.remove();
+  photoSubscriptions.delete(deviceId);
+  activePhotoTransfers.delete(deviceId);
   disconnectSubscriptions.get(deviceId)?.remove();
   disconnectSubscriptions.delete(deviceId);
   connectedDevices.delete(deviceId);

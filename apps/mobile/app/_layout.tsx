@@ -52,6 +52,7 @@ export default function RootLayout() {
     memory: <Ionicons name="git-network-outline" size={size} color={color} />,
     tasks: <Ionicons name="checkbox-outline" size={size} color={color} />,
     journal: <Ionicons name="journal-outline" size={size} color={color} />,
+    devices: <Ionicons name="hardware-chip-outline" size={size} color={color} />,
   });
 
   return (
@@ -119,6 +120,15 @@ export default function RootLayout() {
                       ...detailScreenOptions,
                       drawerLabel: t("navigation.inbox"),
                       drawerIcon: (props) => drawerIconColor(props).inbox,
+                    }}
+                  />
+                  <Drawer.Screen
+                    name="devices"
+                    options={{
+                      ...detailScreenOptions,
+                      drawerItemStyle: { display: "none" },
+                      drawerLabel: t("navigation.devices"),
+                      drawerIcon: (props) => drawerIconColor(props).devices,
                     }}
                   />
                   <Drawer.Screen

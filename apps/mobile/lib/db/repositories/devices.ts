@@ -55,6 +55,7 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
     battery_level: number | null;
     firmware_version: string | null;
     protocol_version: string | null;
+    network_capture_url: string | null;
     capabilities_json: string | null;
     event_count: number;
     pending_review_count: number;
@@ -70,6 +71,7 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
       devices.battery_level AS battery_level,
       devices.firmware_version AS firmware_version,
       devices.protocol_version AS protocol_version,
+      devices.network_capture_url AS network_capture_url,
       devices.capabilities_json AS capabilities_json,
       COUNT(device_events.device_event_id) AS event_count,
       SUM(
@@ -104,6 +106,7 @@ export async function listDevices(db: SQLiteDatabase): Promise<DeviceRecord[]> {
     batteryLevel: row.battery_level ?? undefined,
     firmwareVersion: row.firmware_version ?? undefined,
     protocolVersion: row.protocol_version ?? undefined,
+    networkCaptureUrl: row.network_capture_url ?? undefined,
     capabilities: parseCapabilities(row.capabilities_json),
     eventCount: row.event_count ?? 0,
     pendingReviewCount: row.pending_review_count ?? 0,
@@ -122,6 +125,7 @@ export async function upsertDevice(
     batteryLevel?: number;
     firmwareVersion?: string;
     protocolVersion?: string;
+    networkCaptureUrl?: string;
     capabilities?: string[];
   },
 ) {
@@ -130,9 +134,9 @@ export async function upsertDevice(
     `
       INSERT INTO devices (
         device_id, name, kind, status, last_seen_at, battery_level, firmware_version,
-        protocol_version, capabilities_json, created_at, updated_at
+        protocol_version, network_capture_url, capabilities_json, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(device_id) DO UPDATE SET
         name = excluded.name,
         kind = COALESCE(?, devices.kind),
@@ -141,6 +145,7 @@ export async function upsertDevice(
         battery_level = COALESCE(excluded.battery_level, devices.battery_level),
         firmware_version = COALESCE(excluded.firmware_version, devices.firmware_version),
         protocol_version = COALESCE(excluded.protocol_version, devices.protocol_version),
+        network_capture_url = COALESCE(excluded.network_capture_url, devices.network_capture_url),
         capabilities_json = COALESCE(excluded.capabilities_json, devices.capabilities_json),
         updated_at = excluded.updated_at
     `,
@@ -152,6 +157,7 @@ export async function upsertDevice(
     device.batteryLevel ?? null,
     device.firmwareVersion ?? null,
     device.protocolVersion ?? null,
+    device.networkCaptureUrl ?? null,
     device.capabilities?.length ? JSON.stringify(device.capabilities) : null,
     seenAt,
     seenAt,
@@ -222,6 +228,52 @@ export async function createDeviceEvent(
   return inserted;
 }
 
+export async function createDevicePhotoEvent(
+  db: SQLiteDatabase,
+  input: {
+    id?: string;
+    deviceId: string;
+    content: string;
+    mediaUri: string;
+    metadata?: Record<string, unknown>;
+    createdAt?: string;
+  },
+): Promise<boolean> {
+  const createdAt = input.createdAt ?? nowIso();
+  const eventId = scopedDeviceEventId(input.deviceId, input.id ?? createId("device-photo"));
+  let inserted = false;
+
+  await runInTransaction(db, async () => {
+    const result = await db.runAsync(
+      `
+        INSERT OR IGNORE INTO device_events (
+          device_event_id, device_id, event_type, content, metadata_json, created_at
+        )
+        VALUES (?, ?, 'capture', ?, ?, ?)
+      `,
+      eventId,
+      input.deviceId,
+      input.content,
+      safeJson(input.metadata),
+      createdAt,
+    );
+    inserted = result.changes > 0;
+    if (!inserted) return;
+
+    await createEpisodeInCurrentTransaction(db, {
+      id: `episode-${eventId}`,
+      source: "iot",
+      title: "photo",
+      content: input.content,
+      mediaUri: input.mediaUri,
+      metadata: { deviceId: input.deviceId, eventId, ...input.metadata },
+      createdAt,
+    });
+  });
+
+  return inserted;
+}
+
 export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventRecord[]> {
   const rows = await db.getAllAsync<{
     device_event_id: string;
@@ -229,6 +281,7 @@ export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventR
     device_name: string | null;
     event_type: string;
     content: string;
+    media_uri: string | null;
     metadata_json: string | null;
     candidate_id: string | null;
     candidate_status: CandidateStatus | null;
@@ -240,12 +293,14 @@ export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventR
       devices.name AS device_name,
       device_events.event_type AS event_type,
       device_events.content AS content,
+      episodes.media_uri AS media_uri,
       device_events.metadata_json AS metadata_json,
       device_events.candidate_id AS candidate_id,
       memory_candidates.status AS candidate_status,
       device_events.created_at AS created_at
     FROM device_events
     LEFT JOIN devices ON devices.device_id = device_events.device_id
+    LEFT JOIN episodes ON episodes.episode_id = 'episode-' || device_events.device_event_id
     LEFT JOIN memory_candidates ON memory_candidates.candidate_id = device_events.candidate_id
     ORDER BY device_events.created_at DESC
     LIMIT 80
@@ -256,6 +311,7 @@ export async function listDeviceEvents(db: SQLiteDatabase): Promise<DeviceEventR
     deviceName: row.device_name ?? undefined,
     eventType: row.event_type,
     content: row.content,
+    mediaUri: row.media_uri ?? undefined,
     metadata: parseJson(row.metadata_json),
     promotable: isPromotableDeviceEvent(row.event_type),
     candidateId: row.candidate_id ?? undefined,

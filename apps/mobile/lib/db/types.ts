@@ -125,6 +125,7 @@ export type DeviceRecord = {
   firmwareVersion?: string;
   protocolVersion?: string;
   capabilities?: string[];
+  networkCaptureUrl?: string;
   eventCount: number;
   pendingReviewCount: number;
   reviewedEventCount: number;
@@ -164,6 +165,7 @@ export type DeviceEventRecord = {
   deviceName?: string;
   eventType: string;
   content: string;
+  mediaUri?: string;
   metadata?: Record<string, unknown>;
   promotable: boolean;
   candidateId?: string;

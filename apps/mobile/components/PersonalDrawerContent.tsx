@@ -211,7 +211,7 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
               icon="hardware-chip-outline"
               label={t("personal.devicesTitle")}
               description={t("personal.devicesDescription")}
-              onPress={() => navigateFromDrawer(navigation, "/settings")}
+              onPress={() => navigateFromDrawer(navigation, "/devices" as Href)}
             />
           </View>
         </View>

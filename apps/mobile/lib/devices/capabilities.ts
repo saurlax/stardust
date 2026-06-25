@@ -16,6 +16,9 @@ const capabilityLabelKeys: Record<string, string> = {
   "command-capture": "deviceCapabilities.commandCapture",
   "command-sync": "deviceCapabilities.commandSync",
   "command-sleep": "deviceCapabilities.commandSleep",
+  "ble-photo": "deviceCapabilities.blePhoto",
+  "wifi-provision": "deviceCapabilities.wifiProvision",
+  "wifi-http-photo": "deviceCapabilities.wifiHttpPhoto",
 };
 
 export const supportsDeviceCommand = (

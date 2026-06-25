@@ -3,7 +3,7 @@ import { router, useFocusEffect, useLocalSearchParams, type Href } from "expo-ro
 import { Drawer } from "expo-router/drawer";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, useColorScheme, View } from "react-native";
+import { Image, Pressable, ScrollView, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/button";
@@ -783,6 +783,14 @@ function DeviceEventCard({
           {new Date(event.createdAt).toLocaleString()}
         </CardDescription>
         <Text className="text-sm leading-5">{event.content}</Text>
+        {event.mediaUri ? (
+          <Image
+            source={{ uri: event.mediaUri }}
+            className="aspect-[4/3] w-full rounded-md bg-muted"
+            resizeMode="cover"
+            accessibilityLabel={t("inbox.deviceEventPhoto")}
+          />
+        ) : null}
         {manifestMediaLines.length ? (
           <View className="gap-1 rounded-md bg-muted/60 px-3 py-2">
             <Text className="text-xs font-semibold uppercase text-muted-foreground">

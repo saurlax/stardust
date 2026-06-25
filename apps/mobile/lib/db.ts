@@ -14,6 +14,7 @@ import {
 } from "@/lib/db/repositories/chatSessions";
 import {
   createDeviceEvent,
+  createDevicePhotoEvent,
   listDeviceEvents,
   listDevices,
   promoteDeviceEventToCandidate,
@@ -69,6 +70,7 @@ export {
 export { createEpisode, listEpisodes, listJournalRecords, updateJournalContent };
 export {
   createDeviceEvent,
+  createDevicePhotoEvent,
   listDeviceEvents,
   listDevices,
   promoteDeviceEventToCandidate,

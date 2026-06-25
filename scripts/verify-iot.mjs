@@ -45,6 +45,7 @@ const expected = {
   EVENT_CHARACTERISTIC_UUID: "7b3f4a12-9d62-4a7d-a0d9-2ffb9239c4d1",
   COMMAND_CHARACTERISTIC_UUID: "7b3f4a13-9d62-4a7d-a0d9-2ffb9239c4d1",
   MANIFEST_CHARACTERISTIC_UUID: "7b3f4a14-9d62-4a7d-a0d9-2ffb9239c4d1",
+  PHOTO_CHARACTERISTIC_UUID: "7b3f4a15-9d62-4a7d-a0d9-2ffb9239c4d1",
 };
 
 const firmwareConstantNames = {
@@ -54,6 +55,7 @@ const firmwareConstantNames = {
   EVENT_CHARACTERISTIC_UUID: "EVENT_CHARACTERISTIC_UUID",
   COMMAND_CHARACTERISTIC_UUID: "COMMAND_CHARACTERISTIC_UUID",
   MANIFEST_CHARACTERISTIC_UUID: "MANIFEST_CHARACTERISTIC_UUID",
+  PHOTO_CHARACTERISTIC_UUID: "PHOTO_CHARACTERISTIC_UUID",
 };
 
 function assertIncludes(source, value, message) {
@@ -110,19 +112,15 @@ for (const required of [
   "button-capture",
   "serial-capture",
   "command-capture",
+  "ble-photo",
+  "esp_camera_fb_get",
+  "PHOTO_CHUNK_SIZE",
+  "PHOTO_CHARACTERISTIC_UUID",
   "xiao-esp32s3-sense",
   "eventPayload(",
   "\"sense-\" + String(bootId, HEX) + \"-boot\"",
   "{\\\"source\\\":\\\"boot\\\"}",
-  "\\\"camera\\\":\\\"reserved\\\"",
-  "\\\"microphone\\\":\\\"reserved\\\"",
-  "\\\"microSD\\\":\\\"reserved\\\"",
-  "\\\"largeTransfer\\\":\\\"future-wifi\\\"",
-  "\\\"transferPlan\\\"",
-  "\\\"metadata\\\":\\\"ble\\\"",
-  "\\\"storage\\\":\\\"microSD\\\"",
-  "\\\"largeMedia\\\":\\\"future-wifi-lan\\\"",
-  "publishEvent(\"button\"",
+  "capturePhoto(\"button\")",
   "publishEvent(\"serial\"",
 ]) {
   assertIncludes(sketch, required, `Firmware is missing expected BLE capture behavior: ${required}`);
