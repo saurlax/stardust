@@ -543,8 +543,8 @@ for (const command of ['"capture"', '"sync"', '"sleep"']) {
   assertIncludes(iotSketch, command.slice(1, -1), `IoT sketch does not handle command: ${command}`);
 }
 
-if (config.includes('"cloud"') || config.includes("CloudAiConfig")) {
-  throw new Error("Config must remain local-only.");
+if (!config.includes('"cloud"') || !config.includes("AiProvider")) {
+  throw new Error("Config must include both local and cloud provider shapes.");
 }
 
 console.log("Fusion memory system invariants look valid.");

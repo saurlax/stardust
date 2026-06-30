@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEY = "stardust.config.v2.local";
 
+export type AiProvider = "local" | "cloud";
+
 export type LocalAiConfig = {
   baseURL: string;
   apiKey: string;
@@ -9,6 +11,7 @@ export type LocalAiConfig = {
 };
 
 export type AiConfig = {
+  cloud: LocalAiConfig;
   local: LocalAiConfig;
 };
 
@@ -26,6 +29,7 @@ const normalizeLocal = (value?: Partial<LocalAiConfig>): LocalAiConfig => ({
 });
 
 const normalizeAi = (value?: Partial<AiConfig>): AiConfig => ({
+  cloud: normalizeLocal(value?.cloud),
   local: normalizeLocal(value?.local),
 });
 
@@ -35,6 +39,11 @@ const normalizeConfig = (cfg?: Partial<AppConfig>): AppConfig => ({
 });
 
 export const createDefaultAiConfig = (): AiConfig => ({
+  cloud: {
+    baseURL: "",
+    apiKey: "",
+    model: "",
+  },
   local: {
     baseURL: "",
     apiKey: "",
@@ -100,9 +109,12 @@ export const sanitizeAiConfig = (ai: AiConfig): AiConfig => normalizeAi(ai);
 export const sanitizeConfig = (cfg: AppConfig): AppConfig => normalizeConfig(cfg);
 export const getCachedAiConfig = (): AiConfig => aiConfigCache;
 
-export const getConfigValidationError = (config: AiConfig) => {
-  if (!config.local.baseURL.trim()) return "settings.localBaseURLRequired";
-  if (!config.local.apiKey.trim()) return "settings.localApiKeyRequired";
-  if (!config.local.model.trim()) return "settings.localModelRequired";
+const getProviderConfig = (config: AiConfig, provider: AiProvider) => config[provider];
+
+export const getConfigValidationError = (config: AiConfig, provider: AiProvider = "local") => {
+  const current = getProviderConfig(config, provider);
+  if (!current.baseURL.trim()) return provider === "local" ? "settings.localBaseURLRequired" : "settings.cloudBaseURLRequired";
+  if (!current.apiKey.trim()) return provider === "local" ? "settings.localApiKeyRequired" : "settings.cloudApiKeyRequired";
+  if (!current.model.trim()) return provider === "local" ? "settings.localModelRequired" : "settings.cloudModelRequired";
   return null;
 };

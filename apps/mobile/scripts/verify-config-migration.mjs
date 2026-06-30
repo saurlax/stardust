@@ -8,12 +8,12 @@ const readmePath = path.join(__dirname, "..", "..", "..", "README.md");
 const source = fs.readFileSync(configPath, "utf8");
 const readme = fs.readFileSync(readmePath, "utf8");
 
-if (source.includes('"cloud"') || source.includes("CloudAiConfig")) {
-  throw new Error("Config must remain local-only.");
+if (!source.includes('"cloud"') || !source.includes("AiProvider")) {
+  throw new Error("Config must include both local and cloud provider shapes.");
 }
 
-if (readme.includes("Cloud 模式")) {
-  throw new Error("README must describe cloud capabilities only as future additions.");
+if (!source.includes("cloudBaseURLRequired") || !source.includes("cloudModelRequired")) {
+  throw new Error("Cloud validation keys must exist.");
 }
 
 for (const key of ["localBaseURLRequired", "localApiKeyRequired", "localModelRequired"]) {
@@ -22,4 +22,4 @@ for (const key of ["localBaseURLRequired", "localApiKeyRequired", "localModelReq
   }
 }
 
-console.log("Local-only config shape looks valid.");
+console.log("Config provider shape looks valid.");

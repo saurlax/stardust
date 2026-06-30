@@ -9,7 +9,7 @@ import { Text } from "@/components/ui/text";
 import { Toast, type ToastTone } from "@/components/ui/toast";
 import { useConfig } from "@/context/config";
 import { testLocalConnection } from "@/lib/api";
-import type { AiConfig } from "@/lib/config";
+import type { AiConfig, AiProvider, LocalAiConfig } from "@/lib/config";
 import { getCachedAiConfig, getConfigValidationError } from "@/lib/config";
 import { t } from "@/lib/i18n";
 
@@ -31,6 +31,11 @@ function SettingsField({ label, id, ...props }: SettingsFieldProps) {
   );
 }
 
+const providers: { id: AiProvider; label: string; description: string }[] = [
+  { id: "local", label: t("settings.localTab"), description: t("settings.localTabDescription") },
+  { id: "cloud", label: t("settings.cloudTab"), description: t("settings.cloudTabDescription") },
+];
+
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message) return error.message;
   return t("settings.testFailed");
@@ -39,6 +44,7 @@ const getErrorMessage = (error: unknown) => {
 export function SettingsContent() {
   const { config, ready, updateConfig } = useConfig();
   const [form, setForm] = useState<AiConfig>(getCachedAiConfig());
+  const [provider, setProvider] = useState<AiProvider>("local");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [toast, setToast] = useState<ToastState>({
@@ -59,9 +65,9 @@ export function SettingsContent() {
   }, []);
 
   const validationMessage = useMemo(() => {
-    const key = getConfigValidationError(form);
+    const key = getConfigValidationError(form, provider);
     return key ? t(key) : null;
-  }, [form]);
+  }, [form, provider]);
 
   const showToast = (message: string, tone: ToastTone) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -72,15 +78,18 @@ export function SettingsContent() {
     }, 2400);
   };
 
-  const updateLocalField = <K extends keyof AiConfig["local"]>(
+  const updateProviderField = <K extends keyof LocalAiConfig>(
     key: K,
-    value: AiConfig["local"][K],
+    value: LocalAiConfig[K],
   ) => {
     setForm((current) => ({
       ...current,
-      local: { ...current.local, [key]: value },
+      [provider]: { ...current[provider], [key]: value },
     }));
   };
+
+  const activeConfig = form[provider];
+  const isLocal = provider === "local";
 
   const onSave = async () => {
     if (validationMessage) {
@@ -103,8 +112,12 @@ export function SettingsContent() {
     }
     setTesting(true);
     try {
-      await testLocalConnection(form.local);
-      showToast(t("settings.testPassed"), "success");
+      if (isLocal) {
+        await testLocalConnection(form.local);
+        showToast(t("settings.connectionReady"), "success");
+      } else {
+        showToast(t("settings.cloudSaved"), "success");
+      }
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     } finally {
@@ -128,34 +141,55 @@ export function SettingsContent() {
             {t("settings.description")}
           </Text>
 
+          <View className="flex-row gap-2 rounded-md border border-border bg-muted/40 p-1">
+            {providers.map((item) => {
+              const active = provider === item.id;
+              return (
+                <Button
+                  key={item.id}
+                  variant={active ? "default" : "ghost"}
+                  onPress={() => setProvider(item.id)}
+                  className="flex-1"
+                >
+                  <View className="items-center">
+                    <Text>{item.label}</Text>
+                    <Text className={active ? "text-primary-foreground/80 text-xs" : "text-xs text-muted-foreground"}>
+                      {item.description}
+                    </Text>
+                  </View>
+                </Button>
+              );
+            })}
+          </View>
+
           <Card className="gap-4 p-4">
             <CardHeader className="px-0">
-              <CardTitle>{t("settings.localTitle")}</CardTitle>
-              <CardDescription>{t("settings.localDescription")}</CardDescription>
+              <CardTitle>{isLocal ? t("settings.localTitle") : t("settings.cloudTitle")}</CardTitle>
+              <CardDescription>{isLocal ? t("settings.localDescription") : t("settings.cloudDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="gap-4 px-0">
               <SettingsField
-                label={t("settings.localBaseURL")}
-                value={form.local.baseURL}
-                onChangeText={(value) => updateLocalField("baseURL", value)}
-                placeholder={t("settings.localBaseURLPlaceholder")}
+                label={isLocal ? t("settings.localBaseURL") : t("settings.cloudBaseURL")}
+                value={activeConfig.baseURL}
+                onChangeText={(value) => updateProviderField("baseURL", value)}
+                placeholder={isLocal ? t("settings.localBaseURLPlaceholder") : t("settings.cloudBaseURLPlaceholder")}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
               <SettingsField
-                label={t("settings.localApiKey")}
-                value={form.local.apiKey}
-                onChangeText={(value) => updateLocalField("apiKey", value)}
-                placeholder={t("settings.localApiKeyPlaceholder")}
+                label={isLocal ? t("settings.localApiKey") : t("settings.cloudApiKey")}
+                value={activeConfig.apiKey}
+                onChangeText={(value) => updateProviderField("apiKey", value)}
+                placeholder={isLocal ? t("settings.localApiKeyPlaceholder") : t("settings.cloudApiKeyPlaceholder")}
                 autoCapitalize="none"
                 autoCorrect={false}
                 secureTextEntry
               />
               <SettingsField
-                label={t("settings.localModel")}
-                value={form.local.model}
-                onChangeText={(value) => updateLocalField("model", value)}
-                placeholder={t("settings.localModelPlaceholder")}
+                label={isLocal ? t("settings.localModel") : t("settings.cloudModel")}
+                value={activeConfig.model}
+                onChangeText={(value) => updateProviderField("model", value)}
+                placeholder={isLocal ? t("settings.localModelPlaceholder") : t("settings.cloudModelPlaceholder")}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -165,13 +199,13 @@ export function SettingsContent() {
           <View className="gap-3">
             <Button
               accessibilityRole="button"
-              accessibilityLabel={t("settings.testConnection")}
+              accessibilityLabel={t("settings.checkConnection")}
               onPress={() => void onTestConnection()}
               disabled={testing || saving || !ready}
               variant="outline"
               className="w-full"
             >
-              <Text>{testing ? t("settings.testingConnection") : t("settings.testConnection")}</Text>
+              <Text>{testing ? t("settings.checkingConnection") : t("settings.checkConnection")}</Text>
             </Button>
 
             <Button
