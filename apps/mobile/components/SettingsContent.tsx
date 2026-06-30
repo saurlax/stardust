@@ -246,6 +246,7 @@ export function SettingsContent() {
           <Card className="gap-4 p-4">
             <CardHeader className="px-0">
               <CardTitle>{t("settings.resetData")}</CardTitle>
+              <CardDescription>{t("settings.resetDataDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="gap-3 px-0">
               <Button
