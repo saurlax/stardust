@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "@/components/ui/text";
 
@@ -12,6 +13,7 @@ type ToastProps = {
 };
 
 function Toast({ visible, message, tone }: ToastProps) {
+  const insets = useSafeAreaInsets();
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(-12)).current;
 
@@ -37,9 +39,10 @@ function Toast({ visible, message, tone }: ToastProps) {
       pointerEvents="none"
       style={{
         opacity,
+        top: insets.top + 16,
         transform: [{ translateY }],
       }}
-      className="absolute left-4 right-4 top-4 z-50"
+      className="absolute left-4 right-4 z-50"
     >
       <View
         className={
