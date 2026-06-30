@@ -136,9 +136,7 @@ const getErrorMessage = (error: unknown) => {
 };
 
 const formatDeviceSyncMessage = (synced: number, total: number) =>
-  t("devices.syncComplete")
-    .replace("%{synced}", String(synced))
-    .replace("%{total}", String(total));
+  t("devices.syncComplete", { synced, total });
 
 export default function Index() {
   const db = useSQLiteContext();

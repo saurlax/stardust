@@ -1063,7 +1063,8 @@ i18n.defaultLocale = "en";
 i18n.enableFallback = true;
 i18n.locale = locale;
 
-export const t = (key: string) => i18n.t(key) as string;
+export const t = (key: string, options?: Record<string, unknown>) =>
+  i18n.t(key, options) as string;
 
 export const formatMonthDay = (date: Date) =>
   new Intl.DateTimeFormat(locale, {
