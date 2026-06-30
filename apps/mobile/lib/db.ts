@@ -42,6 +42,7 @@ import { findRelevantKnowledge } from "@/lib/db/repositories/knowledge";
 import { getPersonalSnapshot } from "@/lib/db/repositories/snapshot";
 import { listJournalDays } from "@/lib/db/repositories/timeline";
 import { migrateDbIfNeeded } from "@/lib/db/schema";
+import { resetLocalDataWithSeed } from "@/lib/db/maintenance";
 import type {
   ChatSessionSummary,
   DeviceEventRecord,
@@ -87,6 +88,7 @@ export {
   saveChatSessionSnapshot,
 };
 export { migrateDbIfNeeded };
+export { resetLocalDataWithSeed };
 export { findRelevantKnowledge };
 export { getPersonalSnapshot };
 export { listJournalDays };

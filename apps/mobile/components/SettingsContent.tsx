@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { useSQLiteContext } from "expo-sqlite";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { useConfig } from "@/context/config";
 import { testLocalConnection } from "@/lib/api";
 import type { AiConfig, AiProvider, LocalAiConfig } from "@/lib/config";
 import { getCachedAiConfig, getConfigValidationError } from "@/lib/config";
+import { resetLocalDataWithSeed } from "@/lib/db";
 import { t } from "@/lib/i18n";
 
 type SettingsFieldProps = React.ComponentProps<typeof Input> & {
@@ -31,9 +33,9 @@ function SettingsField({ label, id, ...props }: SettingsFieldProps) {
   );
 }
 
-const providers: { id: AiProvider; label: string; description: string }[] = [
-  { id: "local", label: t("settings.localTab"), description: t("settings.localTabDescription") },
-  { id: "cloud", label: t("settings.cloudTab"), description: t("settings.cloudTabDescription") },
+const providers: { id: AiProvider; label: string }[] = [
+  { id: "local", label: t("settings.localTab") },
+  { id: "cloud", label: t("settings.cloudTab") },
 ];
 
 const getErrorMessage = (error: unknown) => {
@@ -42,11 +44,13 @@ const getErrorMessage = (error: unknown) => {
 };
 
 export function SettingsContent() {
+  const db = useSQLiteContext();
   const { config, ready, updateConfig } = useConfig();
   const [form, setForm] = useState<AiConfig>(getCachedAiConfig());
   const [provider, setProvider] = useState<AiProvider>("local");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [resettingData, setResettingData] = useState(false);
   const [toast, setToast] = useState<ToastState>({
     visible: false,
     message: "",
@@ -125,6 +129,29 @@ export function SettingsContent() {
     }
   };
 
+  const resetData = async () => {
+    setResettingData(true);
+    try {
+      await resetLocalDataWithSeed(db);
+      showToast(t("settings.dataResetComplete"), "success");
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    } finally {
+      setResettingData(false);
+    }
+  };
+
+  const onResetData = () => {
+    Alert.alert(t("settings.resetDataTitle"), t("settings.resetDataConfirm"), [
+      { text: t("settings.cancel"), style: "cancel" },
+      {
+        text: t("settings.resetData"),
+        style: "destructive",
+        onPress: () => void resetData(),
+      },
+    ]);
+  };
+
   return (
     <>
       <Toast visible={toast.visible} message={toast.message} tone={toast.tone} />
@@ -153,9 +180,6 @@ export function SettingsContent() {
                 >
                   <View className="items-center">
                     <Text>{item.label}</Text>
-                    <Text className={active ? "text-primary-foreground/80 text-xs" : "text-xs text-muted-foreground"}>
-                      {item.description}
-                    </Text>
                   </View>
                 </Button>
               );
@@ -201,7 +225,7 @@ export function SettingsContent() {
               accessibilityRole="button"
               accessibilityLabel={t("settings.checkConnection")}
               onPress={() => void onTestConnection()}
-              disabled={testing || saving || !ready}
+              disabled={testing || saving || resettingData || !ready}
               variant="outline"
               className="w-full"
             >
@@ -212,12 +236,30 @@ export function SettingsContent() {
               accessibilityRole="button"
               accessibilityLabel={t("settings.saveSettings")}
               onPress={() => void onSave()}
-              disabled={saving || testing || !ready}
+              disabled={saving || testing || resettingData || !ready}
               className="w-full"
             >
               <Text>{saving ? t("settings.saving") : t("settings.save")}</Text>
             </Button>
           </View>
+
+          <Card className="gap-4 p-4">
+            <CardHeader className="px-0">
+              <CardTitle>{t("settings.resetData")}</CardTitle>
+            </CardHeader>
+            <CardContent className="gap-3 px-0">
+              <Button
+                accessibilityRole="button"
+                accessibilityLabel={t("settings.resetData")}
+                onPress={onResetData}
+                disabled={saving || testing || resettingData || !ready}
+                variant="destructive"
+                className="w-full"
+              >
+                <Text>{resettingData ? t("settings.resettingData") : t("settings.resetData")}</Text>
+              </Button>
+            </CardContent>
+          </Card>
         </ScrollView>
       </KeyboardAvoidingView>
     </>

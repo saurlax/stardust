@@ -172,6 +172,7 @@ export default function Index() {
   const skipNextPersistRef = useRef(false);
   const deviceSyncingRef = useRef(false);
   const syncToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionLoadTokenRef = useRef(0);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -198,17 +199,22 @@ export default function Index() {
 
   useEffect(() => {
     let active = true;
+    const loadToken = sessionLoadTokenRef.current + 1;
+    sessionLoadTokenRef.current = loadToken;
+
+    hydratingRef.current = true;
+    skipNextPersistRef.current = true;
+    setSessionReady(false);
+    setChatError(null);
 
     if (targetNewSession) {
       sessionIdRef.current = targetNewSession;
       chatIdRef.current = null;
-      skipNextPersistRef.current = true;
       setMessages([createGreetingMessage()]);
-      setChatError(null);
       hydratingRef.current = false;
       setSessionReady(true);
       void createChatSession(db, targetNewSession).catch((error) => {
-        if (active) setChatError(getErrorMessage(error));
+        if (active && sessionLoadTokenRef.current === loadToken) setChatError(getErrorMessage(error));
       });
       return () => {
         active = false;
@@ -221,21 +227,31 @@ export default function Index() {
 
     loader
       .then((session) => {
-        if (!active) return;
+        if (!active || sessionLoadTokenRef.current !== loadToken) return;
 
         if (session) {
-          setChatError(null);
           sessionIdRef.current = session.sessionId;
           chatIdRef.current = session.remoteChatId ?? null;
-          skipNextPersistRef.current = true;
           setMessages(session.messages.length ? session.messages : [createGreetingMessage()]);
+        } else {
+          const sessionId = targetSessionId ?? createSessionId();
+          sessionIdRef.current = sessionId;
+          chatIdRef.current = null;
+          setMessages([createGreetingMessage()]);
+          if (!targetSessionId) {
+            void createChatSession(db, sessionId).catch((error) => {
+              if (active && sessionLoadTokenRef.current === loadToken) {
+                setChatError(getErrorMessage(error));
+              }
+            });
+          }
         }
       })
       .catch((error) => {
-        if (active) setChatError(getErrorMessage(error));
+        if (active && sessionLoadTokenRef.current === loadToken) setChatError(getErrorMessage(error));
       })
       .finally(() => {
-        if (!active) return;
+        if (!active || sessionLoadTokenRef.current !== loadToken) return;
         hydratingRef.current = false;
         setSessionReady(true);
       });

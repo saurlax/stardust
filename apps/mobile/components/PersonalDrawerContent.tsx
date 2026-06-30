@@ -22,6 +22,11 @@ const navigateFromDrawer = (navigation: DrawerContentComponentProps["navigation"
   router.push(href);
 };
 
+const replaceFromDrawer = (navigation: DrawerContentComponentProps["navigation"], href: Href) => {
+  navigation.closeDrawer();
+  router.replace(href);
+};
+
 const compactText = (value: string, fallback: string) => {
   const trimmed = value.replace(/\s+/g, " ").trim();
   if (!trimmed) return fallback;
@@ -68,7 +73,7 @@ function SessionItem({
     <Pressable
       accessibilityRole="button"
       onPress={() =>
-        navigateFromDrawer(navigation, {
+        replaceFromDrawer(navigation, {
           pathname: "/",
           params: { sessionId: session.sessionId },
         } as Href)
@@ -156,7 +161,7 @@ export function PersonalDrawerContent({ navigation }: DrawerContentComponentProp
       setSessions((current) => current.filter((session) => session.sessionId !== sessionId));
     });
 
-    navigateFromDrawer(navigation, {
+    replaceFromDrawer(navigation, {
       pathname: "/",
       params: { newSession: sessionId },
     } as Href);
