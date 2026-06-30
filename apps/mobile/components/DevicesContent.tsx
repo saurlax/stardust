@@ -150,12 +150,15 @@ export function DevicesContent() {
       listEpisodes(db, 40),
       getStardustBleStatus(),
     ]);
+    let syncedCount = 0;
+    let syncDeviceCount = 0;
     if (syncHttp) {
-      await Promise.allSettled(
-        initialDevices
-          .filter((device) => device.networkCaptureUrl)
-          .map((device) => syncStardustDeviceHttp(db, device)),
+      const networkDevices = initialDevices.filter((device) => device.networkCaptureUrl);
+      const results = await Promise.allSettled(
+        networkDevices.map((device) => syncStardustDeviceHttp(db, device)),
       );
+      syncDeviceCount = networkDevices.length;
+      syncedCount = results.filter((result) => result.status === "fulfilled").length;
     }
     const nextDevices = syncHttp ? await listDevices(db) : initialDevices;
     const nextEpisodes = syncHttp ? await listEpisodes(db, 40) : initialEpisodes;
@@ -164,7 +167,7 @@ export function DevicesContent() {
       nextEpisodes.find((episode) => episode.source === "iot" && episode.mediaUri)?.mediaUri,
     );
     setBleStatus(nextBleStatus);
-    return { devices: nextDevices, bleStatus: nextBleStatus };
+    return { devices: nextDevices, bleStatus: nextBleStatus, syncDeviceCount, syncedCount };
   }, [db]);
 
   useFocusEffect(
@@ -244,8 +247,12 @@ export function DevicesContent() {
   const onRefreshDeviceState = async () => {
     setRefreshingDevices(true);
     try {
-      await refreshDeviceState();
-      showToast(t("devices.synced"), "success");
+      const result = await refreshDeviceState();
+      if (result.syncDeviceCount > 0 && result.syncedCount < result.syncDeviceCount) {
+        showToast(t("devices.syncFailed"), "error");
+      } else {
+        showToast(t("devices.synced"), "success");
+      }
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     } finally {

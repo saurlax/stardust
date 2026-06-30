@@ -4,6 +4,7 @@ import {
   clearDeviceNetworkCaptureUrl,
   createDeviceEvent,
   createDevicePhotoEvent,
+  updateDeviceStatus,
   upsertDevice,
   type DeviceRecord,
 } from "@/lib/db";
@@ -143,13 +144,17 @@ export const syncStardustDeviceHttp = async (
   if (!baseUrl) return;
 
   const shouldSyncEvents = options.syncEvents ?? true;
-  const [status, manifest, events] = await Promise.all([
-    fetchJson<HttpDeviceStatus>(`${baseUrl}/status`).catch(() => undefined),
+  const [statusResult, manifest, events] = await Promise.all([
+    fetchJson<HttpDeviceStatus>(`${baseUrl}/status`),
     fetchJson<HttpDeviceManifest>(`${baseUrl}/manifest`).catch(() => undefined),
     shouldSyncEvents
       ? fetchJson<HttpDeviceEvent[]>(`${baseUrl}/events`).catch(() => [])
       : Promise.resolve([]),
-  ]);
+  ]).catch(async (error) => {
+    await updateDeviceStatus(db, device.id, "disconnected").catch(() => undefined);
+    throw error;
+  });
+  const status = statusResult;
 
   const captureUrl =
     status?.network?.captureUrl ??

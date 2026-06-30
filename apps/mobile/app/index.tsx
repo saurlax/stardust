@@ -335,9 +335,12 @@ export default function Index() {
         .then((result) => {
           if (!active) return;
           if (result.deviceCount > 0) {
+            const syncComplete = result.syncedCount === result.deviceCount;
             showSyncToast(
-              formatDeviceSyncMessage(result.syncedCount, result.deviceCount),
-              "success",
+              syncComplete
+                ? formatDeviceSyncMessage(result.syncedCount, result.deviceCount)
+                : t("devices.syncFailed"),
+              syncComplete ? "success" : "error",
             );
           } else {
             setSyncToast((current) => ({ ...current, visible: false }));
