@@ -41,21 +41,13 @@ assertNotIncludes(agents, "`iot` submodule", "AGENTS.md must not describe IoT fi
 const expected = {
   STARDUST_DEVICE_NAME: "Stardust Sense",
   SERVICE_UUID: "7b3f4a10-9d62-4a7d-a0d9-2ffb9239c4d1",
-  STATUS_CHARACTERISTIC_UUID: "7b3f4a11-9d62-4a7d-a0d9-2ffb9239c4d1",
-  EVENT_CHARACTERISTIC_UUID: "7b3f4a12-9d62-4a7d-a0d9-2ffb9239c4d1",
-  COMMAND_CHARACTERISTIC_UUID: "7b3f4a13-9d62-4a7d-a0d9-2ffb9239c4d1",
-  MANIFEST_CHARACTERISTIC_UUID: "7b3f4a14-9d62-4a7d-a0d9-2ffb9239c4d1",
-  PHOTO_CHARACTERISTIC_UUID: "7b3f4a15-9d62-4a7d-a0d9-2ffb9239c4d1",
+  PROVISION_CHARACTERISTIC_UUID: "7b3f4a13-9d62-4a7d-a0d9-2ffb9239c4d1",
 };
 
 const firmwareConstantNames = {
   STARDUST_DEVICE_NAME: "DEVICE_NAME",
   SERVICE_UUID: "SERVICE_UUID",
-  STATUS_CHARACTERISTIC_UUID: "STATUS_CHARACTERISTIC_UUID",
-  EVENT_CHARACTERISTIC_UUID: "EVENT_CHARACTERISTIC_UUID",
-  COMMAND_CHARACTERISTIC_UUID: "COMMAND_CHARACTERISTIC_UUID",
-  MANIFEST_CHARACTERISTIC_UUID: "MANIFEST_CHARACTERISTIC_UUID",
-  PHOTO_CHARACTERISTIC_UUID: "PHOTO_CHARACTERISTIC_UUID",
+  PROVISION_CHARACTERISTIC_UUID: "PROVISION_CHARACTERISTIC_UUID",
 };
 
 function assertIncludes(source, value, message) {
@@ -93,14 +85,24 @@ for (const [name, value] of Object.entries(expected)) {
   }
 }
 
-for (const command of ["capture", "sync", "sleep"]) {
+for (const command of ["wifi", "wifi-reset"]) {
   assertIncludes(sketch, `commandType == "${command}"`, `Firmware does not handle ${command} commands.`);
   assertIncludes(mobileBle, `"${command}"`, `Mobile BLE layer does not expose ${command} commands.`);
 }
 
+for (const removed of [
+  "STATUS_CHARACTERISTIC_UUID",
+  "EVENT_CHARACTERISTIC_UUID",
+  "MANIFEST_CHARACTERISTIC_UUID",
+  "sendStardustDeviceCommand",
+  "restoreStardustDeviceSubscriptions",
+]) {
+  assertNotIncludes(mobileBle, removed, `Mobile BLE layer must not retain removed BLE API: ${removed}`);
+}
+
 for (const required of [
-  "BLE2902",
-  "PROPERTY_NOTIFY",
+  "LittleFS.begin(true)",
+  "PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE",
   "PROTOCOL_VERSION",
   "protocolVersion",
   "deviceKind",
@@ -108,19 +110,32 @@ for (const required of [
   "captureSources",
   "bootId",
   "eventCount",
-  "ble-metadata",
+  "ble-wifi-provision",
   "button-capture",
   "serial-capture",
-  "command-capture",
-  "ble-photo",
+  "http-capture",
+  "http-events",
+  "flash-ring-storage",
+  "static-files",
   "esp_camera_fb_get",
-  "PHOTO_CHUNK_SIZE",
-  "PHOTO_CHARACTERISTIC_UUID",
+  "LittleFS.open(staticPath, FILE_WRITE)",
+  "PHOTO_RING_SLOTS",
+  "AUTO_CAPTURE_INTERVAL_MS",
+  "httpServer.on(\"/status\"",
+  "httpServer.on(\"/manifest\"",
+  "httpServer.on(\"/events\"",
+  "httpServer.on(\"/capture\"",
+  "httpServer.on(\"/wifi/reset\"",
+  "handleStaticFile",
+  "handleHttpWifiReset",
+  "\"/static/\"",
+  "handleHttpCapture",
   "xiao-esp32s3-sense",
   "eventPayload(",
-  "\"sense-\" + String(bootId, HEX) + \"-boot\"",
   "{\\\"source\\\":\\\"boot\\\"}",
   "capturePhoto(\"button\")",
+  "capturePhoto(\"auto\")",
+  "capturePhoto(\"manual\")",
   "publishEvent(\"serial\"",
 ]) {
   assertIncludes(sketch, required, `Firmware is missing expected BLE capture behavior: ${required}`);

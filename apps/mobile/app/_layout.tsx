@@ -11,7 +11,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { NebulaView } from "@/components/NebulaView";
 import { PersonalDrawerContent } from "@/components/PersonalDrawerContent";
-import { DeviceSubscriptionRestorer } from "@/components/DeviceSubscriptionRestorer";
 import { ConfigProvider } from "@/context/config";
 import { DATABASE_NAME, migrateDbIfNeeded } from "@/lib/db";
 import { t } from "@/lib/i18n";
@@ -60,7 +59,6 @@ export default function RootLayout() {
       <ShareIntentProvider options={{ resetOnBackground: true }}>
         <SQLiteProvider databaseName={DATABASE_NAME} onInit={migrateDbIfNeeded}>
           <ConfigProvider>
-            <DeviceSubscriptionRestorer />
             <ThemeProvider value={navTheme}>
               <View className={cn("flex-1 bg-background", colorScheme === "dark" && "dark")}>
                 <NebulaView style={styles.background} />

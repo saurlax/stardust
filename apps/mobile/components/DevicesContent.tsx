@@ -10,18 +10,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { Toast, type ToastTone } from "@/components/ui/toast";
-import { createDevicePhotoEvent, listDevices, listEpisodes, type DeviceRecord } from "@/lib/db";
+import { listDevices, listEpisodes, type DeviceRecord } from "@/lib/db";
 import {
   getStardustBleStatus,
-  restoreStardustDeviceSubscriptions,
+  getStardustProvisioningBaseUrl,
+  readStardustDeviceProvisioningState,
+  resetStardustDeviceWifiConfig,
   scanStardustDevices,
-  sendStardustDeviceCommand,
   sendStardustDeviceWifiConfig,
   subscribeToStardustDevice,
   watchStardustBleStatus,
   type StardustBleStatus,
 } from "@/lib/devices/ble";
-import { getDeviceCapabilitySummary, supportsDeviceCommand } from "@/lib/devices/capabilities";
+import { getDeviceCapabilitySummary } from "@/lib/devices/capabilities";
+import {
+  captureStardustDeviceHttp,
+  resetStardustDeviceWifiHttp,
+  syncStardustDeviceHttp,
+} from "@/lib/devices/http";
 import { t } from "@/lib/i18n";
 import { getDeviceKindLabel } from "@/lib/memoryLabels";
 
@@ -33,20 +39,6 @@ const getErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message) return error.message;
   return t("settings.testFailed");
 };
-
-const blobToDataUri = (blob: Blob) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error ?? new Error("Failed to read photo."));
-    reader.onloadend = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-      reject(new Error("Failed to read photo."));
-    };
-    reader.readAsDataURL(blob);
-  });
 
 const getDeviceDetailLines = (device: DeviceRecord) =>
   [
@@ -97,23 +89,27 @@ const getDeviceStatusLabel = (status: DeviceRecord["status"]) => {
   }
 };
 
+const getDeviceNetworkLabel = (device: DeviceRecord) =>
+  device.networkCaptureUrl ? t("devices.networkConnected") : t("devices.networkNotConfigured");
+
 const openDeviceInbox = () => {
   router.push("/inbox?tab=devices" as Href);
 };
 
-export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
+export function DevicesContent() {
   const db = useSQLiteContext();
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const previewIconColor = colorScheme === "dark" ? "#C7D2FE" : "#312E81";
   const [scanning, setScanning] = useState(false);
-  const [restoringDevices, setRestoringDevices] = useState(false);
+  const [refreshingDevices, setRefreshingDevices] = useState(false);
   const [bleStatus, setBleStatus] = useState<StardustBleStatus>("unavailable");
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
   const [latestPhotoUri, setLatestPhotoUri] = useState<string>();
   const [wifiSsid, setWifiSsid] = useState("");
   const [wifiPassword, setWifiPassword] = useState("");
   const [provisioningWifi, setProvisioningWifi] = useState(false);
+  const [resettingWifi, setResettingWifi] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [toast, setToast] = useState<ToastState>({
     visible: false,
@@ -148,6 +144,29 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
     };
   }, []);
 
+  const refreshDeviceState = useCallback(async (syncHttp = true) => {
+    const [initialDevices, initialEpisodes, nextBleStatus] = await Promise.all([
+      listDevices(db),
+      listEpisodes(db, 40),
+      getStardustBleStatus(),
+    ]);
+    if (syncHttp) {
+      await Promise.allSettled(
+        initialDevices
+          .filter((device) => device.networkCaptureUrl)
+          .map((device) => syncStardustDeviceHttp(db, device)),
+      );
+    }
+    const nextDevices = syncHttp ? await listDevices(db) : initialDevices;
+    const nextEpisodes = syncHttp ? await listEpisodes(db, 40) : initialEpisodes;
+    setDevices(nextDevices);
+    setLatestPhotoUri(
+      nextEpisodes.find((episode) => episode.source === "iot" && episode.mediaUri)?.mediaUri,
+    );
+    setBleStatus(nextBleStatus);
+    return { devices: nextDevices, bleStatus: nextBleStatus };
+  }, [db]);
+
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -159,13 +178,7 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
             nextEpisodes.find((episode) => episode.source === "iot" && episode.mediaUri)?.mediaUri,
           );
           setBleStatus(nextBleStatus);
-          if (nextBleStatus !== "poweredOn") return;
-          void restoreStardustDeviceSubscriptions(db)
-            .then(() => listDevices(db))
-            .then((restoredDevices) => {
-              if (active) setDevices(restoredDevices);
-            })
-            .catch(() => undefined);
+          void refreshDeviceState().catch(() => undefined);
         })
         .catch(() => {
           if (!active) return;
@@ -179,7 +192,7 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
         active = false;
         clearInterval(interval);
       };
-    }, [db]),
+    }, [db, refreshDeviceState]),
   );
 
   const showToast = (message: string, tone: ToastTone) => {
@@ -190,20 +203,6 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
       toastTimerRef.current = null;
     }, 2400);
   };
-
-  const refreshDeviceState = useCallback(async () => {
-    const [nextDevices, nextEpisodes, nextBleStatus] = await Promise.all([
-      listDevices(db),
-      listEpisodes(db, 40),
-      getStardustBleStatus(),
-    ]);
-    setDevices(nextDevices);
-    setLatestPhotoUri(
-      nextEpisodes.find((episode) => episode.source === "iot" && episode.mediaUri)?.mediaUri,
-    );
-    setBleStatus(nextBleStatus);
-    return { devices: nextDevices, bleStatus: nextBleStatus };
-  }, [db]);
 
   const onScanDevices = async () => {
     setScanning(true);
@@ -229,55 +228,63 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
 
   const onSubscribeDevice = async (device: DeviceRecord) => {
     try {
-      await subscribeToStardustDevice(db, device.id);
-      showToast(t("settings.deviceSubscribed"), "success");
+      const state = await subscribeToStardustDevice(db, device.id);
+      showToast(
+        state?.baseUrl || state?.captureUrl
+          ? t("devices.deviceConnectedWifiReady")
+          : t("devices.deviceConnectedNeedsWifi"),
+        "success",
+      );
       await refreshDeviceState();
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     }
   };
 
-  const onRestoreDeviceSubscriptions = async () => {
-    setRestoringDevices(true);
+  const onRefreshDeviceState = async () => {
+    setRefreshingDevices(true);
     try {
-      const nextBleStatus = await getStardustBleStatus();
-      setBleStatus(nextBleStatus);
-      if (nextBleStatus !== "poweredOn") {
-        showToast(getBleStatusLabel(nextBleStatus), "error");
-        return;
-      }
-      await restoreStardustDeviceSubscriptions(db);
       await refreshDeviceState();
-      showToast(t("settings.deviceSubscriptionsRestored"), "success");
+      showToast(t("devices.synced"), "success");
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     } finally {
-      setRestoringDevices(false);
+      setRefreshingDevices(false);
     }
   };
 
   const onCaptureDevice = async (device: DeviceRecord) => {
     setCapturing(true);
     try {
-      if (device.networkCaptureUrl) {
-        const response = await fetch(`${device.networkCaptureUrl}?t=${Date.now()}`);
-        if (!response.ok) throw new Error(`HTTP capture failed: ${response.status}`);
-        const mediaUri = await blobToDataUri(await response.blob());
-        await createDevicePhotoEvent(db, {
-          id: `wifi-photo-${Date.now()}`,
-          deviceId: device.id,
-          content: "Photo captured by Stardust Sense over Wi-Fi",
-          mediaUri,
-          metadata: {
-            source: "wifi-http",
-            captureUrl: device.networkCaptureUrl,
-          },
-        });
-      } else {
-        await sendStardustDeviceCommand(db, device.id, "capture");
+      if (!device.networkCaptureUrl) {
+        showToast(t("devices.wifiCaptureUnavailable"), "error");
+        return;
       }
+
+      const currentState = await readStardustDeviceProvisioningState(db, device.id).catch(() => undefined);
+      const currentBaseUrl = getStardustProvisioningBaseUrl(currentState);
+      if (!currentBaseUrl && currentState?.status && currentState.status !== "connected") {
+        showToast(t("devices.wifiCaptureUnavailable"), "error");
+        await refreshDeviceState(false);
+        return;
+      }
+
+      let capturedPhotoUri: string | undefined;
+      try {
+        capturedPhotoUri = await captureStardustDeviceHttp(
+          db,
+          currentBaseUrl ? { ...device, networkCaptureUrl: `${currentBaseUrl}/capture` } : device,
+        );
+      } catch (error) {
+        const state = await readStardustDeviceProvisioningState(db, device.id).catch(() => undefined);
+        const baseUrl = getStardustProvisioningBaseUrl(state);
+        const captureUrl = baseUrl ? `${baseUrl}/capture` : undefined;
+        if (!captureUrl || captureUrl === device.networkCaptureUrl) throw error;
+        capturedPhotoUri = await captureStardustDeviceHttp(db, { ...device, networkCaptureUrl: captureUrl });
+      }
+      if (capturedPhotoUri) setLatestPhotoUri(capturedPhotoUri);
       showToast(t("settings.deviceCaptureSent"), "success");
-      await refreshDeviceState();
+      await refreshDeviceState(false);
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     } finally {
@@ -286,18 +293,25 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
   };
 
   const onProvisionWifi = async (device: DeviceRecord) => {
-    if (!wifiSsid.trim()) {
-      showToast(t("devices.wifiSsidRequired"), "error");
-      return;
-    }
-
     setProvisioningWifi(true);
     try {
-      await sendStardustDeviceWifiConfig(db, device.id, {
+      const state = await readStardustDeviceProvisioningState(db, device.id);
+      if (state?.baseUrl || state?.captureUrl) {
+        showToast(t("devices.wifiAlreadyConfigured"), "success");
+        await refreshDeviceState();
+        return;
+      }
+
+      if (!wifiSsid.trim()) {
+        showToast(t("devices.wifiSsidRequired"), "error");
+        return;
+      }
+
+      const baseUrl = await sendStardustDeviceWifiConfig(db, device.id, {
         ssid: wifiSsid.trim(),
         password: wifiPassword,
       });
-      showToast(t("devices.wifiConfigSent"), "success");
+      showToast(baseUrl ? t("devices.wifiConnected") : t("devices.wifiConfigSent"), "success");
       setTimeout(() => {
         void refreshDeviceState().catch(() => undefined);
       }, 4500);
@@ -307,33 +321,32 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
       setProvisioningWifi(false);
     }
   };
+
+  const onResetWifi = async (device: DeviceRecord) => {
+    setResettingWifi(true);
+    try {
+      await resetStardustDeviceWifiHttp(db, device).catch(async () => {
+        await resetStardustDeviceWifiConfig(db, device.id);
+      });
+      showToast(t("devices.wifiReset"), "success");
+      await refreshDeviceState(false);
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    } finally {
+      setResettingWifi(false);
+    }
+  };
   const connectedDevice = devices.find((device) => device.status === "connected");
   const primaryDevice = connectedDevice ?? devices[0];
-  const primaryActionLabel = scanning
+  const connectActionLabel = scanning
     ? t("settings.scanningDevices")
-    : capturing
-      ? t("devices.capturingPhoto")
-    : connectedDevice
-      ? t("devices.capturePhoto")
-      : primaryDevice
+    : primaryDevice
         ? t("devices.connectDevice")
         : t("settings.scanDevices");
-  const primaryActionIcon = connectedDevice
-    ? "camera-outline"
-    : primaryDevice
-      ? "link-outline"
-      : "search-outline";
-  const primaryActionDisabled =
-    scanning ||
-    capturing ||
-    bleStatus !== "poweredOn" ||
-    !!(connectedDevice && !supportsDeviceCommand(connectedDevice, "capture"));
+  const connectActionIcon = primaryDevice ? "link-outline" : "search-outline";
+  const connectActionDisabled = scanning || (primaryDevice ? false : bleStatus !== "poweredOn");
 
-  const onPrimaryAction = async () => {
-    if (connectedDevice) {
-      await onCaptureDevice(connectedDevice);
-      return;
-    }
+  const onConnectAction = async () => {
     if (primaryDevice) {
       await onSubscribeDevice(primaryDevice);
       return;
@@ -373,6 +386,14 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
                 </Text>
               </View>
             )}
+            <Button
+              onPress={() => connectedDevice && void onCaptureDevice(connectedDevice)}
+              disabled={capturing || !connectedDevice?.networkCaptureUrl}
+              className="w-full"
+            >
+              <Ionicons name="camera-outline" size={16} color={colorScheme === "dark" ? "#0A0A0A" : "#FAFAFA"} />
+              <Text>{capturing ? t("devices.capturingPhoto") : t("devices.capturePhoto")}</Text>
+            </Button>
           </CardContent>
         </Card>
 
@@ -394,12 +415,12 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
               <Text className="text-sm">{getBleStatusLabel(bleStatus)}</Text>
             </View>
             <Button
-              onPress={() => void onPrimaryAction()}
-              disabled={primaryActionDisabled}
+              onPress={() => void onConnectAction()}
+              disabled={connectActionDisabled}
               className="w-full"
             >
-              <Ionicons name={primaryActionIcon} size={16} color={colorScheme === "dark" ? "#0A0A0A" : "#FAFAFA"} />
-              <Text>{primaryActionLabel}</Text>
+              <Ionicons name={connectActionIcon} size={16} color={colorScheme === "dark" ? "#0A0A0A" : "#FAFAFA"} />
+              <Text>{connectActionLabel}</Text>
             </Button>
             <View className="flex-row gap-2">
               <Button variant="outline" onPress={openDeviceInbox} className="flex-1">
@@ -408,52 +429,77 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
               </Button>
               <Button
                 variant="outline"
-                onPress={() => void onRestoreDeviceSubscriptions()}
-                disabled={restoringDevices || bleStatus !== "poweredOn"}
+                onPress={() => void onRefreshDeviceState()}
+                disabled={refreshingDevices}
                 className="flex-1"
               >
                 <Ionicons name="refresh-outline" size={16} color={iconColor} />
-                <Text>{restoringDevices ? t("settings.scanningDevices") : t("devices.refresh")}</Text>
+                <Text>{refreshingDevices ? t("settings.scanningDevices") : t("devices.refresh")}</Text>
               </Button>
             </View>
 
             {connectedDevice ? (
               <View className="gap-3 rounded-md border border-border p-3">
-                <Text className="text-sm font-semibold">{t("devices.wifiTitle")}</Text>
+                <View className="flex-row items-center justify-between gap-3">
+                  <Text className="text-sm font-semibold">{t("devices.wifiTitle")}</Text>
+                  <View className="flex-row items-center gap-1.5 rounded-full bg-muted px-2.5 py-1">
+                    <View
+                      className={`h-2 w-2 rounded-full ${
+                        connectedDevice.networkCaptureUrl ? "bg-emerald-500" : "bg-amber-500"
+                      }`}
+                    />
+                    <Text className="text-xs text-muted-foreground">
+                      {getDeviceNetworkLabel(connectedDevice)}
+                    </Text>
+                  </View>
+                </View>
                 {connectedDevice.networkCaptureUrl ? (
-                  <Text className="text-xs text-muted-foreground">
-                    {connectedDevice.networkCaptureUrl}
-                  </Text>
-                ) : null}
-                <View className="gap-2">
-                  <Label htmlFor="stardust-wifi-ssid">{t("devices.wifiSsid")}</Label>
-                  <Input
-                    id="stardust-wifi-ssid"
-                    value={wifiSsid}
-                    onChangeText={setWifiSsid}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-                <View className="gap-2">
-                  <Label htmlFor="stardust-wifi-password">{t("devices.wifiPassword")}</Label>
-                  <Input
-                    id="stardust-wifi-password"
-                    value={wifiPassword}
-                    onChangeText={setWifiPassword}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    secureTextEntry
-                  />
-                </View>
-                <Button
-                  variant="outline"
-                  onPress={() => void onProvisionWifi(connectedDevice)}
-                  disabled={provisioningWifi}
-                >
-                  <Ionicons name="wifi-outline" size={16} color={iconColor} />
-                  <Text>{provisioningWifi ? t("devices.configuringWifi") : t("devices.configureWifi")}</Text>
-                </Button>
+                  <>
+                    <Text className="text-xs text-muted-foreground">
+                      {connectedDevice.networkCaptureUrl}
+                    </Text>
+                    <Button
+                      variant="outline"
+                      onPress={() => void onResetWifi(connectedDevice)}
+                      disabled={resettingWifi}
+                    >
+                      <Ionicons name="refresh-circle-outline" size={16} color={iconColor} />
+                      <Text>{resettingWifi ? t("devices.resettingWifi") : t("devices.resetWifi")}</Text>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <View className="gap-2">
+                      <Label htmlFor="stardust-wifi-ssid">{t("devices.wifiSsid")}</Label>
+                      <Input
+                        id="stardust-wifi-ssid"
+                        value={wifiSsid}
+                        onChangeText={setWifiSsid}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                    </View>
+                    <View className="gap-2">
+                      <Label htmlFor="stardust-wifi-password">{t("devices.wifiPassword")}</Label>
+                      <Input
+                        id="stardust-wifi-password"
+                        value={wifiPassword}
+                        onChangeText={setWifiPassword}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        secureTextEntry
+                      />
+                    </View>
+                    <Button
+                      variant="outline"
+                      onPress={() => void onProvisionWifi(connectedDevice)}
+                      disabled={provisioningWifi}
+                    >
+                      <Ionicons name="wifi-outline" size={16} color={iconColor} />
+                      <Text>{provisioningWifi ? t("devices.configuringWifi") : t("devices.configureWifi")}</Text>
+                    </Button>
+                  </>
+                )}
               </View>
             ) : null}
 
@@ -464,6 +510,16 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
                   <Text className="text-xs text-muted-foreground">
                     {getDeviceKindLabel(device.kind)} · {getDeviceStatusLabel(device.status)}
                   </Text>
+                  <View className="flex-row items-center gap-2">
+                    <View
+                      className={`h-2 w-2 rounded-full ${
+                        device.networkCaptureUrl ? "bg-emerald-500" : "bg-amber-500"
+                      }`}
+                    />
+                    <Text className="text-xs text-muted-foreground">
+                      {getDeviceNetworkLabel(device)}
+                    </Text>
+                  </View>
                   {getDeviceDetailLines(device).map((line) => (
                     <Text key={line} className="text-xs text-muted-foreground">
                       {line}
@@ -479,8 +535,6 @@ export function DevicesContent({ embedded = false }: { embedded?: boolean }) {
       </View>
     </>
   );
-
-  if (embedded) return content;
 
   return (
     <ScrollView contentContainerStyle={{ gap: 14, padding: 16, paddingBottom: 28 }}>

@@ -318,7 +318,11 @@ const parseSSEStream = async (
         .map((line) => line.slice(6));
 
       for (const dataLine of dataLines) {
-        if (!dataLine || dataLine === "[DONE]") continue;
+        if (!dataLine) continue;
+        if (dataLine === "[DONE]") {
+          await reader.cancel().catch(() => undefined);
+          return;
+        }
 
         try {
           onEvent(JSON.parse(dataLine) as Record<string, unknown>);
@@ -384,6 +388,7 @@ const sendLocalChatRequest = async ({
   const decoder = new TextDecoder();
   let buffer = "";
   let content = "";
+  let streamDone = false;
   const toolCalls = new Map<
     number,
     {
@@ -393,7 +398,7 @@ const sendLocalChatRequest = async ({
     }
   >();
 
-  while (true) {
+  while (!streamDone) {
     const { done, value } = await reader.read();
     if (done) break;
 
@@ -405,7 +410,12 @@ const sendLocalChatRequest = async ({
       if (!line.startsWith("data: ")) continue;
 
       const rawValue = line.slice(6).trim();
-      if (!rawValue || rawValue === "[DONE]") continue;
+      if (!rawValue) continue;
+      if (rawValue === "[DONE]") {
+        streamDone = true;
+        await reader.cancel().catch(() => undefined);
+        break;
+      }
 
       const chunk = JSON.parse(rawValue) as {
         choices?: Array<{

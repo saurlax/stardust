@@ -2,7 +2,9 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
-#include <BLE2902.h>
+#include <FS.h>
+#include <LittleFS.h>
+#include <Preferences.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include "esp_camera.h"
@@ -10,13 +12,13 @@
 static const char *DEVICE_NAME = "Stardust Sense";
 static const char *PROTOCOL_VERSION = "0.1.0";
 static const char *SERVICE_UUID = "7b3f4a10-9d62-4a7d-a0d9-2ffb9239c4d1";
-static const char *STATUS_CHARACTERISTIC_UUID = "7b3f4a11-9d62-4a7d-a0d9-2ffb9239c4d1";
-static const char *EVENT_CHARACTERISTIC_UUID = "7b3f4a12-9d62-4a7d-a0d9-2ffb9239c4d1";
-static const char *COMMAND_CHARACTERISTIC_UUID = "7b3f4a13-9d62-4a7d-a0d9-2ffb9239c4d1";
-static const char *MANIFEST_CHARACTERISTIC_UUID = "7b3f4a14-9d62-4a7d-a0d9-2ffb9239c4d1";
-static const char *PHOTO_CHARACTERISTIC_UUID = "7b3f4a15-9d62-4a7d-a0d9-2ffb9239c4d1";
-static const size_t PHOTO_CHUNK_SIZE = 45;
-static const char *BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const char *PROVISION_CHARACTERISTIC_UUID = "7b3f4a13-9d62-4a7d-a0d9-2ffb9239c4d1";
+static const char *WIFI_PREFS_NAMESPACE = "stardust";
+static const int STATUS_LED_PIN = 21;
+static const bool STATUS_LED_ACTIVE_LOW = true;
+static const uint32_t STATUS_LED_PWM_WINDOW_MS = 20;
+static const uint32_t PHOTO_RING_SLOTS = 48;
+static const uint32_t AUTO_CAPTURE_INTERVAL_MS = 5UL * 60UL * 1000UL;
 
 #define CAMERA_PIN_PWDN -1
 #define CAMERA_PIN_RESET -1
@@ -41,22 +43,29 @@ static const int CAPTURE_BUTTON_PIN = D1;
 static const int CAPTURE_BUTTON_PIN = 2;
 #endif
 
-BLECharacteristic *statusCharacteristic = nullptr;
-BLECharacteristic *eventCharacteristic = nullptr;
-BLECharacteristic *manifestCharacteristic = nullptr;
-BLECharacteristic *photoCharacteristic = nullptr;
+BLECharacteristic *provisionCharacteristic = nullptr;
 WebServer httpServer(80);
+Preferences wifiPrefs;
 
 bool deviceConnected = false;
 bool cameraReady = false;
+bool storageReady = false;
 bool httpServerStarted = false;
 String wifiState = "idle";
+String provisioningState = "{\"status\":\"idle\"}";
+String eventLog = "[]";
 uint32_t eventCounter = 0;
 uint32_t bootId = 0;
 uint32_t lastButtonReadAt = 0;
+uint32_t lastHeartbeatAt = 0;
+uint32_t lastLedUpdateAt = 0;
+uint32_t lastAutoCaptureAt = 0;
 int lastButtonState = HIGH;
 String lastEventType = "boot";
 String lastEventContent = "Stardust Sense ready";
+
+String capturePhoto(const String &source);
+void resetWifiCredentials();
 
 String jsonEscape(const String &value) {
   String escaped = "";
@@ -70,27 +79,13 @@ String jsonEscape(const String &value) {
   return escaped;
 }
 
-String base64EncodeBytes(const uint8_t *data, size_t length) {
-  String encoded = "";
-  encoded.reserve(((length + 2) / 3) * 4);
-
-  for (size_t index = 0; index < length; index += 3) {
-    const uint8_t byte1 = data[index];
-    const uint8_t byte2 = index + 1 < length ? data[index + 1] : 0;
-    const uint8_t byte3 = index + 2 < length ? data[index + 2] : 0;
-    const uint32_t chunk = (byte1 << 16) | (byte2 << 8) | byte3;
-
-    encoded += BASE64_CHARS[(chunk >> 18) & 0x3f];
-    encoded += BASE64_CHARS[(chunk >> 12) & 0x3f];
-    encoded += index + 1 < length ? BASE64_CHARS[(chunk >> 6) & 0x3f] : '=';
-    encoded += index + 2 < length ? BASE64_CHARS[chunk & 0x3f] : '=';
-  }
-
-  return encoded;
+String baseUrl() {
+  return WiFi.status() == WL_CONNECTED ? "http://" + WiFi.localIP().toString() : "";
 }
 
 String statusPayload() {
   const bool wifiConnected = WiFi.status() == WL_CONNECTED;
+  const String base = baseUrl();
   String payload = "{";
   payload += "\"battery\":null,";
   payload += "\"firmware\":\"0.1.0\",";
@@ -98,8 +93,17 @@ String statusPayload() {
   payload += "\"cameraReady\":" + String(cameraReady ? "true" : "false") + ",";
   payload += "\"network\":{\"state\":\"" + jsonEscape(wifiConnected ? "connected" : wifiState) + "\",";
   payload += "\"ip\":\"" + String(wifiConnected ? WiFi.localIP().toString() : "") + "\",";
-  payload += "\"captureUrl\":\"" + String(wifiConnected ? "http://" + WiFi.localIP().toString() + "/capture.jpg" : "") + "\"},";
-  payload += "\"storage\":\"reserved\",";
+  payload += "\"baseUrl\":\"" + jsonEscape(base) + "\",";
+  payload += "\"captureUrl\":\"" + jsonEscape(base.length() ? base + "/capture" : "") + "\",";
+  payload += "\"eventsUrl\":\"" + jsonEscape(base.length() ? base + "/events" : "") + "\",";
+  payload += "\"manifestUrl\":\"" + jsonEscape(base.length() ? base + "/manifest" : "") + "\",";
+  payload += "\"staticBaseUrl\":\"" + jsonEscape(base.length() ? base + "/static" : "") + "\"},";
+  payload += "\"storage\":{\"state\":\"" + String(storageReady ? "ready" : "unavailable") + "\",";
+  payload += "\"medium\":\"flash-ring\",";
+  payload += "\"staticPath\":\"/static\",";
+  payload += "\"ringSlots\":" + String(PHOTO_RING_SLOTS) + ",";
+  payload += "\"totalBytes\":" + String(storageReady ? LittleFS.totalBytes() : 0) + ",";
+  payload += "\"usedBytes\":" + String(storageReady ? LittleFS.usedBytes() : 0) + "},";
   payload += "\"uptimeMs\":" + String(millis()) + ",";
   payload += "\"bootId\":\"" + String(bootId, HEX) + "\"";
   payload += "}";
@@ -108,13 +112,16 @@ String statusPayload() {
 
 String manifestPayload() {
   const bool wifiConnected = WiFi.status() == WL_CONNECTED;
+  const String base = baseUrl();
   String payload = "{";
   payload += "\"protocolVersion\":\"" + String(PROTOCOL_VERSION) + "\",";
   payload += "\"deviceKind\":\"xiao-esp32s3-sense\",";
-  payload += "\"capabilities\":[\"ble-metadata\",\"button-capture\",\"serial-capture\",\"command-capture\",\"command-sync\",\"command-sleep\",\"ble-photo\",\"wifi-provision\",\"wifi-http-photo\"],";
-  payload += "\"captureSources\":[\"button\",\"serial\",\"command\",\"camera\"],";
-  payload += "\"media\":{\"photoTransfer\":\"" + String(wifiConnected ? "http" : "ble") + "\",\"mimeType\":\"image/jpeg\",\"chunkSize\":" + String(PHOTO_CHUNK_SIZE) + ",\"cameraReady\":" + String(cameraReady ? "true" : "false") + ",";
-  payload += "\"captureUrl\":\"" + String(wifiConnected ? "http://" + WiFi.localIP().toString() + "/capture.jpg" : "") + "\"},";
+  payload += "\"capabilities\":[\"ble-wifi-provision\",\"button-capture\",\"serial-capture\",\"http-capture\",\"http-events\",\"flash-ring-storage\",\"static-files\"],";
+  payload += "\"captureSources\":[\"button\",\"serial\",\"manual\",\"auto\"],";
+  payload += "\"autoCaptureIntervalMs\":" + String(AUTO_CAPTURE_INTERVAL_MS) + ",";
+  payload += "\"media\":{\"photoTransfer\":\"static-http\",\"mimeType\":\"image/jpeg\",\"cameraReady\":" + String(cameraReady ? "true" : "false") + ",";
+  payload += "\"captureUrl\":\"" + jsonEscape(base.length() ? base + "/capture" : "") + "\",";
+  payload += "\"staticBaseUrl\":\"" + jsonEscape(base.length() ? base + "/static" : "") + "\"},";
   payload += "\"eventCount\":" + String(eventCounter) + ",";
   payload += "\"bootId\":\"" + String(bootId, HEX) + "\",";
   payload += "\"lastEventType\":\"" + jsonEscape(lastEventType) + "\"";
@@ -122,13 +129,40 @@ String manifestPayload() {
   return payload;
 }
 
-void refreshDeviceCharacteristics() {
-  if (statusCharacteristic) {
-    statusCharacteristic->setValue(statusPayload().c_str());
+void refreshProvisionCharacteristic() {
+  if (provisionCharacteristic) {
+    provisionCharacteristic->setValue(provisioningState.c_str());
   }
-  if (manifestCharacteristic) {
-    manifestCharacteristic->setValue(manifestPayload().c_str());
+}
+
+void writeStatusLed(bool on) {
+  digitalWrite(STATUS_LED_PIN, STATUS_LED_ACTIVE_LOW ? !on : on);
+}
+
+void writeStatusLedBrightness(uint8_t brightness) {
+  const uint32_t phase = millis() % STATUS_LED_PWM_WINDOW_MS;
+  const bool on = brightness > (phase * 255 / STATUS_LED_PWM_WINDOW_MS);
+  writeStatusLed(on);
+}
+
+void updateStatusLed() {
+  const uint32_t now = millis();
+  const bool wifiConnected = WiFi.status() == WL_CONNECTED;
+
+  if (wifiConnected) {
+    writeStatusLed(true);
+    return;
   }
+
+  if (wifiState == "connecting") {
+    writeStatusLed((now / 100) % 2 == 0);
+    return;
+  }
+
+  const uint32_t breath = now % 1000;
+  const uint32_t half = breath < 500 ? breath : 1000 - breath;
+  const uint8_t brightness = 8 + (half * 247 / 500);
+  writeStatusLedBrightness(brightness);
 }
 
 String commandTypeFromJson(const String &payload) {
@@ -188,9 +222,7 @@ String eventPayload(const String &id, const String &type, const String &content,
   return payload;
 }
 
-void publishEvent(const String &type, const String &content, const String &metadata = "{}") {
-  if (!eventCharacteristic) return;
-
+String publishEvent(const String &type, const String &content, const String &metadata = "{}") {
   eventCounter += 1;
   lastEventType = type;
   lastEventContent = content;
@@ -201,12 +233,17 @@ void publishEvent(const String &type, const String &content, const String &metad
     metadata
   );
 
-  eventCharacteristic->setValue(payload.c_str());
-  refreshDeviceCharacteristics();
-  if (deviceConnected) {
-    eventCharacteristic->notify();
+  if (eventLog == "[]") {
+    eventLog = "[" + payload + "]";
+  } else {
+    eventLog.remove(eventLog.length() - 1);
+    eventLog += "," + payload + "]";
+  }
+  if (eventLog.length() > 24000) {
+    eventLog = "[" + payload + "]";
   }
   Serial.println(payload);
+  return payload;
 }
 
 bool setupCamera() {
@@ -253,22 +290,119 @@ bool setupCamera() {
 }
 
 void handleHttpCapture() {
-  if (!cameraReady) {
-    httpServer.send(503, "text/plain", "camera unavailable");
+  const String event = capturePhoto("manual");
+  httpServer.sendHeader("Cache-Control", "no-store");
+  httpServer.send(event.indexOf("\"status\":\"failed\"") >= 0 ? 500 : 200, "application/json", event);
+}
+
+void handleHttpWifiReset() {
+  resetWifiCredentials();
+  httpServer.sendHeader("Cache-Control", "no-store");
+  httpServer.send(200, "application/json", provisioningState);
+}
+
+void handleStaticFile() {
+  if (!storageReady) {
+    httpServer.send(503, "text/plain", "storage unavailable");
     return;
+  }
+
+  String path = httpServer.uri();
+  if (!path.startsWith("/static/")) {
+    httpServer.send(404, "text/plain", "not found");
+    return;
+  }
+
+  File file = LittleFS.open(path, FILE_READ);
+  if (!file || file.isDirectory()) {
+    httpServer.send(404, "text/plain", "not found");
+    return;
+  }
+
+  httpServer.sendHeader("Cache-Control", "public, max-age=31536000");
+  httpServer.streamFile(file, "image/jpeg");
+  file.close();
+}
+
+bool setupStorage() {
+  Serial.println("Mounting LittleFS...");
+  if (!LittleFS.begin(true)) {
+    Serial.println("LittleFS mount failed.");
+    return false;
+  }
+
+  LittleFS.mkdir("/static");
+  Serial.printf(
+    "LittleFS ready: total=%lu used=%lu free=%lu bytes\n",
+    static_cast<unsigned long>(LittleFS.totalBytes()),
+    static_cast<unsigned long>(LittleFS.usedBytes()),
+    static_cast<unsigned long>(LittleFS.totalBytes() - LittleFS.usedBytes())
+  );
+  return true;
+}
+
+uint32_t nextPhotoSlot() {
+  wifiPrefs.begin(WIFI_PREFS_NAMESPACE, false);
+  const uint32_t counter = wifiPrefs.getUInt("photoCounter", 0);
+  wifiPrefs.putUInt("photoCounter", counter + 1);
+  wifiPrefs.end();
+  return counter % PHOTO_RING_SLOTS;
+}
+
+String capturePhoto(const String &source) {
+  if (!cameraReady) {
+    return publishEvent("capture", "Camera capture unavailable", "{\"source\":\"" + jsonEscape(source) + "\",\"cameraReady\":false,\"status\":\"failed\"}");
+  }
+
+  if (!storageReady) {
+    return publishEvent("capture", "Photo storage unavailable", "{\"source\":\"" + jsonEscape(source) + "\",\"cameraReady\":true,\"storageReady\":false,\"status\":\"failed\"}");
   }
 
   camera_fb_t *frame = esp_camera_fb_get();
+  if (source == "manual" && frame) {
+    esp_camera_fb_return(frame);
+    delay(120);
+    frame = esp_camera_fb_get();
+  }
   if (!frame) {
-    httpServer.send(500, "text/plain", "capture failed");
-    return;
+    return publishEvent("capture", "Camera capture failed", "{\"source\":\"" + jsonEscape(source) + "\",\"cameraReady\":true,\"status\":\"failed\"}");
   }
 
-  httpServer.sendHeader("Cache-Control", "no-store");
-  httpServer.setContentLength(frame->len);
-  httpServer.send(200, "image/jpeg", "");
-  httpServer.client().write(frame->buf, frame->len);
+  const uint32_t photoSlot = nextPhotoSlot();
+  const String photoId = "photo-" + String(photoSlot);
+  const String staticPath = "/static/" + photoId + ".jpg";
+  LittleFS.remove(staticPath);
+  File file = LittleFS.open(staticPath, FILE_WRITE);
+  if (!file) {
+    esp_camera_fb_return(frame);
+    return publishEvent("capture", "Photo file open failed", "{\"source\":\"" + jsonEscape(source) + "\",\"status\":\"failed\"}");
+  }
+
+  const size_t written = file.write(frame->buf, frame->len);
+  file.close();
   esp_camera_fb_return(frame);
+
+  if (written == 0) {
+    LittleFS.remove(staticPath);
+    return publishEvent("capture", "Photo file write failed", "{\"source\":\"" + jsonEscape(source) + "\",\"status\":\"failed\"}");
+  }
+
+  const String mediaUrl = baseUrl().length() ? baseUrl() + staticPath : "";
+  String metadata = "{";
+  metadata += "\"source\":\"" + jsonEscape(source) + "\",";
+  metadata += "\"cameraReady\":true,";
+  metadata += "\"storage\":\"flash-ring\",";
+  metadata += "\"photoId\":\"" + photoId + "\",";
+  metadata += "\"photoSlot\":" + String(photoSlot) + ",";
+  metadata += "\"staticPath\":\"" + jsonEscape(staticPath) + "\",";
+  metadata += "\"mediaUrl\":\"" + jsonEscape(mediaUrl) + "\",";
+  metadata += "\"mimeType\":\"image/jpeg\",";
+  metadata += "\"byteLength\":" + String(written) + ",";
+  metadata += "\"storageUsedBytes\":" + String(LittleFS.usedBytes()) + ",";
+  metadata += "\"storageTotalBytes\":" + String(LittleFS.totalBytes()) + ",";
+  metadata += "\"photoTransfer\":\"static-http\"";
+  metadata += "}";
+  return publishEvent("capture", "Photo", metadata);
 }
 
 void startHttpServer() {
@@ -277,19 +411,71 @@ void startHttpServer() {
   httpServer.on("/health", HTTP_GET, []() {
     httpServer.send(200, "application/json", "{\"ok\":true}");
   });
-  httpServer.on("/capture.jpg", HTTP_GET, handleHttpCapture);
+  httpServer.on("/status", HTTP_GET, []() {
+    httpServer.sendHeader("Cache-Control", "no-store");
+    httpServer.send(200, "application/json", statusPayload());
+  });
+  httpServer.on("/manifest", HTTP_GET, []() {
+    httpServer.sendHeader("Cache-Control", "no-store");
+    httpServer.send(200, "application/json", manifestPayload());
+  });
+  httpServer.on("/events", HTTP_GET, []() {
+    httpServer.sendHeader("Cache-Control", "no-store");
+    httpServer.send(200, "application/json", eventLog);
+  });
+  httpServer.on("/capture", HTTP_GET, handleHttpCapture);
+  httpServer.on("/capture", HTTP_POST, handleHttpCapture);
+  httpServer.on("/wifi/reset", HTTP_POST, handleHttpWifiReset);
+  httpServer.on("/wifi/reset", HTTP_GET, handleHttpWifiReset);
+  httpServer.onNotFound([]() {
+    if (httpServer.uri().startsWith("/static/")) {
+      handleStaticFile();
+      return;
+    }
+    httpServer.send(404, "text/plain", "not found");
+  });
   httpServer.begin();
   httpServerStarted = true;
 }
 
-void connectWifi(const String &ssid, const String &password) {
+void saveWifiCredentials(const String &ssid, const String &password) {
+  wifiPrefs.begin(WIFI_PREFS_NAMESPACE, false);
+  wifiPrefs.putString("ssid", ssid);
+  wifiPrefs.putString("password", password);
+  wifiPrefs.end();
+}
+
+void resetWifiCredentials() {
+  wifiPrefs.begin(WIFI_PREFS_NAMESPACE, false);
+  wifiPrefs.remove("ssid");
+  wifiPrefs.remove("password");
+  wifiPrefs.end();
+  WiFi.disconnect(true, true);
+  wifiState = "idle";
+  provisioningState = "{\"status\":\"idle\"}";
+  refreshProvisionCharacteristic();
+  publishEvent("wifi", "Wi-Fi credentials reset", "{\"status\":\"reset\",\"source\":\"command\"}");
+}
+
+bool loadWifiCredentials(String &ssid, String &password) {
+  wifiPrefs.begin(WIFI_PREFS_NAMESPACE, true);
+  ssid = wifiPrefs.getString("ssid", "");
+  password = wifiPrefs.getString("password", "");
+  wifiPrefs.end();
+  return ssid.length() > 0;
+}
+
+void connectWifi(const String &ssid, const String &password, bool remember = true) {
   if (ssid.length() == 0) {
+    Serial.println("Wi-Fi provisioning failed: empty SSID.");
     publishEvent("wifi", "Wi-Fi SSID is empty", "{\"status\":\"failed\"}");
     return;
   }
 
+  Serial.printf("Connecting Wi-Fi SSID: %s\n", ssid.c_str());
   wifiState = "connecting";
-  refreshDeviceCharacteristics();
+  provisioningState = "{\"status\":\"connecting\"}";
+  refreshProvisionCharacteristic();
   WiFi.disconnect(true, true);
   delay(350);
   WiFi.mode(WIFI_STA);
@@ -302,69 +488,60 @@ void connectWifi(const String &ssid, const String &password) {
   }
 
   if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Wi-Fi connection failed.");
     wifiState = "failed";
-    refreshDeviceCharacteristics();
+    provisioningState = "{\"status\":\"failed\"}";
+    refreshProvisionCharacteristic();
     publishEvent("wifi", "Wi-Fi connection failed", "{\"status\":\"failed\"}");
     return;
   }
 
   wifiState = "connected";
+  if (remember) {
+    saveWifiCredentials(ssid, password);
+  }
   startHttpServer();
-  refreshDeviceCharacteristics();
+  Serial.printf("Wi-Fi connected: %s\n", WiFi.localIP().toString().c_str());
+  provisioningState = "{\"status\":\"connected\",\"baseUrl\":\"" + jsonEscape(baseUrl()) + "\",\"captureUrl\":\"" + jsonEscape(baseUrl() + "/capture") + "\"}";
+  refreshProvisionCharacteristic();
   publishEvent(
     "wifi",
     "Wi-Fi connected",
-    "{\"status\":\"connected\",\"ip\":\"" + WiFi.localIP().toString() + "\",\"captureUrl\":\"http://" + WiFi.localIP().toString() + "/capture.jpg\"}"
+    "{\"status\":\"connected\",\"ip\":\"" + WiFi.localIP().toString() + "\",\"baseUrl\":\"" + jsonEscape(baseUrl()) + "\",\"captureUrl\":\"" + jsonEscape(baseUrl() + "/capture") + "\"}"
   );
 }
 
-void capturePhoto(const String &source) {
-  if (!cameraReady || !photoCharacteristic) {
-    publishEvent("capture", "Camera capture unavailable", "{\"source\":\"" + jsonEscape(source) + "\",\"cameraReady\":false}");
+void connectSavedWifi() {
+  String ssid;
+  String password;
+  if (!loadWifiCredentials(ssid, password)) {
+    Serial.println("No saved Wi-Fi credentials.");
     return;
   }
 
-  camera_fb_t *frame = esp_camera_fb_get();
-  if (!frame) {
-    publishEvent("capture", "Camera capture failed", "{\"source\":\"" + jsonEscape(source) + "\",\"cameraReady\":true,\"status\":\"failed\"}");
-    return;
+  Serial.printf("Connecting saved Wi-Fi SSID: %s\n", ssid.c_str());
+  connectWifi(ssid, password, false);
+}
+
+bool handleSerialCommand(const String &line) {
+  if (!line.startsWith("wifi ")) return false;
+
+  const int passwordStart = line.indexOf(' ', 5);
+  if (passwordStart < 0) {
+    Serial.println("Usage: wifi <ssid> <password>");
+    return true;
   }
 
-  const String photoId = "p-" + String(eventCounter + 1);
-  const size_t chunkCount = (frame->len + PHOTO_CHUNK_SIZE - 1) / PHOTO_CHUNK_SIZE;
-  String metadata = "{";
-  metadata += "\"source\":\"" + jsonEscape(source) + "\",";
-  metadata += "\"p\":{\"id\":\"" + photoId + "\",";
-  metadata += "\"n\":" + String(frame->len) + ",";
-  metadata += "\"c\":" + String(chunkCount) + ",";
-  metadata += "\"w\":" + String(frame->width) + ",";
-  metadata += "\"h\":" + String(frame->height) + "}";
-  metadata += "}";
-  publishEvent("capture", "Photo", metadata);
-  delay(500);
-
-  size_t chunkIndex = 0;
-  for (size_t offset = 0; offset < frame->len; offset += PHOTO_CHUNK_SIZE) {
-    const size_t remaining = frame->len - offset;
-    const size_t chunkLength = remaining < PHOTO_CHUNK_SIZE ? remaining : PHOTO_CHUNK_SIZE;
-    const String chunkPayload = base64EncodeBytes(frame->buf + offset, chunkLength);
-    publishEvent(
-      "photo-chunk",
-      chunkPayload,
-      "{\"p\":\"" + photoId + "\",\"i\":" + String(chunkIndex) + "}"
-    );
-    chunkIndex += 1;
-    delay(24);
-  }
-
-  esp_camera_fb_return(frame);
-  publishEvent("capture", "Photo capture transferred", "{\"source\":\"" + jsonEscape(source) + "\",\"photoId\":\"" + photoId + "\",\"status\":\"transferred\"}");
+  const String ssid = line.substring(5, passwordStart);
+  const String password = line.substring(passwordStart + 1);
+  connectWifi(ssid, password, true);
+  return true;
 }
 
 class ServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *server) override {
     deviceConnected = true;
-    refreshDeviceCharacteristics();
+    refreshProvisionCharacteristic();
   }
 
   void onDisconnect(BLEServer *server) override {
@@ -380,16 +557,6 @@ class CommandCallbacks : public BLECharacteristicCallbacks {
 
     String commandType = commandTypeFromJson(value);
 
-    if (commandType == "capture") {
-      capturePhoto("command");
-      return;
-    }
-
-    if (commandType == "sync") {
-      publishEvent("sync", "Stardust Sense sync heartbeat", "{\"source\":\"command\"}");
-      return;
-    }
-
     if (commandType == "wifi") {
       connectWifi(stringFieldFromJson(value, "ssid"), stringFieldFromJson(value, "password"));
       return;
@@ -399,6 +566,11 @@ class CommandCallbacks : public BLECharacteristicCallbacks {
       publishEvent("sleep", "Sleep command received", "{\"source\":\"command\"}");
       delay(120);
       esp_deep_sleep_start();
+    }
+
+    if (commandType == "wifi-reset") {
+      resetWifiCredentials();
+      return;
     }
   }
 };
@@ -412,38 +584,12 @@ void setupBle() {
 
   BLEService *service = server->createService(SERVICE_UUID);
 
-  statusCharacteristic = service->createCharacteristic(
-    STATUS_CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_READ
+  provisionCharacteristic = service->createCharacteristic(
+    PROVISION_CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
   );
-  statusCharacteristic->setValue(statusPayload().c_str());
-
-  eventCharacteristic = service->createCharacteristic(
-    EVENT_CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
-  );
-  eventCharacteristic->addDescriptor(new BLE2902());
-  eventCharacteristic->setValue(
-    eventPayload("sense-" + String(bootId, HEX) + "-boot", "boot", "Stardust Sense ready", "{\"source\":\"boot\"}").c_str()
-  );
-
-  BLECharacteristic *commandCharacteristic = service->createCharacteristic(
-    COMMAND_CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
-  );
-  commandCharacteristic->setCallbacks(new CommandCallbacks());
-
-  manifestCharacteristic = service->createCharacteristic(
-    MANIFEST_CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_READ
-  );
-  manifestCharacteristic->setValue(manifestPayload().c_str());
-
-  photoCharacteristic = service->createCharacteristic(
-    PHOTO_CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
-  );
-  photoCharacteristic->addDescriptor(new BLE2902());
+  provisionCharacteristic->setCallbacks(new CommandCallbacks());
+  provisionCharacteristic->setValue(provisioningState.c_str());
 
   service->start();
 
@@ -457,18 +603,53 @@ void setupBle() {
 
 void setup() {
   Serial.begin(115200);
-  delay(300);
+  delay(2000);
+  Serial.println();
+  Serial.println("Stardust Sense booting...");
   bootId = esp_random();
+  Serial.printf("Boot ID: %08lx\n", bootId);
 
   pinMode(CAPTURE_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(STATUS_LED_PIN, OUTPUT);
+  writeStatusLed(false);
+  Serial.println("Initializing camera...");
   cameraReady = setupCamera();
+  Serial.printf("Camera ready: %s\n", cameraReady ? "yes" : "no");
+  storageReady = setupStorage();
+  Serial.printf("Storage ready: %s\n", storageReady ? "yes" : "no");
+  Serial.println("Starting BLE provisioning service...");
   setupBle();
+  Serial.println("BLE provisioning service started.");
+  publishEvent("boot", "Stardust Sense ready", "{\"source\":\"boot\"}");
+  connectSavedWifi();
 
   Serial.println("Stardust Sense BLE peripheral started.");
 }
 
 void loop() {
   const uint32_t now = millis();
+
+  if (now - lastLedUpdateAt > 5) {
+    lastLedUpdateAt = now;
+    updateStatusLed();
+  }
+
+  if (now - lastHeartbeatAt > 2000) {
+    lastHeartbeatAt = now;
+    Serial.printf(
+      "heartbeat wifi=%s ip=%s camera=%s storage=%s events=%lu\n",
+      WiFi.status() == WL_CONNECTED ? "connected" : wifiState.c_str(),
+      WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString().c_str() : "-",
+      cameraReady ? "ready" : "unavailable",
+      storageReady ? "ready" : "unavailable",
+      eventCounter
+    );
+  }
+
+  if (WiFi.status() == WL_CONNECTED && cameraReady && storageReady && now - lastAutoCaptureAt > AUTO_CAPTURE_INTERVAL_MS) {
+    lastAutoCaptureAt = now;
+    capturePhoto("auto");
+  }
 
   if (now - lastButtonReadAt > 60) {
     lastButtonReadAt = now;
@@ -485,7 +666,9 @@ void loop() {
     String line = Serial.readStringUntil('\n');
     line.trim();
     if (line.length() > 0) {
-      publishEvent("serial", line, "{\"source\":\"serial\"}");
+      if (!handleSerialCommand(line)) {
+        publishEvent("serial", line, "{\"source\":\"serial\"}");
+      }
     }
   }
 

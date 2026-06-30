@@ -182,6 +182,18 @@ export async function updateDeviceStatus(
   );
 }
 
+export async function clearDeviceNetworkCaptureUrl(db: SQLiteDatabase, deviceId: string) {
+  await db.runAsync(
+    `
+      UPDATE devices
+      SET network_capture_url = NULL, updated_at = ?
+      WHERE device_id = ?
+    `,
+    nowIso(),
+    deviceId,
+  );
+}
+
 export async function createDeviceEvent(
   db: SQLiteDatabase,
   input: {

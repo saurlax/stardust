@@ -1,8 +1,6 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, useColorScheme, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 
-import { DevicesContent } from "@/components/DevicesContent";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,8 +37,6 @@ const getErrorMessage = (error: unknown) => {
 };
 
 export function SettingsContent() {
-  const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
-  const iconColor = colorScheme === "dark" ? "#FAFAFA" : "#0A0A0A";
   const { config, ready, updateConfig } = useConfig();
   const [form, setForm] = useState<AiConfig>(getCachedAiConfig());
   const [saving, setSaving] = useState(false);
@@ -165,8 +161,6 @@ export function SettingsContent() {
               />
             </CardContent>
           </Card>
-
-          <DevicesContent embedded />
 
           <View className="gap-3">
             <Button

@@ -18,6 +18,7 @@ import { ChatMessages } from "@/components/ChatMessages";
 import { ChatPrompt } from "@/components/ChatPrompt";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { Toast, type ToastTone } from "@/components/ui/toast";
 import { useConfig } from "@/context/config";
 import type { ChatMessage, MemoryCandidateStatus } from "@/lib/chat/types";
 import { sendChatRequest } from "@/lib/chat/runtime";
@@ -34,6 +35,7 @@ import {
   saveChatSessionSnapshot,
   updateCandidateStatus,
 } from "@/lib/db";
+import { syncAllStardustDevices } from "@/lib/devices/sync";
 import { t } from "@/lib/i18n";
 
 const DEFAULT_IMAGE_PROMPT = t("chat.defaultImagePrompt");
@@ -46,6 +48,9 @@ type RequestContext = {
 
 type PromptSource = "chat" | "share" | "image";
 type PromptMetadata = Record<string, unknown>;
+type ToastState =
+  | { visible: false; message: string; tone: ToastTone }
+  | { visible: true; message: string; tone: ToastTone };
 
 const createGreetingMessage = (): ChatMessage => ({
   id: GREETING_ID,
@@ -130,6 +135,11 @@ const getErrorMessage = (error: unknown) => {
   return t("chat.actionFailed");
 };
 
+const formatDeviceSyncMessage = (synced: number, total: number) =>
+  t("devices.syncComplete")
+    .replace("%{synced}", String(synced))
+    .replace("%{total}", String(total));
+
 export default function Index() {
   const db = useSQLiteContext();
   const params = useLocalSearchParams<{ newSession?: string; sessionId?: string }>();
@@ -146,6 +156,11 @@ export default function Index() {
   const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>();
   const [messages, setMessages] = useState<ChatMessage[]>([createGreetingMessage()]);
   const [pendingCandidates, setPendingCandidates] = useState(0);
+  const [syncToast, setSyncToast] = useState<ToastState>({
+    visible: false,
+    message: "",
+    tone: "success",
+  });
   const [sending, setSending] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -157,6 +172,8 @@ export default function Index() {
   const configRef = useRef(config);
   const hydratingRef = useRef(true);
   const skipNextPersistRef = useRef(false);
+  const deviceSyncingRef = useRef(false);
+  const syncToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -165,6 +182,21 @@ export default function Index() {
   useEffect(() => {
     configRef.current = config;
   }, [config]);
+
+  useEffect(() => {
+    return () => {
+      if (syncToastTimerRef.current) clearTimeout(syncToastTimerRef.current);
+    };
+  }, []);
+
+  const showSyncToast = useCallback((message: string, tone: ToastTone, duration = 2200) => {
+    if (syncToastTimerRef.current) clearTimeout(syncToastTimerRef.current);
+    setSyncToast({ visible: true, message, tone });
+    syncToastTimerRef.current = setTimeout(() => {
+      setSyncToast((current) => ({ ...current, visible: false }));
+      syncToastTimerRef.current = null;
+    }, duration);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -288,6 +320,43 @@ export default function Index() {
     useCallback(() => {
       refreshPendingCandidates();
     }, [refreshPendingCandidates]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      if (deviceSyncingRef.current) {
+        return () => {
+          active = false;
+        };
+      }
+
+      deviceSyncingRef.current = true;
+      setSyncToast({ visible: true, message: t("devices.syncing"), tone: "success" });
+      void syncAllStardustDevices(db)
+        .then((result) => {
+          if (!active) return;
+          if (result.deviceCount > 0) {
+            showSyncToast(
+              formatDeviceSyncMessage(result.syncedCount, result.deviceCount),
+              "success",
+            );
+          } else {
+            setSyncToast((current) => ({ ...current, visible: false }));
+          }
+          refreshPendingCandidates();
+        })
+        .catch(() => {
+          if (active) showSyncToast(t("devices.syncFailed"), "error");
+        })
+        .finally(() => {
+          deviceSyncingRef.current = false;
+        });
+
+      return () => {
+        active = false;
+      };
+    }, [db, refreshPendingCandidates, showSyncToast]),
   );
 
   const updateAssistantText = useCallback(
@@ -686,6 +755,7 @@ export default function Index() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      <Toast visible={syncToast.visible} message={syncToast.message} tone={syncToast.tone} />
       <View className="relative h-[72px] justify-center border-b border-border bg-background/80 px-24">
         <View className="absolute bottom-0 left-3 top-0 justify-center">
           <Button

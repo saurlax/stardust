@@ -13,6 +13,7 @@ import {
   saveChatSessionSnapshot,
 } from "@/lib/db/repositories/chatSessions";
 import {
+  clearDeviceNetworkCaptureUrl,
   createDeviceEvent,
   createDevicePhotoEvent,
   listDeviceEvents,
@@ -69,6 +70,7 @@ export {
 };
 export { createEpisode, listEpisodes, listJournalRecords, updateJournalContent };
 export {
+  clearDeviceNetworkCaptureUrl,
   createDeviceEvent,
   createDevicePhotoEvent,
   listDeviceEvents,

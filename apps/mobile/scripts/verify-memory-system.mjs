@@ -21,6 +21,7 @@ const snapshot = read(mobileRoot, "lib", "db", "repositories", "snapshot.ts");
 const memoryRecords = read(mobileRoot, "lib", "db", "repositories", "memoryRecords.ts");
 const memoryGraph = read(mobileRoot, "lib", "db", "graph.ts");
 const ble = read(mobileRoot, "lib", "devices", "ble.ts");
+const deviceHttp = read(mobileRoot, "lib", "devices", "http.ts");
 const config = read(mobileRoot, "lib", "config.ts");
 const chatTypes = read(mobileRoot, "lib", "chat", "types.ts");
 const dbTypes = read(mobileRoot, "lib", "db", "types.ts");
@@ -28,7 +29,7 @@ const layout = read(mobileRoot, "app", "_layout.tsx");
 const chatScreen = read(mobileRoot, "app", "index.tsx");
 const chatRuntime = read(mobileRoot, "lib", "chat", "runtime.ts");
 const chatMessages = read(mobileRoot, "components", "ChatMessages.tsx");
-const deviceRestorer = read(mobileRoot, "components", "DeviceSubscriptionRestorer.tsx");
+const devicesContent = read(mobileRoot, "components", "DevicesContent.tsx");
 const nebulaView = read(mobileRoot, "components", "NebulaView.tsx");
 const calendarScreen = read(mobileRoot, "app", "calendar.tsx");
 const journalScreen = read(mobileRoot, "app", "journal.tsx");
@@ -222,12 +223,10 @@ assertIncludes(devices, "reviewed_event_count", "Device lists must count reviewe
 assertIncludes(devices, "lower(device_events.event_type) IN ('capture', 'button', 'serial')", "Device lists must scope review counts to promotable capture events.");
 assertIncludes(devices, "device_events.candidate_id IS NULL OR memory_candidates.status = 'pending'", "Device lists must count unpromoted captures as pending review work.");
 assertIncludes(inboxScreen, "device.reviewedEventCount", "Device inbox cards must display reviewed capture counts.");
-assertIncludes(settings, "device.reviewedEventCount", "Settings device cards must display reviewed capture counts.");
-assertIncludes(settings, "getReviewDeviceEventsLabel", "Settings device review buttons must summarize pending review counts.");
-assertIncludes(settings, "device.pendingReviewCount", "Settings device review buttons must use pending review counts.");
-assertIncludes(settings, "onRestoreDeviceSubscriptions", "Settings must expose a manual BLE subscription restore action.");
-assertIncludes(settings, "restoreStardustDeviceSubscriptions(db)", "Settings manual restore must reconnect device event subscriptions.");
-assertIncludes(settings, "deviceSubscriptionsRestored", "Settings manual restore must show user feedback.");
+assertIncludes(devicesContent, "device.reviewedEventCount", "Devices page cards must display reviewed capture counts.");
+assertIncludes(devicesContent, "onRefreshDeviceState", "Devices page must expose a manual HTTP sync action.");
+assertIncludes(devicesContent, "syncStardustDeviceHttp(db, device)", "Devices page refresh must sync device events over HTTP.");
+assertIncludes(devicesContent, "captureStardustDeviceHttp(db, device)", "Devices page capture must use the HTTP API.");
 assertIncludes(inboxScreen, "function OpenDeviceSettingsButton", "Device inbox empty state must link to device pairing.");
 assertIncludes(inboxScreen, 'router.push("/settings")', "Device inbox empty state must open Settings.");
 assertIncludes(inboxScreen, "pendingKindFilters", "Pending inbox must expose candidate kind filters.");
@@ -338,28 +337,19 @@ assertIncludes(ble, 'createCommandAuditEvent(db, deviceId, command, "sent")', "B
 assertIncludes(ble, 'createCommandAuditEvent(db, deviceId, command, "failed", error)', "BLE command audit events must record failed sends.");
 assertIncludes(ble, "createConnectionAuditEvent", "BLE connection changes must record local audit events.");
 assertIncludes(ble, 'eventType: "connection"', "BLE connection audit events must be device events.");
-assertIncludes(ble, "connection-${deviceId}-${status}-${minuteBucket}", "BLE connection audit events must use stable minute-bucket ids.");
-assertIncludes(ble, "!connectedDevices.has(device.id)", "BLE subscription restore must not duplicate already connected devices.");
-assertIncludes(ble, 'createConnectionAuditEvent(db, device.id, "restored")', "BLE restore success must be audited.");
-assertIncludes(ble, 'createConnectionAuditEvent(db, device.id, "restore_failed", error)', "BLE restore failures must be audited.");
-assertIncludes(ble, 'createConnectionAuditEvent(db, readyDevice.id, "disconnected")', "BLE disconnects must be audited.");
-assertIncludes(ble, 'createConnectionAuditEvent(db, deviceId, "disconnected")', "Manual BLE disconnects must be audited.");
-assertIncludes(deviceRestorer, "useSQLiteContext", "Device subscription restore must run after the database provider is ready.");
-assertIncludes(deviceRestorer, 'Platform.OS === "web"', "Device subscription restore must skip unsupported web runtimes.");
-assertIncludes(deviceRestorer, "getStardustBleStatus()", "Device subscription restore must check BLE availability before reconnecting.");
-assertIncludes(deviceRestorer, 'status !== "poweredOn"', "Device subscription restore must only reconnect when Bluetooth is powered on.");
-assertIncludes(deviceRestorer, "restoreStardustDeviceSubscriptions(db)", "Device subscription restore must run at app startup.");
-assertIncludes(layout, "<DeviceSubscriptionRestorer />", "Root layout must restore device subscriptions at app startup.");
-assertIncludes(settings, "settings.capabilities", "Settings must display device capabilities.");
-assertIncludes(settings, "getDeviceCapabilitySummary(device.capabilities)", "Settings must show friendly capability labels.");
-assertIncludes(settings, "supportsDeviceCommand", "Settings device commands must respect advertised capabilities.");
-assertIncludes(settings, "const refreshDeviceState = useCallback", "Settings must share device and BLE refresh logic.");
-assertIncludes(settings, "getStardustBleStatus()", "Settings device refresh must include BLE state.");
-assertIncludes(settings, "await refreshDeviceState();", "Settings device actions must refresh device and BLE state.");
-assertIncludes(settings, "disabled={!supportsDeviceCommand(device, \"capture\")}", "Settings must disable unsupported capture commands.");
-assertIncludes(settings, "captureDeviceUnavailable", "Settings must explain unsupported capture commands.");
-assertIncludes(settings, "syncDeviceUnavailable", "Settings must explain unsupported sync commands.");
-assertIncludes(settings, "sleepDeviceUnavailable", "Settings must explain unsupported sleep commands.");
+assertIncludes(ble, "PROVISION_CHARACTERISTIC_UUID", "BLE must keep only the provisioning characteristic.");
+assertIncludes(ble, "sendStardustDeviceWifiConfig", "BLE must support Wi-Fi provisioning.");
+assertNotIncludes(ble, "restoreStardustDeviceSubscriptions", "BLE must not restore event subscriptions.");
+assertNotIncludes(ble, "sendStardustDeviceCommand", "BLE must not expose capture/sync/sleep commands.");
+assertNotIncludes(layout, "DeviceSubscriptionRestorer", "Root layout must not restore BLE subscriptions at startup.");
+assertIncludes(devicesContent, "settings.capabilities", "Devices page must display device capabilities.");
+assertIncludes(devicesContent, "getDeviceCapabilitySummary(device.capabilities)", "Devices page must show friendly capability labels.");
+assertIncludes(devicesContent, "const refreshDeviceState = useCallback", "Devices page must share device and HTTP refresh logic.");
+assertIncludes(devicesContent, "getStardustBleStatus()", "Devices page refresh must include BLE provisioning state.");
+assertIncludes(devicesContent, "await refreshDeviceState();", "Devices page actions must refresh device state.");
+assertIncludes(devicesContent, "networkCaptureUrl", "Devices page capture must require a provisioned HTTP capture URL.");
+assertIncludes(deviceHttp, "syncStardustDeviceHttp", "HTTP device sync must be implemented.");
+assertIncludes(deviceHttp, "captureStardustDeviceHttp", "HTTP device capture must be implemented.");
 assertIncludes(inboxScreen, "inbox.capabilities", "Device inbox must display device capabilities.");
 assertIncludes(inboxScreen, "getDeviceCapabilitySummary(device.capabilities)", "Device inbox must show friendly capability labels.");
 assertIncludes(inboxScreen, "getDeviceStatusLabel", "Device inbox must use localized device status labels.");
@@ -516,21 +506,14 @@ assertIncludes(chatMessages, 't("inbox.importance")', "Chat context cards must d
 assertIncludes(chatMessages, 'item.rationale', "Chat context cards must display memory rationales.");
 
 assertIncludes(ble, "Stardust Sense", "BLE device name must match Stardust Sense.");
-assertIncludes(ble, "sendStardustDeviceCommand", "Mobile BLE commands are missing.");
-assertIncludes(ble, "/^\\d+$/.test", "BLE device uptime timestamps must not be parsed as wall-clock dates.");
-assertIncludes(ble, "syncAfterActivate", "BLE activation must allow command sends without duplicate sync commands.");
-assertIncludes(ble, "activateStardustDevice(db, ble, readyDevice, { syncAfterActivate: false })", "BLE commands must restore subscriptions before writing commands.");
-assertIncludes(ble, "manifestEventId", "BLE manifest events need stable ids that ignore uptime-only changes.");
-assertIncludes(ble, "manifest.bootId", "BLE manifest ids must use firmware boot ids when available.");
-assertIncludes(ble, "manifest.eventCount", "BLE manifest ids must use firmware event counts when available.");
-assertIncludes(ble, "createEventStreamDeviceEvent", "BLE event stream parsing should be shared by reads and notifications.");
-assertIncludes(ble, ".readCharacteristicForService(SERVICE_UUID, EVENT_CHARACTERISTIC_UUID)", "BLE activation must import the current readable event.");
-assertIncludes(ble, "fallbackValue", "BLE device event ids must have a stable payload fallback.");
-assertIncludes(ble, "event-${stableHash(fallbackValue)}", "BLE event fallback ids must dedupe repeated payloads.");
-assertIncludes(ble, "scopedDeviceEventId(deviceId, event.id, encodedValue)", "BLE event notifications must use stable fallback ids.");
+assertIncludes(ble, "PROVISION_CHARACTERISTIC_UUID", "Mobile BLE layer must only keep provisioning.");
+assertIncludes(ble, "readCharacteristicForService(SERVICE_UUID, PROVISION_CHARACTERISTIC_UUID)", "Mobile BLE layer must read provisioning results.");
 assertIncludes(ble, "await ensureBlePermissions();", "BLE permission errors should surface before module import failures.");
-assertIncludes(settings, '"/inbox?tab=devices" as Href', "Settings devices panel must open the device review tab.");
-assertIncludes(settings, "openDeviceInboxForDevice", "Settings device cards must open review filtered to the selected device.");
+assertIncludes(deviceHttp, "fetchJson<HttpDeviceEvent[]>(`${baseUrl}/events`)", "Device events must sync over HTTP.");
+assertIncludes(deviceHttp, "eventMediaUrl", "HTTP device events must preserve media URLs.");
+assertIncludes(deviceHttp, "staticPath", "HTTP device events must support /static file links.");
+assertIncludes(devicesContent, '"/inbox?tab=devices" as Href', "Devices panel must open the device review tab.");
+assertIncludes(devicesContent, "openDeviceInbox", "Devices panel must open device review.");
 assertIncludes(inboxScreen, "params.deviceId", "Device inbox must accept selected device route params.");
 assertIncludes(inboxScreen, "setSelectedDeviceId(params.deviceId)", "Device inbox route params must select devices.");
 assertIncludes(inboxScreen, 'params.tab === "devices"', "Device inbox route params must detect device review routes.");
@@ -541,10 +524,7 @@ assertIncludes(appConfig, '"modes": ["central"]', "BLE plugin must run in centra
 assertIncludes(packageJson, '"expo-dev-client"', "BLE requires a native development build dependency.");
 for (const name of [
   "SERVICE_UUID",
-  "STATUS_CHARACTERISTIC_UUID",
-  "EVENT_CHARACTERISTIC_UUID",
-  "COMMAND_CHARACTERISTIC_UUID",
-  "MANIFEST_CHARACTERISTIC_UUID",
+  "PROVISION_CHARACTERISTIC_UUID",
 ]) {
   const mobileValue = readQuotedConst(ble, name);
   const firmwareValue = readQuotedConst(iotSketch, name);
