@@ -1,128 +1,85 @@
 import {
-  createCandidatesFromToolCards,
-  getMemoryCandidate,
-  listMemoryCandidates,
-  toToolCardsFromCandidates,
-  updateCandidateStatus,
+    resetLocalDataWithSeed,
+    seedWelcomeDataIfEmpty,
+} from "@/lib/db/maintenance";
+import {
+    createCandidatesFromToolCards,
+    getMemoryCandidate,
+    listMemoryCandidates,
+    toToolCardsFromCandidates,
+    updateCandidateStatus,
 } from "@/lib/db/repositories/candidates";
 import {
-  createChatSession,
-  listChatSessionSummaries,
-  loadChatSession,
-  loadLatestChatSession,
-  saveChatSessionSnapshot,
+    createChatSession,
+    listChatSessionSummaries,
+    loadChatSession,
+    loadLatestChatSession,
+    saveChatSessionSnapshot,
 } from "@/lib/db/repositories/chatSessions";
 import {
-  clearDeviceNetworkCaptureUrl,
-  createDeviceEvent,
-  createDevicePhotoEvent,
-  listDeviceEvents,
-  listDevices,
-  promoteDeviceEventToCandidate,
-  updateDeviceStatus,
-  upsertDevice,
+    clearDeviceNetworkCaptureUrl,
+    createDeviceEvent,
+    createDevicePhotoEvent,
+    listDeviceEvents,
+    listDevices,
+    promoteDeviceEventToCandidate,
+    updateDeviceStatus,
+    upsertDevice,
 } from "@/lib/db/repositories/devices";
 import {
-  createEpisode,
-  listEpisodes,
-  listJournalRecords,
-  updateJournalContent,
+    createEpisode,
+    listEpisodes,
+    listJournalRecords,
+    updateJournalContent,
 } from "@/lib/db/repositories/episodes";
-import {
-  archiveReflection,
-  dismissStoredMemory,
-  listEntities,
-  listReflections,
-  listRelations,
-  listStoredMemories,
-  updateReflectionContent,
-  updateStoredMemoryContent,
-} from "@/lib/db/repositories/memoryRecords";
 import { findRelevantKnowledge } from "@/lib/db/repositories/knowledge";
+import {
+    archiveReflection,
+    dismissStoredMemory,
+    listEntities,
+    listReflections,
+    listRelations,
+    listStoredMemories,
+    updateReflectionContent,
+    updateStoredMemoryContent,
+} from "@/lib/db/repositories/memoryRecords";
 import { getPersonalSnapshot } from "@/lib/db/repositories/snapshot";
 import { listJournalDays } from "@/lib/db/repositories/timeline";
 import { migrateDbIfNeeded } from "@/lib/db/schema";
-import { resetLocalDataWithSeed } from "@/lib/db/maintenance";
-import type {
-  ChatSessionSummary,
-  DeviceEventRecord,
-  DeviceRecord,
-  DeviceStatus,
-  EntityRecord,
-  Episode,
-  EpisodeSource,
-  JournalDay,
-  JournalRecord,
-  PersonalSnapshot,
-  ReflectionRecord,
-  RelationRecord,
-  RelevantKnowledge,
-  StoredMemory,
-} from "@/lib/db/types";
 
 export const DATABASE_NAME = "stardust.db";
 export { buildMemoryTree } from "@/lib/db/graph";
-export {
-  createCandidatesFromToolCards,
-  getMemoryCandidate,
-  listMemoryCandidates,
-  toToolCardsFromCandidates,
-  updateCandidateStatus,
-};
-export { createEpisode, listEpisodes, listJournalRecords, updateJournalContent };
-export {
-  clearDeviceNetworkCaptureUrl,
-  createDeviceEvent,
-  createDevicePhotoEvent,
-  listDeviceEvents,
-  listDevices,
-  promoteDeviceEventToCandidate,
-  updateDeviceStatus,
-  upsertDevice,
-};
-export {
-  createChatSession,
-  listChatSessionSummaries,
-  loadChatSession,
-  loadLatestChatSession,
-  saveChatSessionSnapshot,
-};
-export { migrateDbIfNeeded };
-export { resetLocalDataWithSeed };
-export { findRelevantKnowledge };
-export { getPersonalSnapshot };
-export { listJournalDays };
-export {
-  archiveReflection,
-  dismissStoredMemory,
-  listEntities,
-  listReflections,
-  listRelations,
-  listStoredMemories,
-  updateReflectionContent,
-  updateStoredMemoryContent,
-};
 export type {
-  CandidateKind,
-  CandidateStatus,
-  ChatSessionSummary,
-  DeviceEventRecord,
-  DeviceRecord,
-  DeviceStatus,
-  EntityRecord,
-  Episode,
-  EpisodeSource,
-  JournalDay,
-  JournalEntry,
-  JournalRecord,
-  MemoryAtomType,
-  MemoryCandidate,
-  PersonalSnapshot,
-  ReflectionRecord,
-  RelationRecord,
-  RelevantKnowledge,
-  StoredMemory,
+    CandidateKind,
+    CandidateStatus,
+    ChatSessionSummary,
+    DeviceEventRecord,
+    DeviceRecord,
+    DeviceStatus,
+    EntityRecord,
+    Episode,
+    EpisodeSource,
+    JournalDay,
+    JournalEntry,
+    JournalRecord,
+    MemoryAtomType,
+    MemoryCandidate,
+    PersonalSnapshot,
+    ReflectionRecord,
+    RelationRecord,
+    RelevantKnowledge,
+    StoredMemory
 } from "@/lib/db/types";
+export {
+    archiveReflection, clearDeviceNetworkCaptureUrl, createCandidatesFromToolCards, createChatSession, createDeviceEvent,
+    createDevicePhotoEvent, createEpisode, dismissStoredMemory, findRelevantKnowledge, getMemoryCandidate, getPersonalSnapshot, listChatSessionSummaries, listDeviceEvents,
+    listDevices, listEntities, listEpisodes, listJournalDays, listJournalRecords, listMemoryCandidates, listReflections,
+    listRelations,
+    listStoredMemories, loadChatSession,
+    loadLatestChatSession, migrateDbIfNeeded, promoteDeviceEventToCandidate, resetLocalDataWithSeed, saveChatSessionSnapshot, seedWelcomeDataIfEmpty, toToolCardsFromCandidates,
+    updateCandidateStatus, updateDeviceStatus, updateJournalContent, updateReflectionContent,
+    updateStoredMemoryContent, upsertDevice
+};
 
 const createId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;

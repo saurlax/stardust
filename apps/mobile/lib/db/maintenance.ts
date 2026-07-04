@@ -26,7 +26,8 @@ const seedMessages = (createdAt: string): ChatMessage[] => [
   {
     id: "seed-assistant-1",
     role: "assistant",
-    content: "可以。从聊天、图片、分享和设备捕获开始，Stardust 会把值得保留的内容放进审核列表，确认后再成为长期记忆。",
+    content:
+      "可以。从聊天、图片、分享和设备捕获开始，Stardust 会把值得保留的内容放进审核列表，确认后再成为长期记忆。",
     status: "done",
     createdAt,
     toolCards: [
@@ -37,7 +38,8 @@ const seedMessages = (createdAt: string): ChatMessage[] => [
         status: "accepted",
         createdAt,
         payload: {
-          content: "用户正在试用 Stardust，希望用它记录生活、整理待办并沉淀长期记忆。",
+          content:
+            "用户正在试用 Stardust，希望用它记录生活、整理待办并沉淀长期记忆。",
           memoryType: "preference",
           importance: 3,
           rationale: "这有助于后续对话用更合适的方式介绍功能和示例。",
@@ -111,7 +113,8 @@ async function seedWelcomeData(db: SQLiteDatabase) {
     id: seedEpisodeId,
     source: "chat",
     title: "Welcome",
-    content: "A short welcome conversation showing how Stardust turns useful moments into reviewable memory.",
+    content:
+      "A short welcome conversation showing how Stardust turns useful moments into reviewable memory.",
     metadata: { seed: true, sessionId: seedSessionId },
     createdAt,
   });
@@ -159,7 +162,8 @@ async function seedWelcomeData(db: SQLiteDatabase) {
   await insertMemoryFts(db, {
     id: seedMemoryId,
     type: "preference",
-    content: "用户正在试用 Stardust，希望用它记录生活、整理待办并沉淀长期记忆。",
+    content:
+      "用户正在试用 Stardust，希望用它记录生活、整理待办并沉淀长期记忆。",
   });
 
   await db.runAsync(
@@ -180,7 +184,8 @@ async function seedWelcomeData(db: SQLiteDatabase) {
   await insertReflectionFts(db, {
     id: seedReflectionId,
     title: "本地优先",
-    content: "Stardust 会先把新内容放在本机，重要信息经过确认后才进入长期记忆。",
+    content:
+      "Stardust 会先把新内容放在本机，重要信息经过确认后才进入长期记忆。",
   });
 
   await db.runAsync(
@@ -214,10 +219,21 @@ async function seedWelcomeData(db: SQLiteDatabase) {
   );
 }
 
+export async function seedWelcomeDataIfEmpty(db: SQLiteDatabase) {
+  const existingSeed = await db.getFirstAsync<{ memory_id: string }>(
+    "SELECT memory_id FROM memory_atoms WHERE memory_id = ? LIMIT 1",
+    seedMemoryId,
+  );
+  if (existingSeed) return;
+
+  await runInTransaction(db, async () => {
+    await seedWelcomeData(db);
+  });
+}
+
 export async function resetLocalDataWithSeed(db: SQLiteDatabase) {
   await runInTransaction(db, async () => {
     await clearCurrentData(db);
     await seedWelcomeData(db);
   });
 }
-

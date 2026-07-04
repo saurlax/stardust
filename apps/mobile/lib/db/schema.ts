@@ -221,11 +221,14 @@ async function dropLegacyTables(db: SQLiteDatabase) {
 }
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
-  const versionRow = await db.getFirstAsync<{ user_version: number }>("PRAGMA user_version");
+  const versionRow = await db.getFirstAsync<{ user_version: number }>(
+    "PRAGMA user_version",
+  );
   const currentVersion = versionRow?.user_version ?? 0;
-  if (currentVersion === DATABASE_VERSION) return;
+  if (currentVersion === DATABASE_VERSION) return false;
 
   await dropLegacyTables(db);
   await createCurrentTables(db);
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
+  return currentVersion === 0;
 }

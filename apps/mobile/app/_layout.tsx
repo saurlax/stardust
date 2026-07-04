@@ -3,20 +3,26 @@ import { ThemeProvider } from "@react-navigation/native";
 import { PortalHost } from "@rn-primitives/portal";
 import { router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import { StatusBar } from "expo-status-bar";
 import { ShareIntentProvider } from "expo-share-intent";
 import { SQLiteProvider } from "expo-sqlite";
+import { StatusBar } from "expo-status-bar";
 import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { NebulaView } from "@/components/NebulaView";
 import { PersonalDrawerContent } from "@/components/PersonalDrawerContent";
 import { ConfigProvider } from "@/context/config";
-import { DATABASE_NAME, migrateDbIfNeeded } from "@/lib/db";
+import {
+    DATABASE_NAME,
+    migrateDbIfNeeded,
+    seedWelcomeDataIfEmpty,
+} from "@/lib/db";
 import { t } from "@/lib/i18n";
 import { NAV_THEME } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import "../global.css";
+
+import type { SQLiteDatabase } from "expo-sqlite";
 
 function HeaderBackButton({ color }: { color: string }) {
   return (
@@ -39,32 +45,54 @@ function HeaderBackButton({ color }: { color: string }) {
   );
 }
 
+async function initializeDb(db: SQLiteDatabase) {
+  const isFirstRun = await migrateDbIfNeeded(db);
+  if (isFirstRun) await seedWelcomeDataIfEmpty(db);
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const navTheme = NAV_THEME[colorScheme];
   const detailScreenOptions = {
     headerLeft: () => <HeaderBackButton color={navTheme.colors.text} />,
   };
-  const drawerIconColor = ({ color, size }: { color: string; size: number }) => ({
-    index: <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />,
+  const drawerIconColor = ({
+    color,
+    size,
+  }: {
+    color: string;
+    size: number;
+  }) => ({
+    index: (
+      <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />
+    ),
     inbox: <Ionicons name="file-tray-full-outline" size={size} color={color} />,
     memory: <Ionicons name="git-network-outline" size={size} color={color} />,
     tasks: <Ionicons name="checkbox-outline" size={size} color={color} />,
     journal: <Ionicons name="journal-outline" size={size} color={color} />,
-    devices: <Ionicons name="hardware-chip-outline" size={size} color={color} />,
+    devices: (
+      <Ionicons name="hardware-chip-outline" size={size} color={color} />
+    ),
   });
 
   return (
     <GestureHandlerRootView style={styles.root}>
       <ShareIntentProvider options={{ resetOnBackground: true }}>
-        <SQLiteProvider databaseName={DATABASE_NAME} onInit={migrateDbIfNeeded}>
+        <SQLiteProvider databaseName={DATABASE_NAME} onInit={initializeDb}>
           <ConfigProvider>
             <ThemeProvider value={navTheme}>
-              <View className={cn("flex-1 bg-background", colorScheme === "dark" && "dark")}>
+              <View
+                className={cn(
+                  "flex-1 bg-background",
+                  colorScheme === "dark" && "dark",
+                )}
+              >
                 <NebulaView style={styles.background} />
                 <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
                 <Drawer
-                  drawerContent={(props) => <PersonalDrawerContent {...props} />}
+                  drawerContent={(props) => (
+                    <PersonalDrawerContent {...props} />
+                  )}
                   screenOptions={{
                     headerShadowVisible: false,
                     headerStyle: { backgroundColor: navTheme.colors.card },
@@ -76,7 +104,10 @@ export default function RootLayout() {
                       backgroundColor: navTheme.colors.card,
                       width: 296,
                     },
-                    overlayColor: colorScheme === "dark" ? "rgba(0,0,0,0.48)" : "rgba(0,0,0,0.28)",
+                    overlayColor:
+                      colorScheme === "dark"
+                        ? "rgba(0,0,0,0.48)"
+                        : "rgba(0,0,0,0.28)",
                     swipeEdgeWidth: 64,
                   }}
                 >
