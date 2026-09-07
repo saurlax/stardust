@@ -7,9 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "pnpm --parallel --filter ./apps/mobile --filter ./apps/api run dev",
+    "dev": "pnpm --filter ./apps/mobile run dev",
     "dev:mobile": "pnpm --filter ./apps/mobile run dev",
-    "dev:api": "pnpm --filter ./apps/api run dev",
     "lint": "pnpm --filter ./apps/mobile run lint",
     "smoke:web": "pnpm --filter ./apps/mobile run smoke:web",
     "typecheck": "pnpm --filter ./apps/mobile run typecheck",

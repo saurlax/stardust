@@ -114,7 +114,6 @@ Stardust 目前是一个 local-first 的融合记忆原型：
 - Node.js 18+
 - pnpm 10.17.1+
 - Expo CLI
-- Go 1.21+
 
 ### 快速开始
 
@@ -128,17 +127,9 @@ pnpm install
 
 # 启动移动端
 pnpm dev:mobile
-
-# 启动 API 服务
-pnpm dev:api
 ```
 
 ### 环境变量
-
-```bash
-# API 服务
-cp apps/api/.env.example apps/api/.env
-```
 
 移动端不使用 `.env` 配置运行时地址。
 所有连接信息都通过设置页填写，并保存在设备本地的 AsyncStorage 中。
@@ -183,8 +174,7 @@ STARDUST_IOT_FQBN=esp32:esp32:your_board pnpm verify:iot
 ```
 stardust/
 ├── apps/
-│   ├── mobile/        # Expo / React Native 移动端应用
-│   └── api/           # Go Fiber API 服务
+│   └── mobile/        # Expo / React Native mobile app
 ├── iot/               # XIAO ESP32S3 Sense BLE 固件
 ├── packages/          # 共享包
 └── AGENTS.md         # 项目开发指南
@@ -198,9 +188,8 @@ stardust/
 
 ```bash
 pnpm install             # 安装依赖
-pnpm dev                 # 同时启动移动端与 API
+pnpm dev                 # Start the mobile app
 pnpm dev:mobile          # 仅启动移动端
-pnpm dev:api             # 仅启动 API
 pnpm lint                # 代码检查
 pnpm typecheck           # TypeScript 类型检查
 pnpm verify              # 运行记忆、IoT、Web smoke、类型和 lint 验证
@@ -229,11 +218,6 @@ pnpm smoke:web           # 导出 Expo Web 静态产物并检查基础 bundle
 - Skia
 - d3-force
 - react-native-ble-plx
-
-**API**
-
-- Go
-- Fiber v3
 
 ## 贡献
 

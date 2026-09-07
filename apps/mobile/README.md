@@ -1,11 +1,12 @@
 # Mobile development
 
-Run these commands from the repository root in separate terminals:
+Start Web from the repository root:
 
 ```sh
-pnpm dev:api
 pnpm --filter ./apps/mobile run web
 ```
+
+Run a separate backend at the configured target to use the API routes.
 
 The Metro development server proxies `/api`, `/api/*`, and `/health` to
 `http://127.0.0.1:8080`, preserving paths, query strings, request bodies, and

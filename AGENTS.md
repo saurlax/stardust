@@ -1,7 +1,6 @@
 This repository is a pnpm monorepo with:
 
 - `apps/mobile`: Expo / React Native mobile app
-- `apps/api`: Go Fiber API
 - `packages/*`: reserved for shared packages
 
 Before carrying out tasks related to a library, framework, SDK, API, CLI tool, or cloud service, first consult the Context7 documentation.
@@ -15,17 +14,14 @@ The entire code repository should remain in English. Add comments only when nece
 Run all commands from the repository root unless noted otherwise.
 
 - `pnpm install`: Install workspace dependencies using pnpm `10.17.1`.
-- `pnpm dev`: Start the Expo mobile app and Go API together through workspace filters.
+- `pnpm dev`: Start the Expo mobile app through its workspace filter.
 - `pnpm dev:mobile`: Start only `apps/mobile` using Expo.
-- `pnpm dev:api`: Start only `apps/api`; this runs `go run ./cmd/server`.
 - `pnpm lint`: Run mobile linting through `expo lint`.
 - `pnpm typecheck`: Run mobile TypeScript checking through `tsc --noEmit`.
 - `pnpm --filter ./apps/mobile run android`: Run the Expo app on Android with `expo run:android`.
 - `pnpm --filter ./apps/mobile run ios`: Run the Expo app on iOS with `expo run:ios`.
 - `pnpm --filter ./apps/mobile run web`: Start the Expo web target.
 - `cd apps/mobile/android && $env:EXPO_NO_METRO_WORKSPACE_ROOT="1"; .\gradlew.bat assembleRelease --no-daemon`: Build a local Android release APK on Windows PowerShell.
-- `cd apps/api && go run ./cmd/server`: Run the API directly from the Go module.
-- `cd apps/api && go test ./...`: Run Go tests when API test files are added.
 
 There is currently no root `build` or `test` script. Do not assume one exists without checking `package.json`.
 
@@ -45,8 +41,6 @@ The chat screen integrates image picking, camera access, share-intent input, loc
 
 BLE screen-off capture is designed around the in-repository `iot` firmware for Seeed Studio XIAO ESP32S3 Sense. Mobile BLE uses `react-native-ble-plx`, so scanning and subscription require a native development build rather than Expo Go or web.
 
-`apps/api` is a separate Go module. The API entry point is `apps/api/cmd/server/main.go`, which loads configuration and starts the HTTP server. Configuration lives in `internal/config`, reading `PORT` and `CORS_ALLOW_ORIGINS` with local development defaults. HTTP setup lives in `internal/http/router.go`, using Fiber v3 middleware for recovery, logging, and CORS. The current routes are `GET /health` and `GET /api/v1/ping`.
-
-Environment examples exist in both apps. API uses `apps/api/.env.example` for `PORT` and CORS origins. Mobile runtime AI connection details are entered in the settings screen and stored locally.
+The mobile Metro development server proxies `/api`, `/api/*`, and `/health` to `DEV_API_PROXY_TARGET` (default `http://127.0.0.1:8080`). Run a separate backend at that address when using these routes. Mobile AI connection settings are entered in the settings screen and stored locally.
 
 Commit messages are checked by Husky through `.husky/commit-msg`, which runs commitlint with the conventional commits config.
